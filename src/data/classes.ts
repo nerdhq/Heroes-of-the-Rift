@@ -9,6 +9,12 @@ export const CLASS_CONFIGS: Record<ClassType, ClassConfig> = {
     resourceName: "Rage",
     maxResource: 10,
     color: "#dc2626", // red
+    specialAbility: {
+      name: "Berserker Strike",
+      description: "Deal 25 damage to all enemies",
+      effects: [{ type: "damage", value: 25, target: "allMonsters" }],
+    },
+    enhanceBonus: { damageBonus: 8, healBonus: 0, shieldBonus: 5 },
   },
   rogue: {
     type: "rogue",
@@ -18,6 +24,15 @@ export const CLASS_CONFIGS: Record<ClassType, ClassConfig> = {
     resourceName: "Combo",
     maxResource: 5,
     color: "#7c3aed", // purple
+    specialAbility: {
+      name: "Assassinate",
+      description: "Deal 40 damage to one enemy and gain stealth",
+      effects: [
+        { type: "damage", value: 40, target: "monster" },
+        { type: "stealth", value: 2, target: "self", duration: 2 },
+      ],
+    },
+    enhanceBonus: { damageBonus: 10, healBonus: 0, shieldBonus: 0 },
   },
   paladin: {
     type: "paladin",
@@ -27,6 +42,12 @@ export const CLASS_CONFIGS: Record<ClassType, ClassConfig> = {
     resourceName: "Faith",
     maxResource: 8,
     color: "#eab308", // yellow
+    specialAbility: {
+      name: "Divine Shield",
+      description: "Grant 15 shield to all allies",
+      effects: [{ type: "shield", value: 15, target: "allAllies" }],
+    },
+    enhanceBonus: { damageBonus: 5, healBonus: 8, shieldBonus: 10 },
   },
   mage: {
     type: "mage",
@@ -36,6 +57,12 @@ export const CLASS_CONFIGS: Record<ClassType, ClassConfig> = {
     resourceName: "Arcane",
     maxResource: 12,
     color: "#3b82f6", // blue
+    specialAbility: {
+      name: "Arcane Blast",
+      description: "Deal 35 damage to all enemies",
+      effects: [{ type: "damage", value: 35, target: "allMonsters" }],
+    },
+    enhanceBonus: { damageBonus: 12, healBonus: 0, shieldBonus: 0 },
   },
   priest: {
     type: "priest",
@@ -45,6 +72,15 @@ export const CLASS_CONFIGS: Record<ClassType, ClassConfig> = {
     resourceName: "Devotion",
     maxResource: 10,
     color: "#f8fafc", // white
+    specialAbility: {
+      name: "Mass Heal",
+      description: "Heal all allies for 20 HP and cleanse debuffs",
+      effects: [
+        { type: "heal", value: 20, target: "allAllies" },
+        { type: "cleanse", target: "allAllies" },
+      ],
+    },
+    enhanceBonus: { damageBonus: 0, healBonus: 12, shieldBonus: 5 },
   },
   bard: {
     type: "bard",
@@ -54,6 +90,14 @@ export const CLASS_CONFIGS: Record<ClassType, ClassConfig> = {
     resourceName: "Melody",
     maxResource: 6,
     color: "#ec4899", // pink
+    specialAbility: {
+      name: "Battle Hymn",
+      description: "Grant +5 strength to all allies for 3 turns",
+      effects: [
+        { type: "strength", value: 5, target: "allAllies", duration: 3 },
+      ],
+    },
+    enhanceBonus: { damageBonus: 3, healBonus: 5, shieldBonus: 5 },
   },
   archer: {
     type: "archer",
@@ -63,6 +107,12 @@ export const CLASS_CONFIGS: Record<ClassType, ClassConfig> = {
     resourceName: "Focus",
     maxResource: 8,
     color: "#22c55e", // green
+    specialAbility: {
+      name: "Piercing Shot",
+      description: "Deal 30 damage to all enemies (ignores shields)",
+      effects: [{ type: "damage", value: 30, target: "allMonsters" }],
+    },
+    enhanceBonus: { damageBonus: 10, healBonus: 0, shieldBonus: 0 },
   },
   barbarian: {
     type: "barbarian",
@@ -72,6 +122,15 @@ export const CLASS_CONFIGS: Record<ClassType, ClassConfig> = {
     resourceName: "Fury",
     maxResource: 10,
     color: "#f97316", // orange
+    specialAbility: {
+      name: "Rampage",
+      description: "Deal 20 damage to all enemies and gain 10 HP",
+      effects: [
+        { type: "damage", value: 20, target: "allMonsters" },
+        { type: "heal", value: 10, target: "self" },
+      ],
+    },
+    enhanceBonus: { damageBonus: 8, healBonus: 5, shieldBonus: 0 },
   },
 };
 

@@ -9,9 +9,18 @@ import {
   Target,
   HelpCircle,
   Dice6,
+  FastForward,
+  Settings,
 } from "lucide-react";
 import { HelpModal } from "./HelpModal";
-import type { Card, Player, Monster, StatusEffect, Rarity } from "../types";
+import type {
+  Card,
+  Player,
+  Monster,
+  StatusEffect,
+  Rarity,
+  GameSpeed,
+} from "../types";
 
 export function GameScreen() {
   const [showHelp, setShowHelp] = useState(false);
@@ -41,6 +50,22 @@ export function GameScreen() {
   const needsTarget = needsTargetSelection();
   const targetType = getTargetType();
   const setAnimation = useGameStore((state) => state.setAnimation);
+  const gameSpeed = useGameStore((state) => state.gameSpeed);
+  const setGameSpeed = useGameStore((state) => state.setGameSpeed);
+  const skipAnimations = useGameStore((state) => state.skipAnimations);
+  const toggleSkipAnimations = useGameStore(
+    (state) => state.toggleSkipAnimations
+  );
+  const [showSpeedSettings, setShowSpeedSettings] = useState(false);
+
+  // Special ability and enhancement
+  const canUseSpecialAbility = useGameStore(
+    (state) => state.canUseSpecialAbility
+  );
+  const canEnhanceCard = useGameStore((state) => state.canEnhanceCard);
+  const useSpecialAbility = useGameStore((state) => state.useSpecialAbility);
+  const setEnhanceMode = useGameStore((state) => state.setEnhanceMode);
+  const enhanceMode = useGameStore((state) => state.enhanceMode);
 
   // Auto-scroll battle log to bottom when new entries are added
   useEffect(() => {
@@ -237,7 +262,7 @@ export function GameScreen() {
         </div>
 
         {/* HP Bar */}
-        <div className="mb-3">
+        <div className="mb-2">
           <div className="flex items-center justify-between text-xs mb-1">
             <span className="flex items-center gap-1 text-red-400">
               <Heart className="w-3 h-3" />
@@ -252,6 +277,33 @@ export function GameScreen() {
           </div>
           {renderHealthBar(player.hp, player.maxHp, "bg-red-500")}
         </div>
+
+        {/* Resource Bar */}
+        {player.maxResource > 0 && (
+          <div className="mb-2">
+            <div className="flex items-center justify-between text-xs mb-1">
+              <span style={{ color: config.color }} className="font-medium">
+                {config.resourceName}
+              </span>
+              <span className="text-stone-400">
+                {player.resource}/{player.maxResource}
+              </span>
+            </div>
+            <div className="w-full h-2 bg-stone-700 rounded-full overflow-hidden">
+              <div
+                className={`h-full transition-all duration-300 ${
+                  player.resource >= player.maxResource
+                    ? "animate-resource-glow"
+                    : ""
+                }`}
+                style={{
+                  width: `${(player.resource / player.maxResource) * 100}%`,
+                  backgroundColor: config.color,
+                }}
+              />
+            </div>
+          </div>
+        )}
 
         {/* Aggro - show for all players */}
         {totalAggro > 0 && (
@@ -400,20 +452,29 @@ export function GameScreen() {
     const projectedTotal = currentPlayer
       ? card.aggro + currentPlayer.diceAggro
       : card.aggro;
+    const willBeEnhanced = enhanceMode && isSelected && canEnhanceCard();
 
     return (
       <button
         key={card.id}
         onClick={() => isSelectable && selectCard(card.id)}
         disabled={!isSelectable}
-        className={`p-4 rounded-xl border-2 transition-all transform text-left ${
+        className={`p-4 rounded-xl border-2 transition-all transform text-left relative ${
           isSelectable ? "hover:scale-105 cursor-pointer" : "cursor-default"
         } ${
-          isSelected
+          willBeEnhanced
+            ? "border-amber-400 ring-2 ring-amber-400 bg-gradient-to-br from-amber-900/50 to-purple-900/50 animate-card-glow"
+            : isSelected
             ? "border-amber-400 ring-2 ring-amber-400 bg-amber-900/30 animate-card-glow"
             : rarityStyle
         }`}
       >
+        {/* Enhanced indicator */}
+        {willBeEnhanced && (
+          <div className="absolute -top-2 -right-2 bg-amber-500 text-amber-900 text-xs px-2 py-0.5 rounded-full font-bold">
+            ✨ ENHANCED
+          </div>
+        )}
         <div className="flex justify-between items-start mb-2">
           <h3 className={`text-lg font-bold ${rarityText}`}>{card.name}</h3>
           <span
@@ -440,13 +501,81 @@ export function GameScreen() {
   return (
     <div className="h-screen bg-gradient-to-b from-stone-900 via-stone-800 to-stone-900 p-3 overflow-hidden relative flex flex-col">
       {/* Help Button - Fixed position */}
-      <button
-        onClick={() => setShowHelp(true)}
-        className="absolute top-3 right-3 z-10 bg-stone-800 hover:bg-stone-700 text-amber-400 p-2 rounded-full border border-stone-600 transition-colors"
-        title="Game Guide"
-      >
-        <HelpCircle className="w-5 h-5" />
-      </button>
+      {/* Top Right Controls */}
+      <div className="absolute top-3 right-3 z-10 flex gap-2">
+        {/* Speed Settings Button */}
+        <button
+          onClick={() => setShowSpeedSettings(!showSpeedSettings)}
+          className={`bg-stone-800 hover:bg-stone-700 p-2 rounded-full border transition-colors ${
+            gameSpeed !== "normal" || skipAnimations
+              ? "text-green-400 border-green-600"
+              : "text-amber-400 border-stone-600"
+          }`}
+          title="Speed Settings"
+        >
+          <FastForward className="w-5 h-5" />
+        </button>
+
+        {/* Help Button */}
+        <button
+          onClick={() => setShowHelp(true)}
+          className="bg-stone-800 hover:bg-stone-700 text-amber-400 p-2 rounded-full border border-stone-600 transition-colors"
+          title="Game Guide"
+        >
+          <HelpCircle className="w-5 h-5" />
+        </button>
+      </div>
+
+      {/* Speed Settings Dropdown */}
+      {showSpeedSettings && (
+        <div className="absolute top-14 right-3 z-20 bg-stone-800 rounded-lg border border-stone-600 p-4 shadow-xl w-64">
+          <div className="flex items-center gap-2 mb-3 text-amber-400">
+            <Settings className="w-4 h-4" />
+            <span className="font-bold">Speed Settings</span>
+          </div>
+
+          {/* Speed Options */}
+          <div className="space-y-2 mb-4">
+            <label className="text-stone-300 text-sm">Animation Speed</label>
+            <div className="flex gap-1">
+              {(["normal", "fast", "instant"] as GameSpeed[]).map((speed) => (
+                <button
+                  key={speed}
+                  onClick={() => setGameSpeed(speed)}
+                  className={`flex-1 py-2 px-3 rounded text-sm font-medium transition-colors ${
+                    gameSpeed === speed
+                      ? "bg-amber-600 text-amber-100"
+                      : "bg-stone-700 text-stone-300 hover:bg-stone-600"
+                  }`}
+                >
+                  {speed === "normal" ? "1x" : speed === "fast" ? "2.5x" : "⚡"}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Skip Animations Toggle */}
+          <div className="flex items-center justify-between">
+            <span className="text-stone-300 text-sm">Skip All Animations</span>
+            <button
+              onClick={toggleSkipAnimations}
+              className={`w-12 h-6 rounded-full transition-colors ${
+                skipAnimations ? "bg-green-600" : "bg-stone-600"
+              }`}
+            >
+              <div
+                className={`w-5 h-5 rounded-full bg-white transition-transform ${
+                  skipAnimations ? "translate-x-6" : "translate-x-0.5"
+                }`}
+              />
+            </button>
+          </div>
+
+          <p className="text-stone-500 text-xs mt-3">
+            Speed up combat animations for faster gameplay
+          </p>
+        </div>
+      )}
 
       {/* Help Modal */}
       <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} />
@@ -558,20 +687,77 @@ export function GameScreen() {
               </p>
             )}
 
+            {/* Special Ability Button - when resource bar is full */}
+            {phase === "SELECT" && canUseSpecialAbility() && currentPlayer && (
+              <div className="mt-3 p-3 bg-gradient-to-r from-purple-900/50 to-pink-900/50 rounded-lg border border-purple-500">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-purple-300 font-bold text-sm">
+                    ⚡ {CLASS_CONFIGS[currentPlayer.class].resourceName} Full!
+                  </span>
+                  <span className="text-purple-400 text-xs">
+                    Choose how to spend it:
+                  </span>
+                </div>
+                <div className="flex gap-2 justify-center">
+                  <button
+                    onClick={useSpecialAbility}
+                    className="flex-1 bg-gradient-to-r from-purple-700 to-purple-600 hover:from-purple-600 hover:to-purple-500 text-purple-100 font-bold py-2 px-4 rounded-lg transition-all transform hover:scale-105 shadow-lg text-sm"
+                    title={
+                      CLASS_CONFIGS[currentPlayer.class].specialAbility
+                        .description
+                    }
+                  >
+                    🌟 {CLASS_CONFIGS[currentPlayer.class].specialAbility.name}
+                  </button>
+                  <button
+                    onClick={() => setEnhanceMode(!enhanceMode)}
+                    className={`flex-1 font-bold py-2 px-4 rounded-lg transition-all transform hover:scale-105 shadow-lg text-sm ${
+                      enhanceMode
+                        ? "bg-gradient-to-r from-amber-600 to-amber-500 text-amber-100"
+                        : "bg-gradient-to-r from-amber-700 to-amber-600 hover:from-amber-600 hover:to-amber-500 text-amber-100"
+                    }`}
+                  >
+                    {enhanceMode ? "✨ Enhancing..." : "✨ Enhance Card"}
+                  </button>
+                </div>
+                <p className="text-purple-400/70 text-xs mt-2 text-center">
+                  {enhanceMode
+                    ? `Select a card to enhance (+${
+                        CLASS_CONFIGS[currentPlayer.class].enhanceBonus
+                          .damageBonus
+                      } dmg, +${
+                        CLASS_CONFIGS[currentPlayer.class].enhanceBonus
+                          .healBonus
+                      } heal, +${
+                        CLASS_CONFIGS[currentPlayer.class].enhanceBonus
+                          .shieldBonus
+                      } shield)`
+                    : CLASS_CONFIGS[currentPlayer.class].specialAbility
+                        .description}
+                </p>
+              </div>
+            )}
+
             {/* Confirm Card Selection Button - simplified to single click */}
             {phase === "SELECT" && selectedCardId && (
               <div className="mt-3 text-center">
                 <button
                   onClick={handleConfirmCard}
-                  className="bg-gradient-to-r from-green-700 to-green-600 hover:from-green-600 hover:to-green-500 text-green-100 font-bold py-3 px-8 rounded-lg transition-all transform hover:scale-105 shadow-lg shadow-green-900/50"
+                  className={`font-bold py-3 px-8 rounded-lg transition-all transform hover:scale-105 shadow-lg ${
+                    enhanceMode && canEnhanceCard()
+                      ? "bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-amber-100 shadow-amber-900/50"
+                      : "bg-gradient-to-r from-green-700 to-green-600 hover:from-green-600 hover:to-green-500 text-green-100 shadow-green-900/50"
+                  }`}
                 >
-                  {needsTarget &&
-                  ((targetType === "monster" &&
-                    monsters.filter((m) => m.isAlive).length > 1) ||
-                    (targetType === "ally" &&
-                      players.filter(
-                        (p) => p.isAlive && p.id !== currentPlayer?.id
-                      ).length > 1))
+                  {enhanceMode && canEnhanceCard()
+                    ? "Play Enhanced Card ✨"
+                    : needsTarget &&
+                      ((targetType === "monster" &&
+                        monsters.filter((m) => m.isAlive).length > 1) ||
+                        (targetType === "ally" &&
+                          players.filter(
+                            (p) => p.isAlive && p.id !== currentPlayer?.id
+                          ).length > 1))
                     ? "Select Target →"
                     : "Play Card ⚔️"}
                 </button>
@@ -691,15 +877,29 @@ export function GameScreen() {
             >
               {animation.diceRoll ?? "?"}
             </div>
-            {!animation.diceRolling && animation.diceRoll !== null && (
-              <p className="text-stone-300">
-                {currentPlayer?.name} rolled a{" "}
-                <span className="text-amber-400 font-bold">
-                  {animation.diceRoll}
-                </span>
-                !
-              </p>
-            )}
+            {!animation.diceRolling &&
+              animation.diceRoll !== null &&
+              currentPlayer && (
+                <div className="text-center">
+                  <p className="text-stone-300">
+                    {currentPlayer.name} rolled a{" "}
+                    <span className="text-amber-400 font-bold">
+                      {animation.diceRoll}
+                    </span>
+                    !
+                  </p>
+                  <p className="text-lg text-amber-300 mt-2">
+                    Total Aggro:{" "}
+                    <span className="font-bold text-amber-400">
+                      {currentPlayer.baseAggro + animation.diceRoll}
+                    </span>
+                    <span className="text-stone-400 text-sm ml-2">
+                      ({currentPlayer.baseAggro} base + {animation.diceRoll}{" "}
+                      roll)
+                    </span>
+                  </p>
+                </div>
+              )}
             {animation.diceRolling && (
               <p className="text-stone-400 animate-pulse">Rolling...</p>
             )}
@@ -747,6 +947,33 @@ export function GameScreen() {
           })}
         </div>
       )}
+
+      {/* Floating Damage Numbers */}
+      {animation.damageNumbers.map((dmg) => {
+        // Find the target element position - for now, render centered on screen
+        // In a more complex implementation, we'd track DOM positions
+        const isPlayer = dmg.targetId.startsWith("player");
+        return (
+          <div
+            key={dmg.id}
+            className={`fixed z-50 pointer-events-none animate-damage-float font-bold text-3xl ${
+              dmg.type === "damage"
+                ? "text-red-500"
+                : dmg.type === "heal"
+                ? "text-green-500"
+                : "text-blue-500"
+            }`}
+            style={{
+              left: isPlayer ? "15%" : "60%",
+              top: "40%",
+              textShadow: "2px 2px 4px rgba(0,0,0,0.8)",
+            }}
+          >
+            {dmg.type === "damage" ? "-" : "+"}
+            {dmg.value}
+          </div>
+        );
+      })}
     </div>
   );
 }

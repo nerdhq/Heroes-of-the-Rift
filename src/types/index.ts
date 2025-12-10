@@ -157,6 +157,15 @@ export interface Monster {
 }
 
 // ============================================
+// SPECIAL ABILITY
+// ============================================
+export interface SpecialAbility {
+  name: string;
+  description: string;
+  effects: Effect[];
+}
+
+// ============================================
 // CLASS CONFIG
 // ============================================
 export interface ClassConfig {
@@ -167,6 +176,12 @@ export interface ClassConfig {
   resourceName: string;
   maxResource: number;
   color: string;
+  specialAbility: SpecialAbility;
+  enhanceBonus: {
+    damageBonus: number;
+    healBonus: number;
+    shieldBonus: number;
+  };
 }
 
 // ============================================
@@ -206,6 +221,19 @@ export interface AnimationState {
     type: "damage" | "heal" | "shield";
     targetId: string;
   }[];
+}
+
+// ============================================
+// SPEED SETTINGS
+// ============================================
+export type GameSpeed = "normal" | "fast" | "instant";
+
+// ============================================
+// SAVED PARTY (for quick restart)
+// ============================================
+export interface SavedParty {
+  classes: ClassType[];
+  names: string[];
 }
 
 // ============================================
@@ -251,4 +279,14 @@ export interface GameState {
 
   // Animation state
   animation: AnimationState;
+
+  // Speed settings
+  gameSpeed: GameSpeed;
+  skipAnimations: boolean;
+
+  // Saved party for quick restart
+  savedParty: SavedParty | null;
+
+  // Enhancement mode (spend resources to boost cards)
+  enhanceMode: boolean;
 }

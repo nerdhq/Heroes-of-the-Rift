@@ -1,11 +1,13 @@
 import { useGameStore } from "../store/gameStore";
-import { Trophy, RotateCcw, Crown } from "lucide-react";
+import { Trophy, Crown, Users, Shuffle } from "lucide-react";
 
 export function VictoryScreen() {
   const round = useGameStore((state) => state.round);
   const maxRounds = useGameStore((state) => state.maxRounds);
   const players = useGameStore((state) => state.players);
-  const resetGame = useGameStore((state) => state.resetGame);
+  const savedParty = useGameStore((state) => state.savedParty);
+  const playAgainSameParty = useGameStore((state) => state.playAgainSameParty);
+  const playAgainNewParty = useGameStore((state) => state.playAgainNewParty);
 
   const alivePlayers = players.filter((p) => p.isAlive);
   const defeatedDragon = round > maxRounds || round === maxRounds;
@@ -86,14 +88,30 @@ export function VictoryScreen() {
       )}
 
       {/* Actions */}
-      <div className="flex gap-4">
-        <button
-          onClick={resetGame}
-          className="flex items-center gap-2 bg-gradient-to-r from-amber-700 to-amber-600 hover:from-amber-600 hover:to-amber-500 text-amber-100 font-bold py-4 px-8 rounded-lg text-xl transition-all transform hover:scale-105 shadow-lg shadow-amber-900/50"
-        >
-          <RotateCcw className="w-6 h-6" />
-          {defeatedDragon ? "New Adventure" : "Play Again"}
-        </button>
+      <div className="flex flex-col gap-4 items-center">
+        <div className="flex gap-4">
+          {savedParty && (
+            <button
+              onClick={playAgainSameParty}
+              className="flex items-center gap-2 bg-gradient-to-r from-green-700 to-green-600 hover:from-green-600 hover:to-green-500 text-green-100 font-bold py-4 px-8 rounded-lg text-xl transition-all transform hover:scale-105 shadow-lg shadow-green-900/50"
+            >
+              <Users className="w-6 h-6" />
+              Play Again (Same Party)
+            </button>
+          )}
+          <button
+            onClick={playAgainNewParty}
+            className="flex items-center gap-2 bg-gradient-to-r from-amber-700 to-amber-600 hover:from-amber-600 hover:to-amber-500 text-amber-100 font-bold py-4 px-8 rounded-lg text-xl transition-all transform hover:scale-105 shadow-lg shadow-amber-900/50"
+          >
+            <Shuffle className="w-6 h-6" />
+            Try Different Classes
+          </button>
+        </div>
+        {savedParty && (
+          <p className="text-stone-500 text-sm">
+            Last party: {savedParty.names.join(", ")}
+          </p>
+        )}
       </div>
     </div>
   );

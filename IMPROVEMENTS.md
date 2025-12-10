@@ -76,7 +76,23 @@ This document contains a comprehensive list of potential improvements and featur
 - Victory pose for heroes
 - Dramatic effect when heroes fall
 
-### 3. Quality of Life
+### 3. Quality of Life ✅
+
+#### Speed Up Options ✅ (NEW)
+
+- ~~Fast-forward through monster turns~~ ✅ (3 speed modes: 1x, 2.5x, instant)
+- ~~Skip animations toggle~~ ✅ (Toggle in speed settings dropdown)
+- ~~Quick combat mode~~ ✅ (Instant mode skips all delays)
+
+#### Quick Restart ✅ (NEW)
+
+- ~~"Play Again" button on victory/defeat that uses same party~~ ✅
+- ~~"Try Different Classes" for full reset~~ ✅
+- ~~Save last party composition~~ ✅ (Shows party names on restart screens)
+
+---
+
+## 🎯 High Impact, Low Effort (Remaining)
 
 #### Undo Card Selection
 
@@ -90,87 +106,108 @@ This document contains a comprehensive list of potential improvements and featur
 - Filter by player or turn
 - Shows what effects were applied
 
-#### Speed Up Options
+#### Damage Numbers ✅ (NEW)
 
-- Fast-forward through monster turns
-- Skip animations toggle
-- Quick combat mode
-
-#### Quick Restart
-
-- "Play Again" button on victory/defeat that uses same party
-- "Try Different Classes" for full reset
-- Save last party composition
+- ~~Floating damage numbers that appear when attacks hit~~ ✅
+- ~~Color-coded: red for damage, green for healing, blue for shields~~ ✅
+- ~~Fade out animation~~ ✅
 
 ---
 
 ## 🚀 High Impact, Medium Effort
 
-### 4. Resource System Implementation
+### 4. Resource System Implementation ✅ (NEW)
 
-Currently classes have resources defined but don't use them. Full implementation would include:
+Currently classes have resources defined but don't use them. Full implementation includes:
 
-#### Resource Generation
+#### Resource Generation ✅
 
-- Gain X resource each turn automatically
-- Some cards generate extra resource
-- Resource persists between turns but resets between rounds
+- Gain X resource each turn automatically (Mage: 2 Arcane/turn, Barbarian: based on HP%)
+- Some cards generate extra resource (Rogue: 1 Combo per card, etc.)
+- Resource persists between rounds
 
-#### Resource Costs
+#### Resource Display ✅
 
-- Powerful cards cost resources to play
-- Create meaningful choices: save resources or spend now?
-- Some cards have alternative costs (HP, discard cards, etc.)
+- Resource bar shown under HP in player cards
+- Color-coded per class
+- Glow animation when resource is full
 
-#### Class-Specific Resource Mechanics
+#### Class-Specific Resource Mechanics ✅
 
-**Warrior - Rage (10 max)**
+**Warrior - Rage (10 max)** ✅
 
 - Gain Rage from taking damage (1-2 per hit)
 - Gain Rage from dealing damage (1 per attack)
-- High-cost abilities for burst damage
+- High-cost abilities for burst damage (future)
 
-**Rogue - Combo Points (5 max)**
+**Rogue - Combo Points (5 max)** ✅
 
 - Gain Combo from playing cards (1 per card)
-- Some cards require Combo to play
-- Combo resets when targeting different enemy
+- Combo resets when targeting different enemy (future)
 
-**Mage - Arcane (12 max)**
+**Mage - Arcane (12 max)** ✅
 
 - Regenerate 2 Arcane per turn
-- Big spells cost 8-10 Arcane
-- Some cards discount Arcane costs
+- Big spells cost 8-10 Arcane (future)
 
-**Paladin - Faith (8 max)**
+**Paladin - Faith (8 max)** ✅
 
 - Gain Faith from healing allies (2 per heal)
-- Spend Faith for shields and buffs
-- Faith-powered resurrections
+- Spend Faith for shields and buffs (future)
+- Faith-powered resurrections (future)
 
-**Priest - Devotion (10 max)**
+**Priest - Devotion (10 max)** ✅
 
-- Gain from cleansing debuffs
-- Powerful heals cost Devotion
-- Buff abilities require Devotion
+- Gain from healing
+- Powerful heals cost Devotion (future)
+- Buff abilities require Devotion (future)
 
-**Bard - Melody (6 max)**
+**Bard - Melody (6 max)** ✅
 
 - Gain from buffing allies
-- Songs have ongoing costs
-- Combo effects with other heroes' actions
+- Songs have ongoing costs (future)
+- Combo effects with other heroes' actions (future)
 
-**Archer - Focus (8 max)**
+**Archer - Focus (8 max)** ✅
 
-- Gain Focus when not taking damage
-- Precise shots consume Focus
+- Gain Focus passively (1 per turn)
 - Lose Focus when hit
+- Precise shots consume Focus (future)
 
-**Barbarian - Fury (10 max)**
+**Barbarian - Fury (10 max)** ✅
 
-- Gain Fury from low HP
-- More Fury = more damage
-- Berserker state at max Fury
+- Gain Fury from low HP (more at lower HP%)
+- More Fury = more damage (future)
+- Berserker state at max Fury (future)
+
+---
+
+## 🔮 Resource Spending ✅ (NEW)
+
+When resource bar is full, players can choose to:
+
+### Special Abilities ✅
+
+Each class has a unique special ability that costs full resource bar:
+
+- **Warrior**: Berserker Strike - 25 damage to all enemies
+- **Rogue**: Assassinate - 40 damage + stealth
+- **Paladin**: Divine Shield - 15 shield to all allies
+- **Mage**: Arcane Blast - 35 damage to all enemies
+- **Priest**: Mass Heal - 20 HP heal + cleanse all allies
+- **Bard**: Battle Hymn - +5 strength to all allies (3 turns)
+- **Archer**: Piercing Shot - 30 damage to all enemies
+- **Barbarian**: Rampage - 20 damage to all + self heal 10
+
+### Card Enhancement ✅
+
+Spend full resource bar to enhance a card's effects:
+
+- Each class has different enhancement bonuses
+- Damage, healing, and shield values are boosted
+- Visual indicator shows enhanced cards
+
+---
 
 ### 5. Expanded Content
 

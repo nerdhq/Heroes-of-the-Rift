@@ -11,6 +11,8 @@ import type {
   Monster,
   Effect,
   ActionMessage,
+  GameSpeed,
+  SavedParty,
 } from "../types";
 import { CLASS_CONFIGS } from "../data/classes";
 import { getCardsByClass } from "../data/cards";
@@ -129,6 +131,13 @@ const initialState: GameState = {
     actionMessages: [],
     damageNumbers: [],
   },
+  // Speed settings
+  gameSpeed: "normal",
+  skipAnimations: false,
+  // Saved party for quick restart
+  savedParty: null,
+  // Enhancement mode
+  enhanceMode: false,
 };
 
 // ============================================
@@ -173,12 +182,37 @@ interface GameActions {
   setAnimation: (animation: Partial<GameState["animation"]>) => void;
   addActionMessage: (text: string, type: ActionMessage["type"]) => void;
   clearActionMessages: () => void;
+  addDamageNumber: (
+    targetId: string,
+    value: number,
+    type: "damage" | "heal" | "shield"
+  ) => void;
+
+  // Resources
+  addResource: (playerId: string, amount: number) => void;
+  spendResource: (playerId: string, amount: number) => boolean;
+  regenerateResources: () => void;
+
+  // Special abilities & enhancement
+  useSpecialAbility: () => void;
+  setEnhanceMode: (enabled: boolean) => void;
+  canUseSpecialAbility: () => boolean;
+  canEnhanceCard: () => boolean;
 
   // Utility
   addLog: (message: string, type: LogEntry["type"]) => void;
   resetGame: () => void;
   needsTargetSelection: () => boolean;
   getTargetType: () => "ally" | "monster" | null;
+
+  // Speed settings
+  setGameSpeed: (speed: GameSpeed) => void;
+  toggleSkipAnimations: () => void;
+  getDelay: (baseMs: number) => number;
+
+  // Quick restart
+  playAgainSameParty: () => void;
+  playAgainNewParty: () => void;
 }
 
 export const useGameStore = create<GameState & GameActions>((set, get) => ({
@@ -304,7 +338,13 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
   // GAME FLOW
   // ============================================
   startGame: () => {
-    const { players } = get();
+    const { players, selectedClasses, heroNames } = get();
+
+    // Save party composition for quick restart
+    const savedParty: SavedParty = {
+      classes: selectedClasses,
+      names: heroNames,
+    };
 
     // Shuffle all player decks
     const shuffledPlayers = players.map((player) => ({
@@ -316,6 +356,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       players: shuffledPlayers,
       round: 1,
       turn: 1,
+      savedParty,
     });
 
     // Start first round
@@ -575,12 +616,14 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       selectedTargetId,
       drawnCards,
       turn,
+      enhanceMode,
     } = get();
     const player = players[currentPlayerIndex];
+    const config = CLASS_CONFIGS[player.class];
 
-    // Helper to delay
+    // Helper to delay with speed settings
     const delay = (ms: number) =>
-      new Promise((resolve) => setTimeout(resolve, ms));
+      new Promise((resolve) => setTimeout(resolve, get().getDelay(ms)));
 
     // Check if stunned
     if (player.isStunned) {
@@ -595,6 +638,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
             "debuff"
           ),
         ],
+        enhanceMode: false,
       });
       await delay(1500);
       get().nextPhase();
@@ -604,10 +648,26 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
     const selectedCard = drawnCards.find((c) => c.id === selectedCardId);
     if (!selectedCard) return;
 
+    // Check if enhanced and spend resources
+    const isEnhanced = enhanceMode && player.resource >= player.maxResource;
+    let updatedPlayers = [...players];
+
+    if (isEnhanced) {
+      updatedPlayers[currentPlayerIndex] = {
+        ...player,
+        resource: 0,
+      };
+    }
+
     // Show card being played
-    set({ phase: "PLAYER_ACTION" });
+    const enhanceText = isEnhanced ? " (ENHANCED!)" : "";
+    set({
+      phase: "PLAYER_ACTION",
+      enhanceMode: false,
+      players: updatedPlayers,
+    });
     get().addActionMessage(
-      `${player.name} plays ${selectedCard.name}!`,
+      `${player.name} plays ${selectedCard.name}!${enhanceText}`,
       "action"
     );
     set({
@@ -616,21 +676,44 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
         createLogEntry(
           turn,
           "PLAYER_ACTION",
-          `${player.name} plays ${selectedCard.name}!`,
+          `${player.name} plays ${selectedCard.name}!${enhanceText}`,
           "action"
         ),
       ],
     });
     await delay(1200);
-
-    let updatedPlayers = [...players];
     let updatedMonsters = [...monsters];
     const logs: LogEntry[] = [];
 
-    // Apply each effect
+    // Apply each effect and track damage/healing for damage numbers
+    let totalDamageDealt = 0;
+    let totalHealing = 0;
+    const damagedMonsterIds: string[] = [];
+    const healedPlayerIds: string[] = [];
+
     for (const effect of selectedCard.effects) {
+      // Track monster HP before effect
+      const monsterHpBefore = new Map(updatedMonsters.map((m) => [m.id, m.hp]));
+      const playerHpBefore = new Map(updatedPlayers.map((p) => [p.id, p.hp]));
+
+      // Apply enhancement bonuses if enhanced
+      let enhancedEffect = effect;
+      if (isEnhanced && effect.value) {
+        const bonus =
+          effect.type === "damage"
+            ? config.enhanceBonus.damageBonus
+            : effect.type === "heal"
+            ? config.enhanceBonus.healBonus
+            : effect.type === "shield"
+            ? config.enhanceBonus.shieldBonus
+            : 0;
+        if (bonus > 0) {
+          enhancedEffect = { ...effect, value: effect.value + bonus };
+        }
+      }
+
       const result = applyEffect(
-        effect,
+        enhancedEffect,
         player,
         updatedPlayers,
         updatedMonsters,
@@ -640,6 +723,86 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       updatedPlayers = result.players;
       updatedMonsters = result.monsters;
       logs.push(...result.logs);
+
+      // Ensure resource stays at 0 if enhanced
+      if (isEnhanced) {
+        updatedPlayers[currentPlayerIndex] = {
+          ...updatedPlayers[currentPlayerIndex],
+          resource: 0,
+        };
+      }
+
+      // Calculate damage dealt for damage numbers
+      for (const monster of updatedMonsters) {
+        const hpBefore = monsterHpBefore.get(monster.id) || monster.hp;
+        const damage = hpBefore - monster.hp;
+        if (damage > 0) {
+          totalDamageDealt += damage;
+          damagedMonsterIds.push(monster.id);
+          get().addDamageNumber(monster.id, damage, "damage");
+        }
+      }
+
+      // Calculate healing for damage numbers
+      for (const p of updatedPlayers) {
+        const hpBefore = playerHpBefore.get(p.id) || p.hp;
+        const healing = p.hp - hpBefore;
+        if (healing > 0) {
+          totalHealing += healing;
+          healedPlayerIds.push(p.id);
+          get().addDamageNumber(p.id, healing, "heal");
+        }
+      }
+    }
+
+    // Resource gains based on class and actions
+    const currentPlayer = updatedPlayers[currentPlayerIndex];
+    let resourceGain = 0;
+    switch (currentPlayer.class) {
+      case "warrior":
+        // Warrior gains Rage from dealing damage
+        if (totalDamageDealt > 0)
+          resourceGain = Math.min(2, Math.ceil(totalDamageDealt / 10));
+        break;
+      case "rogue":
+        // Rogue gains 1 Combo per card played
+        resourceGain = 1;
+        break;
+      case "paladin":
+        // Paladin gains Faith from healing allies
+        if (totalHealing > 0) resourceGain = 2;
+        break;
+      case "priest":
+        // Priest gains Devotion from healing
+        if (totalHealing > 0) resourceGain = 2;
+        break;
+      case "bard":
+        // Bard gains Melody from buffing (check if card has buff effects)
+        if (
+          selectedCard.effects.some((e) =>
+            ["strength", "shield", "block"].includes(e.type)
+          )
+        ) {
+          resourceGain = 1;
+        }
+        break;
+      case "archer":
+        // Archer gains Focus passively (handled in regenerateResources)
+        resourceGain = 1;
+        break;
+      default:
+        break;
+    }
+
+    // Only gain resources if not enhanced (we just spent them all)
+    if (resourceGain > 0 && !isEnhanced) {
+      updatedPlayers[currentPlayerIndex] = {
+        ...updatedPlayers[currentPlayerIndex],
+        resource: Math.min(
+          updatedPlayers[currentPlayerIndex].resource + resourceGain,
+          updatedPlayers[currentPlayerIndex].maxResource
+        ),
+      };
     }
 
     // Move played card to discard, other card back to deck
@@ -691,9 +854,9 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
     const { players, monsters, turn } = get();
     const updatedPlayers = [...players];
 
-    // Helper to delay
+    // Helper to delay with speed settings
     const delay = (ms: number) =>
-      new Promise((resolve) => setTimeout(resolve, ms));
+      new Promise((resolve) => setTimeout(resolve, get().getDelay(ms)));
 
     for (const monster of monsters) {
       if (!monster.isAlive) continue;
@@ -813,6 +976,29 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
             isAlive,
           };
 
+          // Add floating damage number
+          get().addDamageNumber(target.id, damage, "damage");
+
+          // Resource gains from taking damage
+          const damagedPlayer = updatedPlayers[playerIndex];
+          if (damagedPlayer.class === "warrior" && damage > 0) {
+            // Warrior gains Rage from taking damage
+            const rageGain = Math.min(2, Math.ceil(damage / 15));
+            updatedPlayers[playerIndex] = {
+              ...updatedPlayers[playerIndex],
+              resource: Math.min(
+                updatedPlayers[playerIndex].resource + rageGain,
+                updatedPlayers[playerIndex].maxResource
+              ),
+            };
+          } else if (damagedPlayer.class === "archer" && damage > 0) {
+            // Archer loses Focus when hit
+            updatedPlayers[playerIndex] = {
+              ...updatedPlayers[playerIndex],
+              resource: Math.max(0, updatedPlayers[playerIndex].resource - 1),
+            };
+          }
+
           // Update state and show damage
           const damageMsg = `${target.name} takes ${damage} damage!${
             !isAlive ? " 💀" : ""
@@ -842,6 +1028,9 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
         const updatedMonster = { ...monster, hp: newHp };
         const updatedMonstersArray = [...monsters];
         updatedMonstersArray[monsterIndex] = updatedMonster;
+
+        // Add floating heal number
+        get().addDamageNumber(monster.id, healAmount, "heal");
 
         get().addActionMessage(
           `${monster.name} heals for ${healAmount}!`,
@@ -1099,6 +1288,9 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
     // Roll new intents for monsters at end of turn
     const updatedMonsters = rollMonsterIntents(monsters);
 
+    // Regenerate resources at start of new turn
+    get().regenerateResources();
+
     // Start new turn - all players act again
     set({
       currentPlayerIndex: firstAlivePlayerIndex,
@@ -1321,6 +1513,228 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
     }));
   },
 
+  addDamageNumber: (targetId, value, type) => {
+    const newDamageNumber = {
+      id: generateId(),
+      targetId,
+      value,
+      type,
+    };
+    set((state) => ({
+      animation: {
+        ...state.animation,
+        damageNumbers: [...state.animation.damageNumbers, newDamageNumber],
+      },
+    }));
+    // Auto-remove after animation completes
+    setTimeout(() => {
+      set((state) => ({
+        animation: {
+          ...state.animation,
+          damageNumbers: state.animation.damageNumbers.filter(
+            (d) => d.id !== newDamageNumber.id
+          ),
+        },
+      }));
+    }, 1500);
+  },
+
+  // ============================================
+  // RESOURCES
+  // ============================================
+  addResource: (playerId, amount) => {
+    set((state) => ({
+      players: state.players.map((p) =>
+        p.id === playerId
+          ? { ...p, resource: Math.min(p.resource + amount, p.maxResource) }
+          : p
+      ),
+    }));
+  },
+
+  spendResource: (playerId, amount) => {
+    const player = get().players.find((p) => p.id === playerId);
+    if (!player || player.resource < amount) return false;
+    set((state) => ({
+      players: state.players.map((p) =>
+        p.id === playerId ? { ...p, resource: p.resource - amount } : p
+      ),
+    }));
+    return true;
+  },
+
+  regenerateResources: () => {
+    // Called at start of turn - regenerate resources based on class
+    set((state) => ({
+      players: state.players.map((p) => {
+        if (!p.isAlive) return p;
+        let regen = 0;
+        const hpPercent = p.hp / p.maxHp;
+        switch (p.class) {
+          case "mage":
+            regen = 2; // Mage regenerates 2 Arcane per turn
+            break;
+          case "archer":
+            // Archer gains Focus when not taking damage (handled elsewhere)
+            break;
+          case "barbarian":
+            // Barbarian gains Fury from low HP (calculated based on HP%)
+            if (hpPercent < 0.25) regen = 3;
+            else if (hpPercent < 0.5) regen = 2;
+            else if (hpPercent < 0.75) regen = 1;
+            break;
+          default:
+            // Other classes gain resources through actions
+            break;
+        }
+        return {
+          ...p,
+          resource: Math.min(p.resource + regen, p.maxResource),
+        };
+      }),
+    }));
+  },
+
+  // ============================================
+  // SPECIAL ABILITIES & ENHANCEMENT
+  // ============================================
+  canUseSpecialAbility: () => {
+    const { players, currentPlayerIndex, phase } = get();
+    const player = players[currentPlayerIndex];
+    if (!player || !player.isAlive) return false;
+    if (phase !== "SELECT") return false;
+    return player.resource >= player.maxResource;
+  },
+
+  canEnhanceCard: () => {
+    const { players, currentPlayerIndex, phase, selectedCardId } = get();
+    const player = players[currentPlayerIndex];
+    if (!player || !player.isAlive) return false;
+    if (phase !== "SELECT" || !selectedCardId) return false;
+    return player.resource >= player.maxResource;
+  },
+
+  setEnhanceMode: (enabled) => {
+    set({ enhanceMode: enabled });
+  },
+
+  useSpecialAbility: async () => {
+    const { players, monsters, currentPlayerIndex, turn, drawnCards } = get();
+    const player = players[currentPlayerIndex];
+    const config = CLASS_CONFIGS[player.class];
+
+    // Helper to delay with speed settings
+    const delay = (ms: number) =>
+      new Promise((resolve) => setTimeout(resolve, get().getDelay(ms)));
+
+    // Spend all resources
+    const updatedPlayers = [...players];
+    updatedPlayers[currentPlayerIndex] = {
+      ...player,
+      resource: 0,
+    };
+
+    // Show special ability being used
+    set({ phase: "PLAYER_ACTION", players: updatedPlayers });
+    get().addActionMessage(
+      `${player.name} uses ${config.specialAbility.name}!`,
+      "action"
+    );
+    set({
+      log: [
+        ...get().log,
+        createLogEntry(
+          turn,
+          "PLAYER_ACTION",
+          `${player.name} uses ${config.specialAbility.name}! (${config.specialAbility.description})`,
+          "action"
+        ),
+      ],
+    });
+    await delay(1200);
+
+    // Apply special ability effects
+    let finalPlayers = updatedPlayers;
+    let finalMonsters = [...monsters];
+    const logs: LogEntry[] = [];
+
+    for (const effect of config.specialAbility.effects) {
+      const result = applyEffect(
+        effect,
+        player,
+        finalPlayers,
+        finalMonsters,
+        turn,
+        null
+      );
+      finalPlayers = result.players;
+      finalMonsters = result.monsters;
+      logs.push(...result.logs);
+
+      // Ensure resource stays at 0 after effect application
+      finalPlayers[currentPlayerIndex] = {
+        ...finalPlayers[currentPlayerIndex],
+        resource: 0,
+      };
+
+      // Add damage numbers
+      for (const monster of finalMonsters) {
+        const oldMonster = monsters.find((m) => m.id === monster.id);
+        if (oldMonster && oldMonster.hp > monster.hp) {
+          get().addDamageNumber(
+            monster.id,
+            oldMonster.hp - monster.hp,
+            "damage"
+          );
+        }
+      }
+      for (const p of finalPlayers) {
+        const oldPlayer = players.find((pl) => pl.id === p.id);
+        if (oldPlayer && oldPlayer.hp < p.hp) {
+          get().addDamageNumber(p.id, p.hp - oldPlayer.hp, "heal");
+        }
+      }
+    }
+
+    // Show effect logs
+    for (const logEntry of logs) {
+      const msgType =
+        logEntry.type === "damage"
+          ? "damage"
+          : logEntry.type === "heal"
+          ? "heal"
+          : "action";
+      get().addActionMessage(
+        logEntry.message,
+        msgType as ActionMessage["type"]
+      );
+      set({ log: [...get().log, logEntry] });
+      await delay(1000);
+    }
+
+    // Discard drawn cards back to deck
+    const currentPlayer = finalPlayers[currentPlayerIndex];
+    finalPlayers[currentPlayerIndex] = {
+      ...currentPlayer,
+      deck: [...currentPlayer.deck, ...drawnCards],
+    };
+
+    set({
+      players: finalPlayers,
+      monsters: finalMonsters,
+      selectedCardId: null,
+      drawnCards: [],
+    });
+
+    // Check for round victory
+    if (finalMonsters.every((m) => !m.isAlive)) {
+      get().nextRound();
+      return;
+    }
+
+    get().nextPhase();
+  },
+
   startDiceRoll: () => {
     const { players, currentPlayerIndex, selectedCardId, drawnCards, turn } =
       get();
@@ -1398,6 +1812,65 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
 
   resetGame: () => {
     set(initialState);
+  },
+
+  // ============================================
+  // SPEED SETTINGS
+  // ============================================
+  setGameSpeed: (speed: GameSpeed) => {
+    set({ gameSpeed: speed });
+  },
+
+  toggleSkipAnimations: () => {
+    set((state) => ({ skipAnimations: !state.skipAnimations }));
+  },
+
+  getDelay: (baseMs: number): number => {
+    const { gameSpeed, skipAnimations } = get();
+    if (skipAnimations) return 0;
+    switch (gameSpeed) {
+      case "fast":
+        return Math.floor(baseMs * 0.4);
+      case "instant":
+        return 50; // Minimal delay for state updates
+      default:
+        return baseMs;
+    }
+  },
+
+  // ============================================
+  // QUICK RESTART
+  // ============================================
+  playAgainSameParty: () => {
+    const { savedParty } = get();
+    if (!savedParty) {
+      // No saved party, just reset
+      set(initialState);
+      return;
+    }
+
+    // Reset to initial state but keep saved party and go to deck builder
+    set({
+      ...initialState,
+      savedParty,
+      selectedClasses: savedParty.classes,
+      heroNames: savedParty.names,
+      currentScreen: "deckBuilder",
+    });
+
+    // Trigger deck building setup
+    get().confirmClassSelection();
+  },
+
+  playAgainNewParty: () => {
+    // Full reset but keep speed settings
+    const { gameSpeed, skipAnimations } = get();
+    set({
+      ...initialState,
+      gameSpeed,
+      skipAnimations,
+      savedParty: null,
+    });
   },
 }));
 

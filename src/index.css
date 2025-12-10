@@ -46,11 +46,14 @@ body {
 
 /* Card glow effect for selected cards */
 @keyframes card-glow {
-  0%, 100% {
-    box-shadow: 0 0 5px rgba(251, 191, 36, 0.5), 0 0 10px rgba(251, 191, 36, 0.3);
+  0%,
+  100% {
+    box-shadow: 0 0 5px rgba(251, 191, 36, 0.5),
+      0 0 10px rgba(251, 191, 36, 0.3);
   }
   50% {
-    box-shadow: 0 0 15px rgba(251, 191, 36, 0.8), 0 0 25px rgba(251, 191, 36, 0.5);
+    box-shadow: 0 0 15px rgba(251, 191, 36, 0.8),
+      0 0 25px rgba(251, 191, 36, 0.5);
   }
 }
 
@@ -80,7 +83,8 @@ body {
 
 /* Low HP pulse effect */
 @keyframes low-hp-pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {
@@ -119,11 +123,22 @@ body {
 
 /* Shake effect for damage taken */
 @keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  20% { transform: translateX(-5px); }
-  40% { transform: translateX(5px); }
-  60% { transform: translateX(-5px); }
-  80% { transform: translateX(5px); }
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-5px);
+  }
+  40% {
+    transform: translateX(5px);
+  }
+  60% {
+    transform: translateX(-5px);
+  }
+  80% {
+    transform: translateX(5px);
+  }
 }
 
 .animate-shake {
@@ -132,7 +147,8 @@ body {
 
 /* Target highlight pulse */
 @keyframes target-pulse {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
   }
   50% {
@@ -155,8 +171,13 @@ body {
 
 /* Intent icon bounce */
 @keyframes intent-bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-3px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
 }
 
 .animate-intent {
@@ -181,4 +202,40 @@ body {
 
 .animate-message-slide-up {
   animation: message-slide-up 0.6s ease-out forwards;
+}
+
+/* Floating damage number animation */
+@keyframes damage-float {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-30px) scale(1.2);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-60px) scale(0.8);
+  }
+}
+
+.animate-damage-float {
+  animation: damage-float 1.5s ease-out forwards;
+  pointer-events: none;
+}
+
+/* Resource bar glow animation */
+@keyframes resource-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 5px currentColor;
+  }
+  50% {
+    box-shadow: 0 0 15px currentColor, 0 0 25px currentColor;
+  }
+}
+
+.animate-resource-glow {
+  animation: resource-glow 2s ease-in-out infinite;
 }
