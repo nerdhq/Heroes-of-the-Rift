@@ -380,12 +380,24 @@ export function GameScreen() {
               {ELITE_MODIFIERS[monster.eliteModifier].name}
             </div>
           )}
-          <div
-            className={`mb-2 ${
-              monster.name.includes("Dragon") ? "text-6xl" : "text-5xl"
-            }`}
-          >
-            {monster.icon}
+          <div className="mb-2 flex justify-center">
+            {monster.image ? (
+              <img
+                src={monster.image}
+                alt={monster.name}
+                className={`object-contain ${
+                  monster.name.includes("Dragon") ? "w-28 h-28" : "w-24 h-24"
+                }`}
+              />
+            ) : (
+              <span
+                className={
+                  monster.name.includes("Dragon") ? "text-6xl" : "text-5xl"
+                }
+              >
+                {monster.icon}
+              </span>
+            )}
           </div>
           <h2
             className={`font-bold ${

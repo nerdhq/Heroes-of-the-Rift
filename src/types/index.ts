@@ -157,7 +157,8 @@ export type EliteModifier =
 export interface Monster {
   id: string;
   name: string;
-  icon: string; // Emoji icon for the monster
+  icon: string; // Emoji icon for the monster (fallback)
+  image?: string; // Image path for the monster
   level: number;
   maxHp: number;
   hp: number;

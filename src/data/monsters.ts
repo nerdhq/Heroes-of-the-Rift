@@ -1,4 +1,5 @@
 import type { Monster, MonsterAbility, EliteModifier } from "../types";
+import { MONSTER_IMAGES } from "../assets/monsters";
 
 // ============================================
 // MONSTER TEMPLATES
@@ -7,7 +8,7 @@ import type { Monster, MonsterAbility, EliteModifier } from "../types";
 interface MonsterTemplate {
   id: string;
   name: string;
-  icon: string; // Emoji icon
+  icon: string; // Emoji icon (fallback)
   baseHp: number;
   abilities: MonsterAbility[];
 }
@@ -1328,6 +1329,7 @@ export const createMonster = (
       .substr(2, 5)}`,
     name: displayName,
     icon: template.icon,
+    image: MONSTER_IMAGES[template.id],
     level,
     maxHp: scaledHp,
     hp: scaledHp,
