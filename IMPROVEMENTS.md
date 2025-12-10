@@ -4,61 +4,6 @@ This document contains a comprehensive list of potential improvements and featur
 
 ---
 
-## ✅ COMPLETED - High Impact, Low Effort
-
-### 1. Visual & UX Polish ✅
-
-#### Card Play Animations ✅
-
-- ~~Add scale/fade animation when cards are played~~ ✅
-- ~~Smooth transition from hand to discard pile~~ ✅
-- ~~Glow effect on selected card~~ ✅ (Pulsing amber glow)
-
-#### Health Bar Animations ✅
-
-- ~~Smooth transitions when HP changes~~ ✅ (CSS transitions)
-- ~~Pulsing animation when low HP~~ ✅ (Below 25% HP)
-
-#### Monster Attack Indicator ✅
-
-- ~~Highlight which player will be targeted based on current aggro~~ ✅ (Red "TARGET" badge + pulse animation)
-- ~~Visual indicator for AOE attacks~~ ✅ (Shown in intent preview)
-
-### 2. Better Feedback Systems ✅
-
-#### Turn Timer/Progress Indicator ✅
-
-- ~~Visual representation of current phase~~ ✅ (Draw → Select → Roll → Attack → Enemy)
-- ~~Progress bar showing turn flow~~ ✅ (Color-coded: amber active, green completed)
-- ~~Highlight active player more prominently~~ ✅ (Amber border + shadow)
-
-#### Enemy Intent Preview ✅
-
-- ~~Show what ability each monster rolled before it executes~~ ✅
-- ~~Display damage values and targets~~ ✅
-- ~~Icon indicators for buff/debuff abilities~~ ✅ (⚔️ damage, 💀 debuff, 💨 nothing)
-
-#### Tooltip Improvements ✅
-
-- ~~Comprehensive hover tooltips for status effects~~ ✅
-- ~~Explain exactly what each debuff does~~ ✅
-- ~~Show remaining duration and stack count~~ ✅
-
-#### Dice Roll Animation ✅ (NEW)
-
-- Manual aggro roll with animated D20 dice overlay
-- Shows rolling animation for 1.5 seconds
-- Displays final result before playing card
-
-#### Stacked Action Messages ✅ (NEW)
-
-- Color-coded floating messages (red=damage, green=heal, purple=debuff, amber=action)
-- Messages stack vertically with new ones appearing at bottom
-- Old messages fade out after 5 seconds
-- Delays between actions for better readability
-
----
-
 ## 🎯 High Impact, Low Effort (Remaining)
 
 ### Sound Effects
@@ -76,20 +21,6 @@ This document contains a comprehensive list of potential improvements and featur
 - Victory pose for heroes
 - Dramatic effect when heroes fall
 
-### 3. Quality of Life ✅
-
-#### Speed Up Options ✅ (NEW)
-
-- ~~Fast-forward through monster turns~~ ✅ (3 speed modes: 1x, 2.5x, instant)
-- ~~Skip animations toggle~~ ✅ (Toggle in speed settings dropdown)
-- ~~Quick combat mode~~ ✅ (Instant mode skips all delays)
-
-#### Quick Restart ✅ (NEW)
-
-- ~~"Play Again" button on victory/defeat that uses same party~~ ✅
-- ~~"Try Different Classes" for full reset~~ ✅
-- ~~Save last party composition~~ ✅ (Shows party names on restart screens)
-
 ---
 
 ## 🎯 High Impact, Low Effort (Remaining)
@@ -106,177 +37,9 @@ This document contains a comprehensive list of potential improvements and featur
 - Filter by player or turn
 - Shows what effects were applied
 
-#### Damage Numbers ✅ (NEW)
-
-- ~~Floating damage numbers that appear when attacks hit~~ ✅
-- ~~Color-coded: red for damage, green for healing, blue for shields~~ ✅
-- ~~Fade out animation~~ ✅
-
 ---
 
 ## 🚀 High Impact, Medium Effort
-
-### 4. Resource System Implementation ✅ (NEW)
-
-Currently classes have resources defined but don't use them. Full implementation includes:
-
-#### Resource Generation ✅
-
-- Gain X resource each turn automatically (Mage: 2 Arcane/turn, Barbarian: based on HP%)
-- Some cards generate extra resource (Rogue: 1 Combo per card, etc.)
-- Resource persists between rounds
-
-#### Resource Display ✅
-
-- Resource bar shown under HP in player cards
-- Color-coded per class
-- Glow animation when resource is full
-
-#### Class-Specific Resource Mechanics ✅
-
-**Warrior - Rage (10 max)** ✅
-
-- Gain Rage from taking damage (1-2 per hit)
-- Gain Rage from dealing damage (1 per attack)
-- High-cost abilities for burst damage (future)
-
-**Rogue - Combo Points (5 max)** ✅
-
-- Gain Combo from playing cards (1 per card)
-- Combo resets when targeting different enemy (future)
-
-**Mage - Arcane (12 max)** ✅
-
-- Regenerate 2 Arcane per turn
-- Big spells cost 8-10 Arcane (future)
-
-**Paladin - Faith (8 max)** ✅
-
-- Gain Faith from healing allies (2 per heal)
-- Spend Faith for shields and buffs (future)
-- Faith-powered resurrections (future)
-
-**Priest - Devotion (10 max)** ✅
-
-- Gain from healing
-- Powerful heals cost Devotion (future)
-- Buff abilities require Devotion (future)
-
-**Bard - Melody (6 max)** ✅
-
-- Gain from buffing allies
-- Songs have ongoing costs (future)
-- Combo effects with other heroes' actions (future)
-
-**Archer - Focus (8 max)** ✅
-
-- Gain Focus passively (1 per turn)
-- Lose Focus when hit
-- Precise shots consume Focus (future)
-
-**Barbarian - Fury (10 max)** ✅
-
-- Gain Fury from low HP (more at lower HP%)
-- More Fury = more damage (future)
-- Berserker state at max Fury (future)
-
----
-
-## 🔮 Resource Spending ✅ (NEW)
-
-When resource bar is full, players can choose to:
-
-### Special Abilities ✅
-
-Each class has a unique special ability that costs full resource bar:
-
-- **Warrior**: Berserker Strike - 25 damage to all enemies
-- **Rogue**: Assassinate - 40 damage + stealth
-- **Paladin**: Divine Shield - 15 shield to all allies
-- **Mage**: Arcane Blast - 35 damage to all enemies
-- **Priest**: Mass Heal - 20 HP heal + cleanse all allies
-- **Bard**: Battle Hymn - +5 strength to all allies (3 turns)
-- **Archer**: Piercing Shot - 30 damage to all enemies
-- **Barbarian**: Rampage - 20 damage to all + self heal 10
-
-### Card Enhancement ✅
-
-Spend full resource bar to enhance a card's effects:
-
-- Each class has different enhancement bonuses
-- Damage, healing, and shield values are boosted
-- Visual indicator shows enhanced cards
-
----
-
-### 5. Expanded Content ✅ (NEW)
-
-#### More Rounds (6 total) ✅
-
-- **Round 1**: The Dark Passage - Tier 1 monsters (2 random)
-- **Round 2**: The Haunted Halls - Tier 1-2 monsters (2 random)
-- **Round 3**: The Chamber of Horrors - Tier 2-3 monsters (2 random)
-- **Round 4**: The Lich King's Crypt - Lich King boss + Tier 3 monster
-- **Round 5**: The Demon Gate - Demon Lord boss + Tier 4 monster
-- **Round 6**: The Dragon's Lair - Ancient Dragon final boss
-
-#### Randomized Encounters ✅
-
-- Each playthrough has different monster combinations
-- Monsters selected randomly from tier pools
-- Multiple round descriptions for variety
-- No two games are exactly the same!
-
-#### New Monster Types (12 new enemies) ✅
-
-**Tier 1 (Early Game)**
-
-- **Imp** (25 HP) - Fast attacker, fire damage
-- **Slime** (50 HP) - Acid attacks, self-healing
-- **Wraith** (40 HP) - Life drain, fear aura
-
-**Tier 2 (Mid Game)**
-
-- **Necromancer** (60 HP) - Dark magic, curses
-- **Gargoyle** (80 HP) - Stone form healing, stuns
-- **Banshee** (55 HP) - Fear debuffs, soul screams
-- **Mimic** (70 HP) - Copies attacks, disguise
-
-**Tier 3 (Late Game)**
-
-- **Elemental** (90 HP) - Multi-element attacks
-
-**Tier 4 (Elite)**
-
-- **Hydra** (120 HP) - Multi-head attacks, regeneration
-- **Demon** (150 HP) - Hellfire, curses
-
-**Bosses**
-
-- **Lich King** (200 HP) - Undead master, plague, frost
-- **Demon Lord** (280 HP) - Ultimate demon, armageddon
-
-#### Elite Enemy Modifiers ✅
-
-Random chance for monsters to spawn with elite modifiers (15-35% based on round):
-
-- **⚡ Fast**: Acts twice per turn
-- **🛡️ Armored**: +50% HP, 25% damage reduction
-- **🔥 Enraged**: +50% damage dealt
-- **💚 Regenerating**: Heals 10 HP per turn
-- **💀 Cursed**: Applies random debuffs to attackers
-- **🔰 Shielded**: Has shield that regenerates each turn
-
-Elite modifiers are displayed with colored badges on monster cards.
-
-#### More Cards Per Class (15 total) ✅
-
-Each class now has 15 cards (up from 10):
-
-- 10 base cards (common to rare)
-- 5 advanced cards (uncommon to legendary)
-- More situational/combo cards
-- Better variety for deck building
 
 ### 6. Meta-Progression
 
@@ -687,3 +450,240 @@ Paper Dungeon has the foundation to become a deep, replayable tactical card game
 - A vibrant meta that evolves with balance updates
 
 The core is solid - now it's about adding depth, content, and polish!
+
+---
+
+## ✅ COMPLETED - High Impact, Low Effort
+
+### 1. Visual & UX Polish ✅
+
+#### Card Play Animations ✅
+
+- ~~Add scale/fade animation when cards are played~~ ✅
+- ~~Smooth transition from hand to discard pile~~ ✅
+- ~~Glow effect on selected card~~ ✅ (Pulsing amber glow)
+
+#### Health Bar Animations ✅
+
+- ~~Smooth transitions when HP changes~~ ✅ (CSS transitions)
+- ~~Pulsing animation when low HP~~ ✅ (Below 25% HP)
+
+#### Monster Attack Indicator ✅
+
+- ~~Highlight which player will be targeted based on current aggro~~ ✅ (Red "TARGET" badge + pulse animation)
+- ~~Visual indicator for AOE attacks~~ ✅ (Shown in intent preview)
+
+### 2. Better Feedback Systems ✅
+
+#### Turn Timer/Progress Indicator ✅
+
+- ~~Visual representation of current phase~~ ✅ (Draw → Select → Roll → Attack → Enemy)
+- ~~Progress bar showing turn flow~~ ✅ (Color-coded: amber active, green completed)
+- ~~Highlight active player more prominently~~ ✅ (Amber border + shadow)
+
+#### Enemy Intent Preview ✅
+
+- ~~Show what ability each monster rolled before it executes~~ ✅
+- ~~Display damage values and targets~~ ✅
+- ~~Icon indicators for buff/debuff abilities~~ ✅ (⚔️ damage, 💀 debuff, 💨 nothing)
+
+#### Tooltip Improvements ✅
+
+- ~~Comprehensive hover tooltips for status effects~~ ✅
+- ~~Explain exactly what each debuff does~~ ✅
+- ~~Show remaining duration and stack count~~ ✅
+
+#### Dice Roll Animation ✅ (NEW)
+
+- Manual aggro roll with animated D20 dice overlay
+- Shows rolling animation for 1.5 seconds
+- Displays final result before playing card
+
+#### Stacked Action Messages ✅ (NEW)
+
+- Color-coded floating messages (red=damage, green=heal, purple=debuff, amber=action)
+- Messages stack vertically with new ones appearing at bottom
+- Old messages fade out after 5 seconds
+- Delays between actions for better readability
+
+### 3. Quality of Life ✅
+
+#### Speed Up Options ✅ (NEW)
+
+- ~~Fast-forward through monster turns~~ ✅ (3 speed modes: 1x, 2.5x, instant)
+- ~~Skip animations toggle~~ ✅ (Toggle in speed settings dropdown)
+- ~~Quick combat mode~~ ✅ (Instant mode skips all delays)
+
+#### Quick Restart ✅ (NEW)
+
+- ~~"Play Again" button on victory/defeat that uses same party~~ ✅
+- ~~"Try Different Classes" for full reset~~ ✅
+- ~~Save last party composition~~ ✅ (Shows party names on restart screens)
+
+#### Damage Numbers ✅ (NEW)
+
+- ~~Floating damage numbers that appear when attacks hit~~ ✅
+- ~~Color-coded: red for damage, green for healing, blue for shields~~ ✅
+- ~~Fade out animation~~ ✅
+
+### 4. Resource System Implementation ✅ (NEW)
+
+Currently classes have resources defined but don't use them. Full implementation includes:
+
+#### Resource Generation ✅
+
+- Gain X resource each turn automatically (Mage: 2 Arcane/turn, Barbarian: based on HP%)
+- Some cards generate extra resource (Rogue: 1 Combo per card, etc.)
+- Resource persists between rounds
+
+#### Resource Display ✅
+
+- Resource bar shown under HP in player cards
+- Color-coded per class
+- Glow animation when resource is full
+
+#### Class-Specific Resource Mechanics ✅
+
+**Warrior - Rage (10 max)** ✅
+
+- Gain Rage from taking damage (1-2 per hit)
+- Gain Rage from dealing damage (1 per attack)
+- High-cost abilities for burst damage (future)
+
+**Rogue - Combo Points (5 max)** ✅
+
+- Gain Combo from playing cards (1 per card)
+- Combo resets when targeting different enemy (future)
+
+**Mage - Arcane (12 max)** ✅
+
+- Regenerate 2 Arcane per turn
+- Big spells cost 8-10 Arcane (future)
+
+**Paladin - Faith (8 max)** ✅
+
+- Gain Faith from healing allies (2 per heal)
+- Spend Faith for shields and buffs (future)
+- Faith-powered resurrections (future)
+
+**Priest - Devotion (10 max)** ✅
+
+- Gain from healing
+- Powerful heals cost Devotion (future)
+- Buff abilities require Devotion (future)
+
+**Bard - Melody (6 max)** ✅
+
+- Gain from buffing allies
+- Songs have ongoing costs (future)
+- Combo effects with other heroes' actions (future)
+
+**Archer - Focus (8 max)** ✅
+
+- Gain Focus passively (1 per turn)
+- Lose Focus when hit
+- Precise shots consume Focus (future)
+
+**Barbarian - Fury (10 max)** ✅
+
+- Gain Fury from low HP (more at lower HP%)
+- More Fury = more damage (future)
+- Berserker state at max Fury (future)
+
+---
+
+## 🔮 Resource Spending ✅ (NEW)
+
+When resource bar is full, players can choose to:
+
+### Special Abilities ✅
+
+Each class has a unique special ability that costs full resource bar:
+
+- **Warrior**: Berserker Strike - 25 damage to all enemies
+- **Rogue**: Assassinate - 40 damage + stealth
+- **Paladin**: Divine Shield - 15 shield to all allies
+- **Mage**: Arcane Blast - 35 damage to all enemies
+- **Priest**: Mass Heal - 20 HP heal + cleanse all allies
+- **Bard**: Battle Hymn - +5 strength to all allies (3 turns)
+- **Archer**: Piercing Shot - 30 damage to all enemies
+- **Barbarian**: Rampage - 20 damage to all + self heal 10
+
+### Card Enhancement ✅
+
+Spend full resource bar to enhance a card's effects:
+
+- Each class has different enhancement bonuses
+- Damage, healing, and shield values are boosted
+- Visual indicator shows enhanced cards
+
+---
+
+### 5. Expanded Content ✅ (NEW)
+
+#### More Rounds (6 total) ✅
+
+- **Round 1**: The Dark Passage - Tier 1 monsters (2 random)
+- **Round 2**: The Haunted Halls - Tier 1-2 monsters (2 random)
+- **Round 3**: The Chamber of Horrors - Tier 2-3 monsters (2 random)
+- **Round 4**: The Lich King's Crypt - Lich King boss + Tier 3 monster
+- **Round 5**: The Demon Gate - Demon Lord boss + Tier 4 monster
+- **Round 6**: The Dragon's Lair - Ancient Dragon final boss
+
+#### Randomized Encounters ✅
+
+- Each playthrough has different monster combinations
+- Monsters selected randomly from tier pools
+- Multiple round descriptions for variety
+- No two games are exactly the same!
+
+#### New Monster Types (12 new enemies) ✅
+
+**Tier 1 (Early Game)**
+
+- **Imp** (25 HP) - Fast attacker, fire damage
+- **Slime** (50 HP) - Acid attacks, self-healing
+- **Wraith** (40 HP) - Life drain, fear aura
+
+**Tier 2 (Mid Game)**
+
+- **Necromancer** (60 HP) - Dark magic, curses
+- **Gargoyle** (80 HP) - Stone form healing, stuns
+- **Banshee** (55 HP) - Fear debuffs, soul screams
+- **Mimic** (70 HP) - Copies attacks, disguise
+
+**Tier 3 (Late Game)**
+
+- **Elemental** (90 HP) - Multi-element attacks
+
+**Tier 4 (Elite)**
+
+- **Hydra** (120 HP) - Multi-head attacks, regeneration
+- **Demon** (150 HP) - Hellfire, curses
+
+**Bosses**
+
+- **Lich King** (200 HP) - Undead master, plague, frost
+- **Demon Lord** (280 HP) - Ultimate demon, armageddon
+
+#### Elite Enemy Modifiers ✅
+
+Random chance for monsters to spawn with elite modifiers (15-35% based on round):
+
+- **⚡ Fast**: Acts twice per turn
+- **🛡️ Armored**: +50% HP, 25% damage reduction
+- **🔥 Enraged**: +50% damage dealt
+- **💚 Regenerating**: Heals 10 HP per turn
+- **💀 Cursed**: Applies random debuffs to attackers
+- **🔰 Shielded**: Has shield that regenerates each turn
+
+Elite modifiers are displayed with colored badges on monster cards.
+
+#### More Cards Per Class (15 total) ✅
+
+Each class now has 15 cards (up from 10):
+
+- 10 base cards (common to rare)
+- 5 advanced cards (uncommon to legendary)
+- More situational/combo cards
+- Better variety for deck building
