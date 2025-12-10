@@ -10,6 +10,7 @@ import type {
   StatusEffect,
   Monster,
   Effect,
+  ActionMessage,
 } from "../types";
 import { CLASS_CONFIGS } from "../data/classes";
 import { getCardsByClass } from "../data/cards";
@@ -22,6 +23,17 @@ const rollD20 = (): number => Math.floor(Math.random() * 20) + 1;
 const rollD6 = (): number => Math.floor(Math.random() * 6) + 1;
 
 const generateId = (): string => Math.random().toString(36).substring(2, 9);
+
+// Roll intent for all alive monsters
+const rollMonsterIntents = (monsters: Monster[]): Monster[] => {
+  return monsters.map((monster) => {
+    if (!monster.isAlive) return monster;
+    const roll = rollD6();
+    const ability =
+      monster.abilities.find((a) => a.roll === roll) || monster.abilities[0];
+    return { ...monster, intent: ability };
+  });
+};
 
 const createLogEntry = (
   turn: number,
@@ -110,6 +122,13 @@ const initialState: GameState = {
   rewardPlayerIndex: 0,
   rewardCards: [],
   selectedRewardCardId: null,
+  animation: {
+    isAnimating: false,
+    diceRoll: null,
+    diceRolling: false,
+    actionMessages: [],
+    damageNumbers: [],
+  },
 };
 
 // ============================================
@@ -148,6 +167,12 @@ interface GameActions {
   selectRewardCard: (cardId: string) => void;
   confirmRewardCard: () => void;
   skipReward: () => void;
+
+  // Animation
+  startDiceRoll: () => void;
+  setAnimation: (animation: Partial<GameState["animation"]>) => void;
+  addActionMessage: (text: string, type: ActionMessage["type"]) => void;
+  clearActionMessages: () => void;
 
   // Utility
   addLog: (message: string, type: LogEntry["type"]) => void;
@@ -234,14 +259,17 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
 
     if (selectedDeckCards.length !== 5) return;
 
-    // Create player with selected deck
+    // Create player with selected deck - create unique instances of cards
     const classType = selectedClasses[deckBuildingPlayerIndex];
     const heroName =
       heroNames[deckBuildingPlayerIndex] ||
       `Hero ${deckBuildingPlayerIndex + 1}`;
-    const deck = availableCards.filter((card) =>
-      selectedDeckCards.includes(card.id)
-    );
+    const deck = availableCards
+      .filter((card) => selectedDeckCards.includes(card.id))
+      .map((card) => ({
+        ...card,
+        id: `${card.id}-${deckBuildingPlayerIndex}-${generateId()}`, // Create unique ID for each card instance
+      }));
     const newPlayer = createPlayer(
       `player-${deckBuildingPlayerIndex}`,
       heroName,
@@ -297,29 +325,33 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
   startRound: () => {
     const { round, players } = get();
     const roundConfig = ROUNDS.find((r) => r.round === round);
-    const monsters = getMonstersForRound(round);
+    const rawMonsters = getMonstersForRound(round);
+    // Roll initial intents for monsters
+    const monsters = rollMonsterIntents(rawMonsters);
 
-    // Reset player shields and clear some status effects between rounds
+    // Reset player shields between rounds (aggro persists during battle)
     const refreshedPlayers = players.map((player) => ({
       ...player,
       shield: 0,
-      baseAggro: 0,
-      diceAggro: 0,
     }));
+
+    // Find first alive player
+    const firstAlivePlayerIndex = refreshedPlayers.findIndex((p) => p.isAlive);
+
+    if (firstAlivePlayerIndex === -1) {
+      // No alive players - defeat
+      set({ currentScreen: "defeat" });
+      return;
+    }
 
     set({
       players: refreshedPlayers,
       monsters,
       phase: "DRAW",
-      currentPlayerIndex: 0,
+      currentPlayerIndex: firstAlivePlayerIndex,
       log: [
         ...get().log,
-        createLogEntry(
-          get().turn,
-          "DRAW",
-          `═══════════════════════════════════`,
-          "info"
-        ),
+        createLogEntry(get().turn, "DRAW", `────────────────`, "info"),
         createLogEntry(
           get().turn,
           "DRAW",
@@ -343,7 +375,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       ],
     });
 
-    // Auto-draw cards for first player
+    // Auto-draw cards for first alive player
     get().drawCards();
   },
 
@@ -356,7 +388,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       return;
     }
 
-    // Heal players between rounds (50% of missing HP)
+    // Heal players between rounds (50% of missing HP) and reset aggro
     const healedPlayers = players.map((player) => {
       if (!player.isAlive) return player;
       const missingHp = player.maxHp - player.hp;
@@ -364,6 +396,9 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       return {
         ...player,
         hp: Math.min(player.maxHp, player.hp + healAmount),
+        // Reset aggro when all enemies are defeated
+        baseAggro: 0,
+        diceAggro: 0,
         // Reshuffle discard into deck
         deck: shuffleArray([...player.deck, ...player.discard]),
         discard: [],
@@ -384,8 +419,24 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
     const { players, currentPlayerIndex, turn, phase } = get();
     const player = players[currentPlayerIndex];
 
+    // Skip dead players
     if (!player.isAlive) {
-      get().nextPhase();
+      // Find next alive player
+      const nextAlivePlayer = players.findIndex(
+        (p, i) => i > currentPlayerIndex && p.isAlive
+      );
+
+      if (nextAlivePlayer !== -1) {
+        // More players to act - go to next player's draw phase
+        set({
+          currentPlayerIndex: nextAlivePlayer,
+        });
+        get().drawCards();
+      } else {
+        // All players have acted (or are dead) - move to monster turn
+        set({ phase: "MONSTER_ACTION" });
+        get().monsterAct();
+      }
       return;
     }
 
@@ -447,8 +498,8 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
   confirmTarget: () => {
     const { selectedTargetId } = get();
     if (!selectedTargetId) return;
-    // Move to aggro phase after target is confirmed
-    get().rollAggro();
+    // Move to aggro phase after target is confirmed - use dice roll animation
+    get().startDiceRoll();
   },
 
   needsTargetSelection: () => {
@@ -486,13 +537,14 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
     if (!selectedCard) return;
 
     const diceAggro = rollD20();
-    const baseAggro = selectedCard.aggro;
-    const totalAggro = baseAggro + diceAggro;
+    const cardAggro = selectedCard.aggro;
+    const newBaseAggro = player.baseAggro + cardAggro; // Accumulate base aggro
+    const totalAggro = newBaseAggro + diceAggro;
 
     const updatedPlayers = [...players];
     updatedPlayers[currentPlayerIndex] = {
       ...player,
-      baseAggro,
+      baseAggro: newBaseAggro,
       diceAggro,
     };
 
@@ -504,7 +556,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
         createLogEntry(
           turn,
           "AGGRO",
-          `${player.name} rolls D20: ${diceAggro} + ${baseAggro} base = ${totalAggro} aggro`,
+          `${player.name} rolls D20: ${diceAggro} + ${newBaseAggro} base = ${totalAggro} aggro`,
           "roll"
         ),
       ],
@@ -514,7 +566,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
     get().playCard();
   },
 
-  playCard: () => {
+  playCard: async () => {
     const {
       players,
       monsters,
@@ -526,8 +578,13 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
     } = get();
     const player = players[currentPlayerIndex];
 
+    // Helper to delay
+    const delay = (ms: number) =>
+      new Promise((resolve) => setTimeout(resolve, ms));
+
     // Check if stunned
     if (player.isStunned) {
+      get().addActionMessage(`${player.name} is stunned!`, "debuff");
       set({
         log: [
           ...get().log,
@@ -539,12 +596,32 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
           ),
         ],
       });
+      await delay(1500);
       get().nextPhase();
       return;
     }
 
     const selectedCard = drawnCards.find((c) => c.id === selectedCardId);
     if (!selectedCard) return;
+
+    // Show card being played
+    set({ phase: "PLAYER_ACTION" });
+    get().addActionMessage(
+      `${player.name} plays ${selectedCard.name}!`,
+      "action"
+    );
+    set({
+      log: [
+        ...get().log,
+        createLogEntry(
+          turn,
+          "PLAYER_ACTION",
+          `${player.name} plays ${selectedCard.name}!`,
+          "action"
+        ),
+      ],
+    });
+    await delay(1200);
 
     let updatedPlayers = [...players];
     let updatedMonsters = [...monsters];
@@ -578,21 +655,27 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
         : updatedPlayers[currentPlayerIndex].deck,
     };
 
+    // Show effects
+    for (const logEntry of logs) {
+      const msgType =
+        logEntry.type === "damage"
+          ? "damage"
+          : logEntry.type === "heal"
+          ? "heal"
+          : "action";
+      get().addActionMessage(
+        logEntry.message,
+        msgType as ActionMessage["type"]
+      );
+      set({ log: [...get().log, logEntry] });
+      await delay(1000);
+    }
+
     set({
       players: updatedPlayers,
       monsters: updatedMonsters,
       selectedCardId: null,
       drawnCards: [],
-      log: [
-        ...get().log,
-        createLogEntry(
-          turn,
-          "PLAYER_ACTION",
-          `${player.name} plays ${selectedCard.name}!`,
-          "action"
-        ),
-        ...logs,
-      ],
     });
 
     // Check for round victory
@@ -604,10 +687,13 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
     get().nextPhase();
   },
 
-  monsterAct: () => {
+  monsterAct: async () => {
     const { players, monsters, turn } = get();
     const updatedPlayers = [...players];
-    const logs: LogEntry[] = [];
+
+    // Helper to delay
+    const delay = (ms: number) =>
+      new Promise((resolve) => setTimeout(resolve, ms));
 
     for (const monster of monsters) {
       if (!monster.isAlive) continue;
@@ -615,31 +701,42 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       // Check if monster is stunned
       const isStunned = monster.debuffs.some((d) => d.type === "stun");
       if (isStunned) {
-        logs.push(
-          createLogEntry(
-            turn,
-            "MONSTER_ACTION",
-            `${monster.name} is stunned and cannot act!`,
-            "debuff"
-          )
-        );
+        get().addActionMessage(`${monster.name} is stunned!`, "debuff");
+        set({
+          log: [
+            ...get().log,
+            createLogEntry(
+              turn,
+              "MONSTER_ACTION",
+              `${monster.name} is stunned and cannot act!`,
+              "debuff"
+            ),
+          ],
+        });
+        await delay(1500);
         continue;
       }
 
-      // Roll D6 for ability
-      const roll = rollD6();
-      const ability = monster.abilities.find((a) => a.roll === roll);
+      // Use the pre-rolled intent, or roll if not available
+      const ability =
+        monster.intent ||
+        monster.abilities.find((a) => a.roll === rollD6()) ||
+        monster.abilities[0];
 
-      if (!ability) continue;
-
-      logs.push(
-        createLogEntry(
-          turn,
-          "MONSTER_ACTION",
-          `${monster.name} rolls ${roll}: ${ability.name}!`,
-          "roll"
-        )
-      );
+      // Show monster preparing to attack
+      get().addActionMessage(`${monster.name} uses ${ability.name}!`, "roll");
+      set({
+        log: [
+          ...get().log,
+          createLogEntry(
+            turn,
+            "MONSTER_ACTION",
+            `${monster.name} uses ${ability.name}!`,
+            "roll"
+          ),
+        ],
+      });
+      await delay(1500);
 
       // Find target(s)
       const alivePlayers = updatedPlayers.filter((p) => p.isAlive);
@@ -716,16 +813,26 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
             isAlive,
           };
 
-          logs.push(
-            createLogEntry(
-              turn,
-              "MONSTER_ACTION",
-              `${monster.name} deals ${damage} damage to ${target.name}!${
-                !isAlive ? ` ${target.name} falls!` : ""
-              }`,
-              "damage"
-            )
-          );
+          // Update state and show damage
+          const damageMsg = `${target.name} takes ${damage} damage!${
+            !isAlive ? " 💀" : ""
+          }`;
+          get().addActionMessage(damageMsg, "damage");
+          set({
+            players: updatedPlayers,
+            log: [
+              ...get().log,
+              createLogEntry(
+                turn,
+                "MONSTER_ACTION",
+                `${monster.name} deals ${damage} damage to ${target.name}!${
+                  !isAlive ? ` ${target.name} falls!` : ""
+                }`,
+                "damage"
+              ),
+            ],
+          });
+          await delay(1200);
         }
       } else if (ability.damage < 0) {
         // Monster heals itself
@@ -735,16 +842,24 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
         const updatedMonster = { ...monster, hp: newHp };
         const updatedMonstersArray = [...monsters];
         updatedMonstersArray[monsterIndex] = updatedMonster;
-        set({ monsters: updatedMonstersArray });
 
-        logs.push(
-          createLogEntry(
-            turn,
-            "MONSTER_ACTION",
-            `${monster.name} heals for ${healAmount}!`,
-            "heal"
-          )
+        get().addActionMessage(
+          `${monster.name} heals for ${healAmount}!`,
+          "heal"
         );
+        set({
+          monsters: updatedMonstersArray,
+          log: [
+            ...get().log,
+            createLogEntry(
+              turn,
+              "MONSTER_ACTION",
+              `${monster.name} heals for ${healAmount}!`,
+              "heal"
+            ),
+          ],
+        });
+        await delay(1200);
       }
 
       // Apply debuff
@@ -775,22 +890,32 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
                 : updatedPlayers[playerIndex].accuracyPenalty,
           };
 
-          logs.push(
-            createLogEntry(
-              turn,
-              "MONSTER_ACTION",
-              `${target.name} is afflicted with ${ability.debuff.type}!`,
-              "debuff"
-            )
+          get().addActionMessage(
+            `${target.name} is ${ability.debuff!.type}ed!`,
+            "debuff"
           );
+          set({
+            players: updatedPlayers,
+            log: [
+              ...get().log,
+              createLogEntry(
+                turn,
+                "MONSTER_ACTION",
+                `${target.name} is afflicted with ${ability.debuff!.type}!`,
+                "debuff"
+              ),
+            ],
+          });
+          await delay(1000);
         }
       }
+
+      // Small pause between monsters
+      await delay(500);
     }
 
-    set({
-      players: updatedPlayers,
-      log: [...get().log, ...logs],
-    });
+    // Final state update
+    set({ players: updatedPlayers });
 
     // Check for defeat
     if (updatedPlayers.every((p) => !p.isAlive)) {
@@ -960,13 +1085,26 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
   },
 
   endTurn: () => {
-    const { turn } = get();
+    const { turn, players, monsters } = get();
+
+    // Find first alive player for new turn
+    const firstAlivePlayerIndex = players.findIndex((p) => p.isAlive);
+
+    if (firstAlivePlayerIndex === -1) {
+      // No alive players - defeat
+      set({ currentScreen: "defeat" });
+      return;
+    }
+
+    // Roll new intents for monsters at end of turn
+    const updatedMonsters = rollMonsterIntents(monsters);
 
     // Start new turn - all players act again
     set({
-      currentPlayerIndex: 0,
+      currentPlayerIndex: firstAlivePlayerIndex,
       turn: turn + 1,
       phase: "DRAW",
+      monsters: updatedMonsters,
       log: [
         ...get().log,
         createLogEntry(turn + 1, "DRAW", `--- Turn ${turn + 1} ---`, "info"),
@@ -1151,6 +1289,103 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
     } else {
       get().nextRound();
     }
+  },
+
+  // ============================================
+  // ANIMATION
+  // ============================================
+  setAnimation: (animationUpdate) => {
+    set((state) => ({
+      animation: { ...state.animation, ...animationUpdate },
+    }));
+  },
+
+  addActionMessage: (text, type) => {
+    const newMessage: ActionMessage = {
+      id: generateId(),
+      text,
+      type,
+      timestamp: Date.now(),
+    };
+    set((state) => ({
+      animation: {
+        ...state.animation,
+        actionMessages: [...state.animation.actionMessages, newMessage],
+      },
+    }));
+  },
+
+  clearActionMessages: () => {
+    set((state) => ({
+      animation: { ...state.animation, actionMessages: [] },
+    }));
+  },
+
+  startDiceRoll: () => {
+    const { players, currentPlayerIndex, selectedCardId, drawnCards, turn } =
+      get();
+    const player = players[currentPlayerIndex];
+    const selectedCard = drawnCards.find((c) => c.id === selectedCardId);
+
+    if (!selectedCard) return;
+
+    // Start dice rolling animation
+    set((state) => ({
+      phase: "AGGRO",
+      animation: { ...state.animation, diceRolling: true, diceRoll: null },
+    }));
+
+    // Animate dice rolling for 1.5 seconds
+    let rollCount = 0;
+    const rollInterval = setInterval(() => {
+      const fakeRoll = Math.floor(Math.random() * 20) + 1;
+      set((state) => ({
+        animation: { ...state.animation, diceRoll: fakeRoll },
+      }));
+      rollCount++;
+      if (rollCount >= 15) {
+        clearInterval(rollInterval);
+
+        // Final roll
+        const finalRoll = rollD20();
+        const cardAggro = selectedCard.aggro;
+        const newBaseAggro = player.baseAggro + cardAggro;
+        const totalAggro = newBaseAggro + finalRoll;
+
+        const updatedPlayers = [...players];
+        updatedPlayers[currentPlayerIndex] = {
+          ...player,
+          baseAggro: newBaseAggro,
+          diceAggro: finalRoll,
+        };
+
+        set((state) => ({
+          players: updatedPlayers,
+          animation: {
+            ...state.animation,
+            diceRoll: finalRoll,
+            diceRolling: false,
+          },
+          log: [
+            ...get().log,
+            createLogEntry(
+              turn,
+              "AGGRO",
+              `${player.name} rolls D20: ${finalRoll} + ${newBaseAggro} base = ${totalAggro} aggro`,
+              "roll"
+            ),
+          ],
+        }));
+
+        // After showing the result for a moment, play the card
+        setTimeout(() => {
+          set((state) => ({
+            animation: { ...state.animation, diceRoll: null },
+          }));
+          get().playCard();
+        }, 1000);
+      }
+    }, 100);
   },
 
   // ============================================

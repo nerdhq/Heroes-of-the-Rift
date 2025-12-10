@@ -153,6 +153,7 @@ export interface Monster {
   buffs: StatusEffect[];
   debuffs: StatusEffect[];
   isAlive: boolean;
+  intent?: MonsterAbility; // What the monster plans to do next turn
 }
 
 // ============================================
@@ -179,6 +180,32 @@ export interface LogEntry {
   type: "info" | "damage" | "heal" | "buff" | "debuff" | "roll" | "action";
   timestamp: number;
   isSubEntry?: boolean; // For indented entries within a turn
+}
+
+// ============================================
+// ACTION MESSAGE
+// ============================================
+export interface ActionMessage {
+  id: string;
+  text: string;
+  type: "action" | "damage" | "heal" | "buff" | "debuff" | "roll";
+  timestamp: number;
+}
+
+// ============================================
+// ANIMATION STATE
+// ============================================
+export interface AnimationState {
+  isAnimating: boolean;
+  diceRoll: number | null;
+  diceRolling: boolean;
+  actionMessages: ActionMessage[];
+  damageNumbers: {
+    id: string;
+    value: number;
+    type: "damage" | "heal" | "shield";
+    targetId: string;
+  }[];
 }
 
 // ============================================
@@ -221,4 +248,7 @@ export interface GameState {
   rewardPlayerIndex: number;
   rewardCards: Card[];
   selectedRewardCardId: string | null;
+
+  // Animation state
+  animation: AnimationState;
 }

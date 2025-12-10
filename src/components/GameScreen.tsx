@@ -1,12 +1,21 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useGameStore } from "../store/gameStore";
 import { CLASS_CONFIGS } from "../data/classes";
-import { Heart, Shield, Skull, Zap, Target, HelpCircle } from "lucide-react";
+import {
+  Heart,
+  Shield,
+  Skull,
+  Zap,
+  Target,
+  HelpCircle,
+  Dice6,
+} from "lucide-react";
 import { HelpModal } from "./HelpModal";
 import type { Card, Player, Monster, StatusEffect, Rarity } from "../types";
 
 export function GameScreen() {
   const [showHelp, setShowHelp] = useState(false);
+  const logContainerRef = useRef<HTMLDivElement>(null);
   const phase = useGameStore((state) => state.phase);
   const players = useGameStore((state) => state.players);
   const monsters = useGameStore((state) => state.monsters);
@@ -18,10 +27,11 @@ export function GameScreen() {
   const selectedCardId = useGameStore((state) => state.selectedCardId);
   const selectedTargetId = useGameStore((state) => state.selectedTargetId);
   const log = useGameStore((state) => state.log);
+  const animation = useGameStore((state) => state.animation);
   const selectCard = useGameStore((state) => state.selectCard);
   const selectTarget = useGameStore((state) => state.selectTarget);
   const confirmTarget = useGameStore((state) => state.confirmTarget);
-  const rollAggro = useGameStore((state) => state.rollAggro);
+  const startDiceRoll = useGameStore((state) => state.startDiceRoll);
   const needsTargetSelection = useGameStore(
     (state) => state.needsTargetSelection
   );
@@ -30,6 +40,31 @@ export function GameScreen() {
   const currentPlayer = players[currentPlayerIndex];
   const needsTarget = needsTargetSelection();
   const targetType = getTargetType();
+  const setAnimation = useGameStore((state) => state.setAnimation);
+
+  // Auto-scroll battle log to bottom when new entries are added
+  useEffect(() => {
+    if (logContainerRef.current) {
+      logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
+    }
+  }, [log]);
+
+  // Clean up old action messages after they've been displayed
+  useEffect(() => {
+    if (animation.actionMessages.length === 0) return;
+
+    const cleanup = setInterval(() => {
+      const now = Date.now();
+      const filtered = animation.actionMessages.filter(
+        (msg) => now - msg.timestamp < 5000 // Keep messages for 5 seconds
+      );
+      if (filtered.length !== animation.actionMessages.length) {
+        setAnimation({ actionMessages: filtered });
+      }
+    }, 1000);
+
+    return () => clearInterval(cleanup);
+  }, [animation.actionMessages, setAnimation]);
 
   // Handler for confirm button - either go to target select or roll aggro
   const handleConfirmCard = () => {
@@ -43,16 +78,16 @@ export function GameScreen() {
       if (targetType === "monster" && validMonsters.length === 1) {
         // Auto-select the only monster and skip target selection
         useGameStore.setState({ selectedTargetId: validMonsters[0].id });
-        rollAggro();
+        startDiceRoll();
       } else if (targetType === "ally" && validAllies.length === 1) {
         // Auto-select the only ally and skip target selection
         useGameStore.setState({ selectedTargetId: validAllies[0].id });
-        rollAggro();
+        startDiceRoll();
       } else {
         useGameStore.setState({ phase: "TARGET_SELECT" });
       }
     } else {
-      rollAggro();
+      startDiceRoll();
     }
   };
 
@@ -88,38 +123,93 @@ export function GameScreen() {
       strength: "💪",
       shield: "🛡️",
       block: "🚫",
+      accuracy: "🎯",
     };
     return icons[type] || "❓";
   };
 
+  const getStatusDescription = (effect: StatusEffect): string => {
+    const descriptions: Record<string, string> = {
+      poison: `Poison: Takes ${effect.value} damage at end of turn`,
+      burn: `Burn: Takes ${effect.value} damage at end of turn`,
+      ice: `Frost: Takes ${effect.value} damage at end of turn, slowed`,
+      weakness: `Weakness: Deals ${effect.value} less damage`,
+      stun: `Stunned: Cannot act this turn`,
+      stealth: `Stealth: Cannot be targeted by single-target attacks`,
+      taunt: `Taunt: Forces enemies to target this character`,
+      strength: `Strength: Deals +${effect.value} damage`,
+      shield: `Shield: Absorbs ${effect.value} damage`,
+      block: `Block: Immune to next ${effect.value} attacks`,
+      accuracy: `Accuracy Penalty: ${effect.value}% chance to miss`,
+    };
+    return `${descriptions[effect.type] || effect.type} (${
+      effect.duration
+    } turns remaining)`;
+  };
+
   const renderHealthBar = (current: number, max: number, color: string) => {
     const percentage = Math.max(0, (current / max) * 100);
+    const isLowHp = percentage <= 25 && percentage > 0;
     return (
       <div className="w-full h-3 bg-stone-700 rounded-full overflow-hidden">
         <div
-          className={`h-full transition-all duration-300 ${color}`}
+          className={`h-full health-bar-fill ${color} ${
+            isLowHp ? "animate-low-hp" : ""
+          }`}
           style={{ width: `${percentage}%` }}
         />
       </div>
     );
   };
 
+  // Calculate who has highest aggro (monster target)
+  const getHighestAggroPlayer = () => {
+    const alivePlayers = players.filter((p) => p.isAlive);
+    if (alivePlayers.length === 0) return null;
+
+    // Check for taunt first
+    const tauntPlayer = alivePlayers.find((p) => p.hasTaunt);
+    if (tauntPlayer) return tauntPlayer.id;
+
+    // Otherwise highest aggro (excluding stealth)
+    const visiblePlayers = alivePlayers.filter((p) => !p.isStealth);
+    if (visiblePlayers.length === 0) return alivePlayers[0]?.id;
+
+    return visiblePlayers.reduce((highest, p) => {
+      const pAggro = p.baseAggro + p.diceAggro;
+      const hAggro = highest.baseAggro + highest.diceAggro;
+      return pAggro > hAggro ? p : highest;
+    }, visiblePlayers[0])?.id;
+  };
+
+  const highestAggroPlayerId = getHighestAggroPlayer();
+
   const renderPlayerCard = (player: Player, index: number) => {
     const config = CLASS_CONFIGS[player.class];
     const isCurrentPlayer = index === currentPlayerIndex;
     const totalAggro = player.baseAggro + player.diceAggro;
+    const isTargeted =
+      player.id === highestAggroPlayerId &&
+      player.isAlive &&
+      monsters.some((m) => m.isAlive);
 
     return (
       <div
         key={player.id}
-        className={`p-4 rounded-lg border-2 transition-all ${
+        className={`p-4 rounded-lg border-2 transition-all relative ${
           isCurrentPlayer
             ? "border-amber-500 bg-stone-800 shadow-lg shadow-amber-900/30"
             : player.isAlive
             ? "border-stone-700 bg-stone-800/50"
             : "border-red-900 bg-red-950/30 opacity-60"
-        }`}
+        } ${isTargeted ? "animate-target-pulse" : ""}`}
       >
+        {/* Target indicator */}
+        {isTargeted && (
+          <div className="absolute -top-2 -right-2 bg-red-600 text-white text-xs px-2 py-0.5 rounded-full font-bold animate-intent">
+            🎯 TARGET
+          </div>
+        )}
         {/* Header */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
@@ -134,7 +224,10 @@ export function GameScreen() {
               {player.class === "barbarian" && "🪓"}
             </span>
             <div>
-              <h3 className="font-bold text-base" style={{ color: config.color }}>
+              <h3
+                className="font-bold text-base"
+                style={{ color: config.color }}
+              >
                 {player.name}
               </h3>
               <p className="text-xs text-stone-500">{config.name}</p>
@@ -168,7 +261,8 @@ export function GameScreen() {
             }`}
           >
             <Zap className="w-3 h-3 inline mr-1" />
-            Aggro: {totalAggro} {player.baseAggro > 0 && `(${player.baseAggro} base)`}
+            Aggro: {totalAggro}{" "}
+            {player.baseAggro > 0 && `(${player.baseAggro} base)`}
           </div>
         )}
 
@@ -178,8 +272,8 @@ export function GameScreen() {
             {player.buffs.map((buff, i) => (
               <span
                 key={`buff-${i}`}
-                className="text-xs bg-green-900/50 text-green-300 px-2 py-1 rounded"
-                title={`${buff.type}: ${buff.value} (${buff.duration} turns)`}
+                className="text-xs bg-green-900/50 text-green-300 px-2 py-1 rounded cursor-help"
+                title={getStatusDescription(buff)}
               >
                 {getStatusIcon(buff.type)} {buff.duration}
               </span>
@@ -187,8 +281,8 @@ export function GameScreen() {
             {player.debuffs.map((debuff, i) => (
               <span
                 key={`debuff-${i}`}
-                className="text-xs bg-red-900/50 text-red-300 px-2 py-1 rounded"
-                title={`${debuff.type}: ${debuff.value} (${debuff.duration} turns)`}
+                className="text-xs bg-red-900/50 text-red-300 px-2 py-1 rounded cursor-help"
+                title={getStatusDescription(debuff)}
               >
                 {getStatusIcon(debuff.type)} {debuff.duration}
               </span>
@@ -251,16 +345,47 @@ export function GameScreen() {
 
         {/* Status Effects */}
         {monster.debuffs.length > 0 && (
-          <div className="flex flex-wrap justify-center gap-2">
+          <div className="flex flex-wrap justify-center gap-2 mb-2">
             {monster.debuffs.map((debuff, i) => (
               <span
                 key={`debuff-${i}`}
-                className="text-sm bg-purple-900/50 text-purple-300 px-3 py-1 rounded-full"
-                title={`${debuff.type}: ${debuff.value} (${debuff.duration} turns)`}
+                className="text-sm bg-purple-900/50 text-purple-300 px-3 py-1 rounded-full cursor-help"
+                title={getStatusDescription(debuff)}
               >
                 {getStatusIcon(debuff.type)} {debuff.type} ({debuff.duration})
               </span>
             ))}
+          </div>
+        )}
+
+        {/* Intent Preview */}
+        {monster.isAlive && monster.intent && (
+          <div className="mt-2 p-2 bg-stone-900/50 rounded-lg border border-stone-600">
+            <div className="flex items-center justify-center gap-2 text-sm">
+              <span className="animate-intent">
+                {monster.intent.damage > 0
+                  ? "⚔️"
+                  : monster.intent.debuff
+                  ? "💀"
+                  : "💨"}
+              </span>
+              <span className="text-stone-300 font-medium">
+                {monster.intent.name}
+              </span>
+              {monster.intent.damage > 0 && (
+                <span className="text-red-400 font-bold">
+                  {monster.intent.damage} dmg
+                </span>
+              )}
+              {monster.intent.target === "all" && (
+                <span className="text-amber-400 text-xs">(AOE)</span>
+              )}
+              {monster.intent.debuff && (
+                <span className="text-purple-400 text-xs">
+                  +{monster.intent.debuff.type}
+                </span>
+              )}
+            </div>
           </div>
         )}
       </div>
@@ -285,7 +410,7 @@ export function GameScreen() {
           isSelectable ? "hover:scale-105 cursor-pointer" : "cursor-default"
         } ${
           isSelected
-            ? "border-amber-400 ring-2 ring-amber-400 bg-amber-900/30"
+            ? "border-amber-400 ring-2 ring-amber-400 bg-amber-900/30 animate-card-glow"
             : rarityStyle
         }`}
       >
@@ -336,13 +461,60 @@ export function GameScreen() {
         {/* Center Panel - Battlefield */}
         <div className="col-span-6 flex flex-col h-full min-h-0">
           {/* Round & Turn Info */}
-          <div className="text-center mb-3 flex justify-center gap-4">
+          <div className="text-center mb-2 flex justify-center gap-4">
             <span className="bg-amber-900/50 text-amber-300 px-4 py-2 rounded-full font-bold border border-amber-700">
               Round {round}/{maxRounds}
             </span>
             <span className="bg-stone-800 text-amber-400 px-4 py-2 rounded-full font-bold">
-              Turn {turn} - {phase.replace("_", " ")}
+              Turn {turn}
             </span>
+          </div>
+
+          {/* Phase Progress Indicator */}
+          <div className="flex justify-center items-center gap-1 mb-3">
+            {["DRAW", "SELECT", "AGGRO", "PLAYER_ACTION", "MONSTER_ACTION"].map(
+              (p, i) => {
+                const phases = [
+                  "DRAW",
+                  "SELECT",
+                  "AGGRO",
+                  "PLAYER_ACTION",
+                  "MONSTER_ACTION",
+                ];
+                const currentIndex = phases.indexOf(phase);
+                const isActive = p === phase;
+                const isPast = i < currentIndex;
+                const phaseLabels: Record<string, string> = {
+                  DRAW: "Draw",
+                  SELECT: "Select",
+                  AGGRO: "Roll",
+                  PLAYER_ACTION: "Attack",
+                  MONSTER_ACTION: "Enemy",
+                };
+                return (
+                  <div key={p} className="flex items-center">
+                    <div
+                      className={`px-2 py-1 rounded text-xs font-bold transition-all ${
+                        isActive
+                          ? "bg-amber-500 text-stone-900 scale-110"
+                          : isPast
+                          ? "bg-green-700 text-green-100"
+                          : "bg-stone-700 text-stone-400"
+                      }`}
+                    >
+                      {phaseLabels[p]}
+                    </div>
+                    {i < phases.length - 1 && (
+                      <div
+                        className={`w-4 h-0.5 ${
+                          isPast ? "bg-green-600" : "bg-stone-600"
+                        }`}
+                      />
+                    )}
+                  </div>
+                );
+              }
+            )}
           </div>
 
           {/* Monster Area - takes remaining space */}
@@ -468,39 +640,113 @@ export function GameScreen() {
         {/* Right Panel - Log */}
         <div className="col-span-3 flex flex-col min-h-0">
           <h2 className="text-lg font-bold text-amber-400 mb-2">Battle Log</h2>
-          <div className="flex-1 bg-stone-800/50 rounded-xl p-3 border border-stone-700 overflow-y-auto min-h-0">
-            <div className="flex flex-col-reverse gap-1">
-              {log
-                .slice(-25)
-                .reverse()
-                .map((entry) => (
-                  <div
-                    key={entry.id}
-                    className={`text-sm p-2 rounded ${
-                      entry.isSubEntry ? "ml-4 border-l-2 border-stone-600" : ""
-                    } ${
-                      entry.type === "damage"
-                        ? "text-red-400 bg-red-900/20"
-                        : entry.type === "heal"
-                        ? "text-green-400 bg-green-900/20"
-                        : entry.type === "buff"
-                        ? "text-blue-400 bg-blue-900/20"
-                        : entry.type === "debuff"
-                        ? "text-purple-400 bg-purple-900/20"
-                        : entry.type === "roll"
-                        ? "text-amber-400 bg-amber-900/20"
-                        : entry.type === "action"
-                        ? "text-amber-200 bg-amber-900/10"
-                        : "text-stone-400"
-                    }`}
-                  >
-                    {entry.message}
-                  </div>
-                ))}
+          <div
+            ref={logContainerRef}
+            className="flex-1 bg-stone-800/50 rounded-xl p-3 border border-stone-700 overflow-y-auto min-h-0"
+          >
+            <div className="flex flex-col gap-1">
+              {log.slice(-25).map((entry) => (
+                <div
+                  key={entry.id}
+                  className={`text-sm p-2 rounded ${
+                    entry.isSubEntry ? "ml-4 border-l-2 border-stone-600" : ""
+                  } ${
+                    entry.type === "damage"
+                      ? "text-red-400 bg-red-900/20"
+                      : entry.type === "heal"
+                      ? "text-green-400 bg-green-900/20"
+                      : entry.type === "buff"
+                      ? "text-blue-400 bg-blue-900/20"
+                      : entry.type === "debuff"
+                      ? "text-purple-400 bg-purple-900/20"
+                      : entry.type === "roll"
+                      ? "text-amber-400 bg-amber-900/20"
+                      : entry.type === "action"
+                      ? "text-amber-200 bg-amber-900/10"
+                      : "text-stone-400"
+                  }`}
+                >
+                  {entry.message}
+                </div>
+              ))}
             </div>
           </div>
         </div>
       </div>
+
+      {/* Dice Roll Overlay */}
+      {(animation.diceRolling || animation.diceRoll !== null) && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+          <div className="bg-stone-800 rounded-2xl p-8 border-2 border-amber-500 shadow-2xl text-center">
+            <h3 className="text-xl font-bold text-amber-400 mb-4">
+              <Dice6 className="w-6 h-6 inline mr-2" />
+              Rolling for Aggro
+            </h3>
+            <div
+              className={`text-7xl font-bold mb-4 ${
+                animation.diceRolling
+                  ? "animate-bounce text-amber-300"
+                  : "text-green-400"
+              }`}
+            >
+              {animation.diceRoll ?? "?"}
+            </div>
+            {!animation.diceRolling && animation.diceRoll !== null && (
+              <p className="text-stone-300">
+                {currentPlayer?.name} rolled a{" "}
+                <span className="text-amber-400 font-bold">
+                  {animation.diceRoll}
+                </span>
+                !
+              </p>
+            )}
+            {animation.diceRolling && (
+              <p className="text-stone-400 animate-pulse">Rolling...</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Stacked Action Messages - new messages at bottom, old ones float up and fade */}
+      {animation.actionMessages.length > 0 && (
+        <div className="fixed top-1/3 left-1/2 -translate-x-1/2 z-40 pointer-events-none flex flex-col items-center gap-2">
+          {animation.actionMessages.slice(-6).map((msg, index, arr) => {
+            // Calculate age-based opacity for smooth fading
+            const position = arr.length - 1 - index; // 0 = newest (bottom), higher = older (top)
+            const fadeClass =
+              position >= 4
+                ? "opacity-30"
+                : position >= 3
+                ? "opacity-50"
+                : position >= 2
+                ? "opacity-70"
+                : "";
+
+            return (
+              <div
+                key={msg.id}
+                className={`px-6 py-3 rounded-xl border-2 shadow-lg animate-message-slide-up transition-opacity duration-1000 ${fadeClass} ${
+                  msg.type === "damage"
+                    ? "bg-red-900/90 border-red-500 text-red-100"
+                    : msg.type === "heal"
+                    ? "bg-green-900/90 border-green-500 text-green-100"
+                    : msg.type === "debuff"
+                    ? "bg-purple-900/90 border-purple-500 text-purple-100"
+                    : msg.type === "buff"
+                    ? "bg-blue-900/90 border-blue-500 text-blue-100"
+                    : msg.type === "roll"
+                    ? "bg-amber-900/90 border-amber-500 text-amber-100"
+                    : "bg-stone-900/90 border-amber-500 text-amber-100"
+                }`}
+              >
+                <p className="text-xl font-bold whitespace-nowrap">
+                  {msg.text}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
