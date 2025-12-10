@@ -1,0 +1,900 @@
+import type { Card, ClassType } from "../types";
+
+// ============================================
+// WARRIOR CARDS (10 cards)
+// ============================================
+const warriorCards: Card[] = [
+  {
+    id: "warrior-1",
+    name: "Slash",
+    class: "warrior",
+    rarity: "common",
+    aggro: 2,
+    description: "Deal 8 damage to a monster.",
+    effects: [{ type: "damage", value: 8, target: "monster" }],
+  },
+  {
+    id: "warrior-2",
+    name: "Shield Bash",
+    class: "warrior",
+    rarity: "common",
+    aggro: 3,
+    description: "Deal 5 damage and gain 5 shield.",
+    effects: [
+      { type: "damage", value: 5, target: "monster" },
+      { type: "shield", value: 5, target: "self" },
+    ],
+  },
+  {
+    id: "warrior-3",
+    name: "Defensive Stance",
+    class: "warrior",
+    rarity: "common",
+    aggro: 4,
+    description: "Gain 12 shield and Taunt for 1 turn.",
+    effects: [
+      { type: "shield", value: 12, target: "self" },
+      { type: "taunt", value: 1, target: "self", duration: 1 },
+    ],
+  },
+  {
+    id: "warrior-4",
+    name: "Cleave",
+    class: "warrior",
+    rarity: "uncommon",
+    aggro: 3,
+    description: "Deal 6 damage to all monsters.",
+    effects: [{ type: "damage", value: 6, target: "allMonsters" }],
+  },
+  {
+    id: "warrior-5",
+    name: "Battle Cry",
+    class: "warrior",
+    rarity: "uncommon",
+    aggro: 2,
+    description: "All allies gain 3 Strength for 2 turns.",
+    effects: [{ type: "strength", value: 3, target: "allAllies", duration: 2 }],
+  },
+  {
+    id: "warrior-6",
+    name: "Execute",
+    class: "warrior",
+    rarity: "rare",
+    aggro: 4,
+    description: "Deal 15 damage to a monster.",
+    effects: [{ type: "damage", value: 15, target: "monster" }],
+  },
+  {
+    id: "warrior-7",
+    name: "Iron Will",
+    class: "warrior",
+    rarity: "common",
+    aggro: 1,
+    description: "Gain 8 shield.",
+    effects: [{ type: "shield", value: 8, target: "self" }],
+  },
+  {
+    id: "warrior-8",
+    name: "Reckless Strike",
+    class: "warrior",
+    rarity: "uncommon",
+    aggro: 5,
+    description: "Deal 20 damage but take 5 damage.",
+    effects: [
+      { type: "damage", value: 20, target: "monster" },
+      { type: "damage", value: 5, target: "self" },
+    ],
+  },
+  {
+    id: "warrior-9",
+    name: "Rallying Shout",
+    class: "warrior",
+    rarity: "rare",
+    aggro: 2,
+    description: "All allies gain 5 shield.",
+    effects: [{ type: "shield", value: 5, target: "allAllies" }],
+  },
+  {
+    id: "warrior-10",
+    name: "Berserker Rage",
+    class: "warrior",
+    rarity: "legendary",
+    aggro: 5,
+    description: "Deal 25 damage and gain 5 Strength for 1 turn.",
+    effects: [
+      { type: "damage", value: 25, target: "monster" },
+      { type: "strength", value: 5, target: "self", duration: 1 },
+    ],
+  },
+];
+
+// ============================================
+// ROGUE CARDS (10 cards)
+// ============================================
+const rogueCards: Card[] = [
+  {
+    id: "rogue-1",
+    name: "Backstab",
+    class: "rogue",
+    rarity: "common",
+    aggro: 1,
+    description: "Deal 10 damage from stealth.",
+    effects: [{ type: "damage", value: 10, target: "monster" }],
+  },
+  {
+    id: "rogue-2",
+    name: "Shadowstep",
+    class: "rogue",
+    rarity: "common",
+    aggro: 0,
+    description: "Gain Stealth for 1 turn.",
+    effects: [{ type: "stealth", value: 1, target: "self", duration: 1 }],
+  },
+  {
+    id: "rogue-3",
+    name: "Poison Blade",
+    class: "rogue",
+    rarity: "common",
+    aggro: 2,
+    description: "Deal 5 damage and apply 3 Poison for 3 turns.",
+    effects: [
+      { type: "damage", value: 5, target: "monster" },
+      { type: "poison", value: 3, target: "monster", duration: 3 },
+    ],
+  },
+  {
+    id: "rogue-4",
+    name: "Fan of Knives",
+    class: "rogue",
+    rarity: "uncommon",
+    aggro: 2,
+    description: "Deal 4 damage to all monsters.",
+    effects: [{ type: "damage", value: 4, target: "allMonsters" }],
+  },
+  {
+    id: "rogue-5",
+    name: "Cheap Shot",
+    class: "rogue",
+    rarity: "uncommon",
+    aggro: 1,
+    description: "Deal 6 damage and apply 2 Weakness for 2 turns.",
+    effects: [
+      { type: "damage", value: 6, target: "monster" },
+      { type: "weakness", value: 2, target: "monster", duration: 2 },
+    ],
+  },
+  {
+    id: "rogue-6",
+    name: "Assassinate",
+    class: "rogue",
+    rarity: "rare",
+    aggro: 3,
+    description: "Deal 18 damage to a monster.",
+    effects: [{ type: "damage", value: 18, target: "monster" }],
+  },
+  {
+    id: "rogue-7",
+    name: "Smoke Bomb",
+    class: "rogue",
+    rarity: "uncommon",
+    aggro: 0,
+    description: "All allies gain Stealth for 1 turn.",
+    effects: [{ type: "stealth", value: 1, target: "allAllies", duration: 1 }],
+  },
+  {
+    id: "rogue-8",
+    name: "Eviscerate",
+    class: "rogue",
+    rarity: "rare",
+    aggro: 2,
+    description: "Deal 12 damage and apply 2 Accuracy penalty for 2 turns.",
+    effects: [
+      { type: "damage", value: 12, target: "monster" },
+      { type: "accuracy", value: 2, target: "monster", duration: 2 },
+    ],
+  },
+  {
+    id: "rogue-9",
+    name: "Deadly Poison",
+    class: "rogue",
+    rarity: "rare",
+    aggro: 1,
+    description: "Apply 5 Poison for 4 turns.",
+    effects: [{ type: "poison", value: 5, target: "monster", duration: 4 }],
+  },
+  {
+    id: "rogue-10",
+    name: "Shadow Dance",
+    class: "rogue",
+    rarity: "legendary",
+    aggro: 0,
+    description: "Deal 15 damage, gain Stealth, and 3 shield.",
+    effects: [
+      { type: "damage", value: 15, target: "monster" },
+      { type: "stealth", value: 1, target: "self", duration: 1 },
+      { type: "shield", value: 3, target: "self" },
+    ],
+  },
+];
+
+// ============================================
+// PALADIN CARDS (10 cards)
+// ============================================
+const paladinCards: Card[] = [
+  {
+    id: "paladin-1",
+    name: "Holy Strike",
+    class: "paladin",
+    rarity: "common",
+    aggro: 2,
+    description: "Deal 7 damage to a monster.",
+    effects: [{ type: "damage", value: 7, target: "monster" }],
+  },
+  {
+    id: "paladin-2",
+    name: "Divine Shield",
+    class: "paladin",
+    rarity: "common",
+    aggro: 3,
+    description: "Gain 10 shield.",
+    effects: [{ type: "shield", value: 10, target: "self" }],
+  },
+  {
+    id: "paladin-3",
+    name: "Lay on Hands",
+    class: "paladin",
+    rarity: "common",
+    aggro: 1,
+    description: "Heal an ally for 12 HP.",
+    effects: [{ type: "heal", value: 12, target: "ally" }],
+  },
+  {
+    id: "paladin-4",
+    name: "Consecration",
+    class: "paladin",
+    rarity: "uncommon",
+    aggro: 3,
+    description: "Deal 5 damage to all monsters and heal self for 5.",
+    effects: [
+      { type: "damage", value: 5, target: "allMonsters" },
+      { type: "heal", value: 5, target: "self" },
+    ],
+  },
+  {
+    id: "paladin-5",
+    name: "Blessing of Protection",
+    class: "paladin",
+    rarity: "uncommon",
+    aggro: 2,
+    description: "Give an ally 8 shield and Block for 1 turn.",
+    effects: [
+      { type: "shield", value: 8, target: "ally" },
+      { type: "block", value: 1, target: "ally", duration: 1 },
+    ],
+  },
+  {
+    id: "paladin-6",
+    name: "Hammer of Justice",
+    class: "paladin",
+    rarity: "rare",
+    aggro: 4,
+    description: "Deal 10 damage and Stun monster for 1 turn.",
+    effects: [
+      { type: "damage", value: 10, target: "monster" },
+      { type: "stun", value: 1, target: "monster", duration: 1 },
+    ],
+  },
+  {
+    id: "paladin-7",
+    name: "Cleanse",
+    class: "paladin",
+    rarity: "uncommon",
+    aggro: 1,
+    description: "Remove all debuffs from an ally.",
+    effects: [{ type: "cleanse", target: "ally" }],
+  },
+  {
+    id: "paladin-8",
+    name: "Righteous Fury",
+    class: "paladin",
+    rarity: "rare",
+    aggro: 4,
+    description: "Deal 14 damage and gain Taunt for 1 turn.",
+    effects: [
+      { type: "damage", value: 14, target: "monster" },
+      { type: "taunt", value: 1, target: "self", duration: 1 },
+    ],
+  },
+  {
+    id: "paladin-9",
+    name: "Redemption",
+    class: "paladin",
+    rarity: "rare",
+    aggro: 2,
+    description: "Revive a fallen ally at 30% HP.",
+    effects: [{ type: "revive", value: 30, target: "ally" }],
+  },
+  {
+    id: "paladin-10",
+    name: "Divine Intervention",
+    class: "paladin",
+    rarity: "legendary",
+    aggro: 5,
+    description: "All allies gain 10 shield and heal for 10 HP.",
+    effects: [
+      { type: "shield", value: 10, target: "allAllies" },
+      { type: "heal", value: 10, target: "allAllies" },
+    ],
+  },
+];
+
+// ============================================
+// MAGE CARDS (10 cards)
+// ============================================
+const mageCards: Card[] = [
+  {
+    id: "mage-1",
+    name: "Fireball",
+    class: "mage",
+    rarity: "common",
+    aggro: 3,
+    description: "Deal 10 damage to a monster.",
+    effects: [{ type: "damage", value: 10, target: "monster" }],
+  },
+  {
+    id: "mage-2",
+    name: "Frost Bolt",
+    class: "mage",
+    rarity: "common",
+    aggro: 2,
+    description: "Deal 6 damage and apply 2 Ice for 2 turns.",
+    effects: [
+      { type: "damage", value: 6, target: "monster" },
+      { type: "ice", value: 2, target: "monster", duration: 2 },
+    ],
+  },
+  {
+    id: "mage-3",
+    name: "Arcane Missiles",
+    class: "mage",
+    rarity: "common",
+    aggro: 2,
+    description: "Deal 4 damage 3 times to random monsters.",
+    effects: [
+      { type: "damage", value: 4, target: "monster" },
+      { type: "damage", value: 4, target: "monster" },
+      { type: "damage", value: 4, target: "monster" },
+    ],
+  },
+  {
+    id: "mage-4",
+    name: "Blizzard",
+    class: "mage",
+    rarity: "uncommon",
+    aggro: 3,
+    description: "Deal 5 damage to all monsters and apply 1 Ice for 2 turns.",
+    effects: [
+      { type: "damage", value: 5, target: "allMonsters" },
+      { type: "ice", value: 1, target: "allMonsters", duration: 2 },
+    ],
+  },
+  {
+    id: "mage-5",
+    name: "Flame Strike",
+    class: "mage",
+    rarity: "uncommon",
+    aggro: 4,
+    description: "Deal 8 damage to all monsters.",
+    effects: [{ type: "damage", value: 8, target: "allMonsters" }],
+  },
+  {
+    id: "mage-6",
+    name: "Mana Shield",
+    class: "mage",
+    rarity: "common",
+    aggro: 1,
+    description: "Gain 6 shield.",
+    effects: [{ type: "shield", value: 6, target: "self" }],
+  },
+  {
+    id: "mage-7",
+    name: "Polymorph",
+    class: "mage",
+    rarity: "rare",
+    aggro: 2,
+    description: "Stun a monster for 1 turn and apply 3 Weakness.",
+    effects: [
+      { type: "stun", value: 1, target: "monster", duration: 1 },
+      { type: "weakness", value: 3, target: "monster", duration: 2 },
+    ],
+  },
+  {
+    id: "mage-8",
+    name: "Ignite",
+    class: "mage",
+    rarity: "uncommon",
+    aggro: 2,
+    description: "Apply 4 Burn for 3 turns.",
+    effects: [{ type: "burn", value: 4, target: "monster", duration: 3 }],
+  },
+  {
+    id: "mage-9",
+    name: "Pyroblast",
+    class: "mage",
+    rarity: "rare",
+    aggro: 5,
+    description: "Deal 22 damage to a monster.",
+    effects: [{ type: "damage", value: 22, target: "monster" }],
+  },
+  {
+    id: "mage-10",
+    name: "Meteor",
+    class: "mage",
+    rarity: "legendary",
+    aggro: 5,
+    description: "Deal 15 damage to all monsters and apply 3 Burn for 2 turns.",
+    effects: [
+      { type: "damage", value: 15, target: "allMonsters" },
+      { type: "burn", value: 3, target: "allMonsters", duration: 2 },
+    ],
+  },
+];
+
+// ============================================
+// PRIEST CARDS (10 cards)
+// ============================================
+const priestCards: Card[] = [
+  {
+    id: "priest-1",
+    name: "Heal",
+    class: "priest",
+    rarity: "common",
+    aggro: 1,
+    description: "Heal an ally for 15 HP.",
+    effects: [{ type: "heal", value: 15, target: "ally" }],
+  },
+  {
+    id: "priest-2",
+    name: "Smite",
+    class: "priest",
+    rarity: "common",
+    aggro: 2,
+    description: "Deal 8 damage to a monster.",
+    effects: [{ type: "damage", value: 8, target: "monster" }],
+  },
+  {
+    id: "priest-3",
+    name: "Prayer of Mending",
+    class: "priest",
+    rarity: "common",
+    aggro: 1,
+    description: "Heal all allies for 6 HP.",
+    effects: [{ type: "heal", value: 6, target: "allAllies" }],
+  },
+  {
+    id: "priest-4",
+    name: "Power Word: Shield",
+    class: "priest",
+    rarity: "uncommon",
+    aggro: 2,
+    description: "Give an ally 12 shield.",
+    effects: [{ type: "shield", value: 12, target: "ally" }],
+  },
+  {
+    id: "priest-5",
+    name: "Purify",
+    class: "priest",
+    rarity: "uncommon",
+    aggro: 1,
+    description: "Cleanse all debuffs from an ally and heal for 5.",
+    effects: [
+      { type: "cleanse", target: "ally" },
+      { type: "heal", value: 5, target: "ally" },
+    ],
+  },
+  {
+    id: "priest-6",
+    name: "Holy Fire",
+    class: "priest",
+    rarity: "uncommon",
+    aggro: 3,
+    description: "Deal 10 damage and heal self for 5.",
+    effects: [
+      { type: "damage", value: 10, target: "monster" },
+      { type: "heal", value: 5, target: "self" },
+    ],
+  },
+  {
+    id: "priest-7",
+    name: "Guardian Spirit",
+    class: "priest",
+    rarity: "rare",
+    aggro: 2,
+    description: "Give an ally 8 shield and Block for 1 turn.",
+    effects: [
+      { type: "shield", value: 8, target: "ally" },
+      { type: "block", value: 1, target: "ally", duration: 1 },
+    ],
+  },
+  {
+    id: "priest-8",
+    name: "Resurrection",
+    class: "priest",
+    rarity: "rare",
+    aggro: 3,
+    description: "Revive a fallen ally at 40% HP.",
+    effects: [{ type: "revive", value: 40, target: "ally" }],
+  },
+  {
+    id: "priest-9",
+    name: "Mass Dispel",
+    class: "priest",
+    rarity: "rare",
+    aggro: 2,
+    description: "Cleanse all allies of debuffs.",
+    effects: [{ type: "cleanse", target: "allAllies" }],
+  },
+  {
+    id: "priest-10",
+    name: "Divine Hymn",
+    class: "priest",
+    rarity: "legendary",
+    aggro: 4,
+    description: "Heal all allies for 20 HP and grant 5 shield.",
+    effects: [
+      { type: "heal", value: 20, target: "allAllies" },
+      { type: "shield", value: 5, target: "allAllies" },
+    ],
+  },
+];
+
+// ============================================
+// BARD CARDS (10 cards)
+// ============================================
+const bardCards: Card[] = [
+  {
+    id: "bard-1",
+    name: "Inspiring Melody",
+    class: "bard",
+    rarity: "common",
+    aggro: 1,
+    description: "All allies gain 2 Strength for 2 turns.",
+    effects: [{ type: "strength", value: 2, target: "allAllies", duration: 2 }],
+  },
+  {
+    id: "bard-2",
+    name: "Dissonant Whispers",
+    class: "bard",
+    rarity: "common",
+    aggro: 2,
+    description: "Deal 7 damage and apply 2 Weakness for 2 turns.",
+    effects: [
+      { type: "damage", value: 7, target: "monster" },
+      { type: "weakness", value: 2, target: "monster", duration: 2 },
+    ],
+  },
+  {
+    id: "bard-3",
+    name: "Song of Rest",
+    class: "bard",
+    rarity: "common",
+    aggro: 1,
+    description: "Heal all allies for 5 HP.",
+    effects: [{ type: "heal", value: 5, target: "allAllies" }],
+  },
+  {
+    id: "bard-4",
+    name: "Vicious Mockery",
+    class: "bard",
+    rarity: "uncommon",
+    aggro: 2,
+    description: "Deal 5 damage and apply 3 Accuracy penalty for 2 turns.",
+    effects: [
+      { type: "damage", value: 5, target: "monster" },
+      { type: "accuracy", value: 3, target: "monster", duration: 2 },
+    ],
+  },
+  {
+    id: "bard-5",
+    name: "Heroic Ballad",
+    class: "bard",
+    rarity: "uncommon",
+    aggro: 2,
+    description: "One ally gains 4 Strength for 3 turns.",
+    effects: [{ type: "strength", value: 4, target: "ally", duration: 3 }],
+  },
+  {
+    id: "bard-6",
+    name: "Thunderwave",
+    class: "bard",
+    rarity: "uncommon",
+    aggro: 3,
+    description: "Deal 6 damage to all monsters.",
+    effects: [{ type: "damage", value: 6, target: "allMonsters" }],
+  },
+  {
+    id: "bard-7",
+    name: "Hypnotic Pattern",
+    class: "bard",
+    rarity: "rare",
+    aggro: 2,
+    description: "Stun a monster for 1 turn.",
+    effects: [{ type: "stun", value: 1, target: "monster", duration: 1 }],
+  },
+  {
+    id: "bard-8",
+    name: "Cutting Words",
+    class: "bard",
+    rarity: "rare",
+    aggro: 2,
+    description: "Apply 4 Weakness and 3 Accuracy penalty for 2 turns.",
+    effects: [
+      { type: "weakness", value: 4, target: "monster", duration: 2 },
+      { type: "accuracy", value: 3, target: "monster", duration: 2 },
+    ],
+  },
+  {
+    id: "bard-9",
+    name: "Song of Victory",
+    class: "bard",
+    rarity: "rare",
+    aggro: 3,
+    description: "All allies gain 3 Strength and 5 shield.",
+    effects: [
+      { type: "strength", value: 3, target: "allAllies", duration: 2 },
+      { type: "shield", value: 5, target: "allAllies" },
+    ],
+  },
+  {
+    id: "bard-10",
+    name: "Power Word: Kill",
+    class: "bard",
+    rarity: "legendary",
+    aggro: 5,
+    description: "Deal 30 damage to a monster.",
+    effects: [{ type: "damage", value: 30, target: "monster" }],
+  },
+];
+
+// ============================================
+// ARCHER CARDS (10 cards)
+// ============================================
+const archerCards: Card[] = [
+  {
+    id: "archer-1",
+    name: "Quick Shot",
+    class: "archer",
+    rarity: "common",
+    aggro: 1,
+    description: "Deal 8 damage to a monster.",
+    effects: [{ type: "damage", value: 8, target: "monster" }],
+  },
+  {
+    id: "archer-2",
+    name: "Aimed Shot",
+    class: "archer",
+    rarity: "common",
+    aggro: 2,
+    description: "Deal 12 damage to a monster.",
+    effects: [{ type: "damage", value: 12, target: "monster" }],
+  },
+  {
+    id: "archer-3",
+    name: "Poison Arrow",
+    class: "archer",
+    rarity: "common",
+    aggro: 2,
+    description: "Deal 6 damage and apply 3 Poison for 3 turns.",
+    effects: [
+      { type: "damage", value: 6, target: "monster" },
+      { type: "poison", value: 3, target: "monster", duration: 3 },
+    ],
+  },
+  {
+    id: "archer-4",
+    name: "Volley",
+    class: "archer",
+    rarity: "uncommon",
+    aggro: 3,
+    description: "Deal 5 damage to all monsters.",
+    effects: [{ type: "damage", value: 5, target: "allMonsters" }],
+  },
+  {
+    id: "archer-5",
+    name: "Evasive Maneuver",
+    class: "archer",
+    rarity: "uncommon",
+    aggro: 0,
+    description: "Gain Stealth and 4 shield.",
+    effects: [
+      { type: "stealth", value: 1, target: "self", duration: 1 },
+      { type: "shield", value: 4, target: "self" },
+    ],
+  },
+  {
+    id: "archer-6",
+    name: "Piercing Shot",
+    class: "archer",
+    rarity: "uncommon",
+    aggro: 3,
+    description: "Deal 15 damage, ignoring armor.",
+    effects: [{ type: "damage", value: 15, target: "monster" }],
+  },
+  {
+    id: "archer-7",
+    name: "Ice Arrow",
+    class: "archer",
+    rarity: "rare",
+    aggro: 2,
+    description: "Deal 8 damage and apply 3 Ice for 3 turns.",
+    effects: [
+      { type: "damage", value: 8, target: "monster" },
+      { type: "ice", value: 3, target: "monster", duration: 3 },
+    ],
+  },
+  {
+    id: "archer-8",
+    name: "Explosive Arrow",
+    class: "archer",
+    rarity: "rare",
+    aggro: 4,
+    description: "Deal 10 damage to all monsters and apply 2 Burn.",
+    effects: [
+      { type: "damage", value: 10, target: "allMonsters" },
+      { type: "burn", value: 2, target: "allMonsters", duration: 2 },
+    ],
+  },
+  {
+    id: "archer-9",
+    name: "Snipe",
+    class: "archer",
+    rarity: "rare",
+    aggro: 3,
+    description: "Deal 20 damage to a monster.",
+    effects: [{ type: "damage", value: 20, target: "monster" }],
+  },
+  {
+    id: "archer-10",
+    name: "Rain of Arrows",
+    class: "archer",
+    rarity: "legendary",
+    aggro: 5,
+    description: "Deal 12 damage to all monsters twice.",
+    effects: [
+      { type: "damage", value: 12, target: "allMonsters" },
+      { type: "damage", value: 12, target: "allMonsters" },
+    ],
+  },
+];
+
+// ============================================
+// BARBARIAN CARDS (10 cards)
+// ============================================
+const barbarianCards: Card[] = [
+  {
+    id: "barbarian-1",
+    name: "Reckless Attack",
+    class: "barbarian",
+    rarity: "common",
+    aggro: 3,
+    description: "Deal 12 damage to a monster.",
+    effects: [{ type: "damage", value: 12, target: "monster" }],
+  },
+  {
+    id: "barbarian-2",
+    name: "Rage",
+    class: "barbarian",
+    rarity: "common",
+    aggro: 2,
+    description: "Gain 5 Strength for 2 turns.",
+    effects: [{ type: "strength", value: 5, target: "self", duration: 2 }],
+  },
+  {
+    id: "barbarian-3",
+    name: "Wild Swing",
+    class: "barbarian",
+    rarity: "common",
+    aggro: 4,
+    description: "Deal 10 damage to a monster and 3 to self.",
+    effects: [
+      { type: "damage", value: 10, target: "monster" },
+      { type: "damage", value: 3, target: "self" },
+    ],
+  },
+  {
+    id: "barbarian-4",
+    name: "Intimidating Shout",
+    class: "barbarian",
+    rarity: "uncommon",
+    aggro: 4,
+    description: "Apply 3 Weakness to all monsters for 2 turns.",
+    effects: [
+      { type: "weakness", value: 3, target: "allMonsters", duration: 2 },
+    ],
+  },
+  {
+    id: "barbarian-5",
+    name: "Thick Skin",
+    class: "barbarian",
+    rarity: "uncommon",
+    aggro: 2,
+    description: "Gain 10 shield.",
+    effects: [{ type: "shield", value: 10, target: "self" }],
+  },
+  {
+    id: "barbarian-6",
+    name: "Cleaving Strike",
+    class: "barbarian",
+    rarity: "uncommon",
+    aggro: 4,
+    description: "Deal 8 damage to all monsters.",
+    effects: [{ type: "damage", value: 8, target: "allMonsters" }],
+  },
+  {
+    id: "barbarian-7",
+    name: "Frenzy",
+    class: "barbarian",
+    rarity: "rare",
+    aggro: 5,
+    description: "Deal 18 damage and gain 3 Strength for 1 turn.",
+    effects: [
+      { type: "damage", value: 18, target: "monster" },
+      { type: "strength", value: 3, target: "self", duration: 1 },
+    ],
+  },
+  {
+    id: "barbarian-8",
+    name: "Bloodlust",
+    class: "barbarian",
+    rarity: "rare",
+    aggro: 3,
+    description: "Deal 14 damage and heal for 7.",
+    effects: [
+      { type: "damage", value: 14, target: "monster" },
+      { type: "heal", value: 7, target: "self" },
+    ],
+  },
+  {
+    id: "barbarian-9",
+    name: "Undying Rage",
+    class: "barbarian",
+    rarity: "rare",
+    aggro: 2,
+    description: "Gain 15 shield and 4 Strength for 2 turns.",
+    effects: [
+      { type: "shield", value: 15, target: "self" },
+      { type: "strength", value: 4, target: "self", duration: 2 },
+    ],
+  },
+  {
+    id: "barbarian-10",
+    name: "Devastating Blow",
+    class: "barbarian",
+    rarity: "legendary",
+    aggro: 5,
+    description: "Deal 35 damage to a monster.",
+    effects: [{ type: "damage", value: 35, target: "monster" }],
+  },
+];
+
+// ============================================
+// ALL CARDS BY CLASS
+// ============================================
+export const CARDS_BY_CLASS: Record<ClassType, Card[]> = {
+  warrior: warriorCards,
+  rogue: rogueCards,
+  paladin: paladinCards,
+  mage: mageCards,
+  priest: priestCards,
+  bard: bardCards,
+  archer: archerCards,
+  barbarian: barbarianCards,
+};
+
+export const getAllCards = (): Card[] => {
+  return Object.values(CARDS_BY_CLASS).flat();
+};
+
+export const getCardsByClass = (classType: ClassType): Card[] => {
+  return CARDS_BY_CLASS[classType] || [];
+};
