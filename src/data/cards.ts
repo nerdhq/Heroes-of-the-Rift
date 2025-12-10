@@ -106,10 +106,67 @@ const warriorCards: Card[] = [
       { type: "strength", value: 5, target: "self", duration: 1 },
     ],
   },
+  // Advanced cards (11-15)
+  {
+    id: "warrior-11",
+    name: "Whirlwind",
+    class: "warrior",
+    rarity: "uncommon",
+    aggro: 4,
+    description: "Deal 8 damage to all monsters.",
+    effects: [{ type: "damage", value: 8, target: "allMonsters" }],
+  },
+  {
+    id: "warrior-12",
+    name: "Last Stand",
+    class: "warrior",
+    rarity: "rare",
+    aggro: 5,
+    description: "Gain 20 shield and Taunt for 2 turns.",
+    effects: [
+      { type: "shield", value: 20, target: "self" },
+      { type: "taunt", value: 1, target: "self", duration: 2 },
+    ],
+  },
+  {
+    id: "warrior-13",
+    name: "Intimidating Roar",
+    class: "warrior",
+    rarity: "uncommon",
+    aggro: 3,
+    description: "Apply 3 Weakness to all monsters for 2 turns.",
+    effects: [
+      { type: "weakness", value: 3, target: "allMonsters", duration: 2 },
+    ],
+  },
+  {
+    id: "warrior-14",
+    name: "Bloodthirst",
+    class: "warrior",
+    rarity: "rare",
+    aggro: 4,
+    description: "Deal 12 damage and heal for 6.",
+    effects: [
+      { type: "damage", value: 12, target: "monster" },
+      { type: "heal", value: 6, target: "self" },
+    ],
+  },
+  {
+    id: "warrior-15",
+    name: "Titan's Grip",
+    class: "warrior",
+    rarity: "legendary",
+    aggro: 6,
+    description: "Deal 30 damage and stun target for 1 turn.",
+    effects: [
+      { type: "damage", value: 30, target: "monster" },
+      { type: "stun", value: 1, target: "monster", duration: 1 },
+    ],
+  },
 ];
 
 // ============================================
-// ROGUE CARDS (10 cards)
+// ROGUE CARDS (15 cards)
 // ============================================
 const rogueCards: Card[] = [
   {
@@ -215,10 +272,69 @@ const rogueCards: Card[] = [
       { type: "shield", value: 3, target: "self" },
     ],
   },
+  // Advanced cards (11-15)
+  {
+    id: "rogue-11",
+    name: "Blade Flurry",
+    class: "rogue",
+    rarity: "uncommon",
+    aggro: 2,
+    description:
+      "Deal 5 damage to all monsters and apply 2 Poison for 2 turns.",
+    effects: [
+      { type: "damage", value: 5, target: "allMonsters" },
+      { type: "poison", value: 2, target: "allMonsters", duration: 2 },
+    ],
+  },
+  {
+    id: "rogue-12",
+    name: "Garrote",
+    class: "rogue",
+    rarity: "rare",
+    aggro: 2,
+    description: "Deal 8 damage and silence target for 1 turn.",
+    effects: [
+      { type: "damage", value: 8, target: "monster" },
+      { type: "disable", value: 1, target: "monster", duration: 1 },
+    ],
+  },
+  {
+    id: "rogue-13",
+    name: "Evasion",
+    class: "rogue",
+    rarity: "uncommon",
+    aggro: 0,
+    description: "Gain Stealth for 2 turns and 5 shield.",
+    effects: [
+      { type: "stealth", value: 1, target: "self", duration: 2 },
+      { type: "shield", value: 5, target: "self" },
+    ],
+  },
+  {
+    id: "rogue-14",
+    name: "Marked for Death",
+    class: "rogue",
+    rarity: "rare",
+    aggro: 3,
+    description: "Deal 10 damage and apply 4 Weakness for 3 turns.",
+    effects: [
+      { type: "damage", value: 10, target: "monster" },
+      { type: "weakness", value: 4, target: "monster", duration: 3 },
+    ],
+  },
+  {
+    id: "rogue-15",
+    name: "Death's Embrace",
+    class: "rogue",
+    rarity: "legendary",
+    aggro: 4,
+    description: "Deal 25 damage from the shadows.",
+    effects: [{ type: "damage", value: 25, target: "monster" }],
+  },
 ];
 
 // ============================================
-// PALADIN CARDS (10 cards)
+// PALADIN CARDS (15 cards)
 // ============================================
 const paladinCards: Card[] = [
   {
@@ -326,10 +442,66 @@ const paladinCards: Card[] = [
       { type: "heal", value: 10, target: "allAllies" },
     ],
   },
+  // Advanced cards (11-15)
+  {
+    id: "paladin-11",
+    name: "Crusader Strike",
+    class: "paladin",
+    rarity: "uncommon",
+    aggro: 3,
+    description: "Deal 10 damage and heal self for 5.",
+    effects: [
+      { type: "damage", value: 10, target: "monster" },
+      { type: "heal", value: 5, target: "self" },
+    ],
+  },
+  {
+    id: "paladin-12",
+    name: "Aura of Protection",
+    class: "paladin",
+    rarity: "rare",
+    aggro: 4,
+    description: "All allies gain 8 shield.",
+    effects: [{ type: "shield", value: 8, target: "allAllies" }],
+  },
+  {
+    id: "paladin-13",
+    name: "Judgment",
+    class: "paladin",
+    rarity: "rare",
+    aggro: 4,
+    description: "Deal 15 damage and apply 2 Weakness for 2 turns.",
+    effects: [
+      { type: "damage", value: 15, target: "monster" },
+      { type: "weakness", value: 2, target: "monster", duration: 2 },
+    ],
+  },
+  {
+    id: "paladin-14",
+    name: "Holy Wrath",
+    class: "paladin",
+    rarity: "uncommon",
+    aggro: 3,
+    description: "Deal 7 damage to all monsters.",
+    effects: [{ type: "damage", value: 7, target: "allMonsters" }],
+  },
+  {
+    id: "paladin-15",
+    name: "Avatar of Light",
+    class: "paladin",
+    rarity: "legendary",
+    aggro: 6,
+    description: "Deal 20 damage, heal all allies for 10, and gain 10 shield.",
+    effects: [
+      { type: "damage", value: 20, target: "monster" },
+      { type: "heal", value: 10, target: "allAllies" },
+      { type: "shield", value: 10, target: "self" },
+    ],
+  },
 ];
 
 // ============================================
-// MAGE CARDS (10 cards)
+// MAGE CARDS (15 cards)
 // ============================================
 const mageCards: Card[] = [
   {
@@ -438,10 +610,63 @@ const mageCards: Card[] = [
       { type: "burn", value: 3, target: "allMonsters", duration: 2 },
     ],
   },
+  // Advanced cards (11-15)
+  {
+    id: "mage-11",
+    name: "Chain Lightning",
+    class: "mage",
+    rarity: "uncommon",
+    aggro: 3,
+    description: "Deal 8 damage to all monsters.",
+    effects: [{ type: "damage", value: 8, target: "allMonsters" }],
+  },
+  {
+    id: "mage-12",
+    name: "Mana Shield",
+    class: "mage",
+    rarity: "uncommon",
+    aggro: 1,
+    description: "Gain 12 shield.",
+    effects: [{ type: "shield", value: 12, target: "self" }],
+  },
+  {
+    id: "mage-13",
+    name: "Arcane Missiles",
+    class: "mage",
+    rarity: "rare",
+    aggro: 3,
+    description: "Deal 6 damage 3 times to random monsters.",
+    effects: [
+      { type: "damage", value: 6, target: "monster" },
+      { type: "damage", value: 6, target: "monster" },
+      { type: "damage", value: 6, target: "monster" },
+    ],
+  },
+  {
+    id: "mage-14",
+    name: "Time Warp",
+    class: "mage",
+    rarity: "rare",
+    aggro: 2,
+    description: "Gain 5 Strength for 2 turns.",
+    effects: [{ type: "strength", value: 5, target: "self", duration: 2 }],
+  },
+  {
+    id: "mage-15",
+    name: "Pyroclasm",
+    class: "mage",
+    rarity: "legendary",
+    aggro: 6,
+    description: "Deal 20 damage to all monsters and apply 5 Burn for 3 turns.",
+    effects: [
+      { type: "damage", value: 20, target: "allMonsters" },
+      { type: "burn", value: 5, target: "allMonsters", duration: 3 },
+    ],
+  },
 ];
 
 // ============================================
-// PRIEST CARDS (10 cards)
+// PRIEST CARDS (15 cards)
 // ============================================
 const priestCards: Card[] = [
   {
@@ -546,10 +771,68 @@ const priestCards: Card[] = [
       { type: "shield", value: 5, target: "allAllies" },
     ],
   },
+  // Advanced cards (11-15)
+  {
+    id: "priest-11",
+    name: "Holy Fire",
+    class: "priest",
+    rarity: "uncommon",
+    aggro: 2,
+    description: "Deal 10 damage and heal self for 5.",
+    effects: [
+      { type: "damage", value: 10, target: "monster" },
+      { type: "heal", value: 5, target: "self" },
+    ],
+  },
+  {
+    id: "priest-12",
+    name: "Guardian Spirit",
+    class: "priest",
+    rarity: "rare",
+    aggro: 2,
+    description: "Grant an ally 15 shield.",
+    effects: [{ type: "shield", value: 15, target: "ally" }],
+  },
+  {
+    id: "priest-13",
+    name: "Mass Dispel",
+    class: "priest",
+    rarity: "uncommon",
+    aggro: 1,
+    description: "Cleanse all allies and heal for 5.",
+    effects: [
+      { type: "cleanse", target: "allAllies" },
+      { type: "heal", value: 5, target: "allAllies" },
+    ],
+  },
+  {
+    id: "priest-14",
+    name: "Penance",
+    class: "priest",
+    rarity: "rare",
+    aggro: 3,
+    description: "Deal 12 damage and heal lowest HP ally for 12.",
+    effects: [
+      { type: "damage", value: 12, target: "monster" },
+      { type: "heal", value: 12, target: "ally" },
+    ],
+  },
+  {
+    id: "priest-15",
+    name: "Salvation",
+    class: "priest",
+    rarity: "legendary",
+    aggro: 5,
+    description: "Revive a fallen ally at 50% HP and heal all allies for 10.",
+    effects: [
+      { type: "revive", value: 50, target: "ally" },
+      { type: "heal", value: 10, target: "allAllies" },
+    ],
+  },
 ];
 
 // ============================================
-// BARD CARDS (10 cards)
+// BARD CARDS (15 cards)
 // ============================================
 const bardCards: Card[] = [
   {
@@ -654,10 +937,65 @@ const bardCards: Card[] = [
     description: "Deal 30 damage to a monster.",
     effects: [{ type: "damage", value: 30, target: "monster" }],
   },
+  // Advanced cards (11-15)
+  {
+    id: "bard-11",
+    name: "Hymn of Valor",
+    class: "bard",
+    rarity: "uncommon",
+    aggro: 2,
+    description: "All allies gain 4 Strength for 1 turn.",
+    effects: [{ type: "strength", value: 4, target: "allAllies", duration: 1 }],
+  },
+  {
+    id: "bard-12",
+    name: "Lullaby",
+    class: "bard",
+    rarity: "rare",
+    aggro: 2,
+    description: "Apply 3 Weakness to all monsters for 2 turns.",
+    effects: [
+      { type: "weakness", value: 3, target: "allMonsters", duration: 2 },
+    ],
+  },
+  {
+    id: "bard-13",
+    name: "Healing Chorus",
+    class: "bard",
+    rarity: "uncommon",
+    aggro: 1,
+    description: "Heal all allies for 8 HP.",
+    effects: [{ type: "heal", value: 8, target: "allAllies" }],
+  },
+  {
+    id: "bard-14",
+    name: "Discordant Note",
+    class: "bard",
+    rarity: "rare",
+    aggro: 3,
+    description: "Deal 12 damage and apply 3 Accuracy penalty for 2 turns.",
+    effects: [
+      { type: "damage", value: 12, target: "monster" },
+      { type: "accuracy", value: 3, target: "monster", duration: 2 },
+    ],
+  },
+  {
+    id: "bard-15",
+    name: "Epic Finale",
+    class: "bard",
+    rarity: "legendary",
+    aggro: 5,
+    description:
+      "Deal 15 damage to all monsters and all allies gain 5 Strength for 2 turns.",
+    effects: [
+      { type: "damage", value: 15, target: "allMonsters" },
+      { type: "strength", value: 5, target: "allAllies", duration: 2 },
+    ],
+  },
 ];
 
 // ============================================
-// ARCHER CARDS (10 cards)
+// ARCHER CARDS (15 cards)
 // ============================================
 const archerCards: Card[] = [
   {
@@ -765,10 +1103,68 @@ const archerCards: Card[] = [
       { type: "damage", value: 12, target: "allMonsters" },
     ],
   },
+  // Advanced cards (11-15)
+  {
+    id: "archer-11",
+    name: "Explosive Arrow",
+    class: "archer",
+    rarity: "uncommon",
+    aggro: 3,
+    description: "Deal 8 damage to target and 4 damage to all monsters.",
+    effects: [
+      { type: "damage", value: 8, target: "monster" },
+      { type: "damage", value: 4, target: "allMonsters" },
+    ],
+  },
+  {
+    id: "archer-12",
+    name: "Hunter's Mark",
+    class: "archer",
+    rarity: "rare",
+    aggro: 2,
+    description: "Deal 10 damage and apply 4 Weakness for 3 turns.",
+    effects: [
+      { type: "damage", value: 10, target: "monster" },
+      { type: "weakness", value: 4, target: "monster", duration: 3 },
+    ],
+  },
+  {
+    id: "archer-13",
+    name: "Evasive Maneuver",
+    class: "archer",
+    rarity: "uncommon",
+    aggro: 0,
+    description: "Gain 10 shield and Stealth for 1 turn.",
+    effects: [
+      { type: "shield", value: 10, target: "self" },
+      { type: "stealth", value: 1, target: "self", duration: 1 },
+    ],
+  },
+  {
+    id: "archer-14",
+    name: "Piercing Shot",
+    class: "archer",
+    rarity: "rare",
+    aggro: 3,
+    description: "Deal 18 damage, ignoring armor.",
+    effects: [{ type: "damage", value: 18, target: "monster" }],
+  },
+  {
+    id: "archer-15",
+    name: "Death from Above",
+    class: "archer",
+    rarity: "legendary",
+    aggro: 6,
+    description: "Deal 25 damage to a monster and 10 damage to all others.",
+    effects: [
+      { type: "damage", value: 25, target: "monster" },
+      { type: "damage", value: 10, target: "allMonsters" },
+    ],
+  },
 ];
 
 // ============================================
-// BARBARIAN CARDS (10 cards)
+// BARBARIAN CARDS (15 cards)
 // ============================================
 const barbarianCards: Card[] = [
   {
@@ -874,6 +1270,60 @@ const barbarianCards: Card[] = [
     aggro: 5,
     description: "Deal 35 damage to a monster.",
     effects: [{ type: "damage", value: 35, target: "monster" }],
+  },
+  // Advanced cards (11-15)
+  {
+    id: "barbarian-11",
+    name: "Earthquake",
+    class: "barbarian",
+    rarity: "uncommon",
+    aggro: 4,
+    description: "Deal 10 damage to all monsters.",
+    effects: [{ type: "damage", value: 10, target: "allMonsters" }],
+  },
+  {
+    id: "barbarian-12",
+    name: "Battle Trance",
+    class: "barbarian",
+    rarity: "rare",
+    aggro: 2,
+    description: "Gain 8 Strength for 1 turn.",
+    effects: [{ type: "strength", value: 8, target: "self", duration: 1 }],
+  },
+  {
+    id: "barbarian-13",
+    name: "Primal Roar",
+    class: "barbarian",
+    rarity: "uncommon",
+    aggro: 3,
+    description: "Apply 4 Weakness to all monsters for 2 turns.",
+    effects: [
+      { type: "weakness", value: 4, target: "allMonsters", duration: 2 },
+    ],
+  },
+  {
+    id: "barbarian-14",
+    name: "Savage Charge",
+    class: "barbarian",
+    rarity: "rare",
+    aggro: 4,
+    description: "Deal 18 damage and stun target for 1 turn.",
+    effects: [
+      { type: "damage", value: 18, target: "monster" },
+      { type: "stun", value: 1, target: "monster", duration: 1 },
+    ],
+  },
+  {
+    id: "barbarian-15",
+    name: "Wrath of the Ancients",
+    class: "barbarian",
+    rarity: "legendary",
+    aggro: 6,
+    description: "Deal 40 damage to a monster but take 10 damage.",
+    effects: [
+      { type: "damage", value: 40, target: "monster" },
+      { type: "damage", value: 10, target: "self" },
+    ],
   },
 ];
 

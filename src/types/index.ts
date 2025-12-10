@@ -141,19 +141,34 @@ export interface MonsterAbility {
 }
 
 // ============================================
+// ELITE MODIFIERS
+// ============================================
+export type EliteModifier =
+  | "fast" // Acts twice per turn
+  | "armored" // +50% HP, reduces damage taken
+  | "enraged" // +50% damage dealt
+  | "regenerating" // Heals 10 HP per turn
+  | "cursed" // Applies random debuffs to attackers
+  | "shielded"; // Has shield that regenerates
+
+// ============================================
 // MONSTER
 // ============================================
 export interface Monster {
   id: string;
   name: string;
+  icon: string; // Emoji icon for the monster
   level: number;
   maxHp: number;
   hp: number;
+  shield: number; // For shielded elite modifier
   abilities: MonsterAbility[];
   buffs: StatusEffect[];
   debuffs: StatusEffect[];
   isAlive: boolean;
   intent?: MonsterAbility; // What the monster plans to do next turn
+  eliteModifier?: EliteModifier; // Optional elite modifier
+  damageReduction?: number; // For armored modifier
 }
 
 // ============================================

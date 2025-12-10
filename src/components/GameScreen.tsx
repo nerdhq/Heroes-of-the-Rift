@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useGameStore } from "../store/gameStore";
 import { CLASS_CONFIGS } from "../data/classes";
+import { ELITE_MODIFIERS } from "../data/monsters";
 import {
   Heart,
   Shield,
@@ -11,6 +12,8 @@ import {
   Dice6,
   FastForward,
   Settings,
+  LogOut,
+  AlertTriangle,
 } from "lucide-react";
 import { HelpModal } from "./HelpModal";
 import type {
@@ -24,6 +27,7 @@ import type {
 
 export function GameScreen() {
   const [showHelp, setShowHelp] = useState(false);
+  const [showQuitConfirm, setShowQuitConfirm] = useState(false);
   const logContainerRef = useRef<HTMLDivElement>(null);
   const phase = useGameStore((state) => state.phase);
   const players = useGameStore((state) => state.players);
@@ -66,6 +70,7 @@ export function GameScreen() {
   const useSpecialAbility = useGameStore((state) => state.useSpecialAbility);
   const setEnhanceMode = useGameStore((state) => state.setEnhanceMode);
   const enhanceMode = useGameStore((state) => state.enhanceMode);
+  const setScreen = useGameStore((state) => state.setScreen);
 
   // Auto-scroll battle log to bottom when new entries are added
   useEffect(() => {
@@ -357,27 +362,44 @@ export function GameScreen() {
       >
         {/* Monster Header */}
         <div className="text-center mb-3">
+          {/* Elite Modifier Badge */}
+          {monster.eliteModifier && (
+            <div
+              className="inline-block px-2 py-0.5 rounded-full text-xs font-bold mb-1"
+              style={{
+                backgroundColor:
+                  ELITE_MODIFIERS[monster.eliteModifier].color + "33",
+                color: ELITE_MODIFIERS[monster.eliteModifier].color,
+                border: `1px solid ${
+                  ELITE_MODIFIERS[monster.eliteModifier].color
+                }`,
+              }}
+              title={ELITE_MODIFIERS[monster.eliteModifier].description}
+            >
+              {ELITE_MODIFIERS[monster.eliteModifier].icon}{" "}
+              {ELITE_MODIFIERS[monster.eliteModifier].name}
+            </div>
+          )}
           <div
             className={`mb-2 ${
-              monster.name === "Ancient Dragon" ? "text-6xl" : "text-5xl"
+              monster.name.includes("Dragon") ? "text-6xl" : "text-5xl"
             }`}
           >
-            {monster.name === "Goblin" && "👺"}
-            {monster.name === "Skeleton" && "💀"}
-            {monster.name === "Werewolf" && "🐺"}
-            {monster.name === "Troll" && "👹"}
-            {monster.name === "Vampire" && "🧛"}
-            {monster.name === "Cerberus" && "🐕‍🦺"}
-            {monster.name === "Dark Knight" && "🗡️"}
-            {monster.name === "Orc Warlord" && "👹"}
-            {monster.name === "Ancient Dragon" && "🐉"}
+            {monster.icon}
           </div>
           <h2
             className={`font-bold ${
-              monster.name === "Ancient Dragon"
+              monster.name.includes("Dragon")
                 ? "text-2xl text-orange-400"
+                : monster.eliteModifier
+                ? "text-xl"
                 : "text-xl text-red-400"
             }`}
+            style={
+              monster.eliteModifier
+                ? { color: ELITE_MODIFIERS[monster.eliteModifier].color }
+                : {}
+            }
           >
             {monster.name}
           </h2>
@@ -391,6 +413,14 @@ export function GameScreen() {
             <span className="text-red-400 font-bold">
               {monster.hp} / {monster.maxHp}
             </span>
+            {monster.shield > 0 && (
+              <>
+                <Shield className="w-4 h-4 text-blue-400 ml-2" />
+                <span className="text-blue-400 font-bold">
+                  {monster.shield}
+                </span>
+              </>
+            )}
           </div>
           {renderHealthBar(monster.hp, monster.maxHp, "bg-red-600")}
         </div>
@@ -524,6 +554,15 @@ export function GameScreen() {
         >
           <HelpCircle className="w-5 h-5" />
         </button>
+
+        {/* Quit Button */}
+        <button
+          onClick={() => setShowQuitConfirm(true)}
+          className="bg-stone-800 hover:bg-red-900 text-red-400 p-2 rounded-full border border-stone-600 hover:border-red-600 transition-colors"
+          title="Quit Game"
+        >
+          <LogOut className="w-5 h-5" />
+        </button>
       </div>
 
       {/* Speed Settings Dropdown */}
@@ -579,6 +618,46 @@ export function GameScreen() {
 
       {/* Help Modal */}
       <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} />
+
+      {/* Quit Confirmation Modal */}
+      {showQuitConfirm && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+          <div className="bg-stone-900 rounded-xl border-2 border-red-700 p-6 max-w-md w-full mx-4 shadow-2xl">
+            {/* Header */}
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-red-900/50 rounded-full">
+                <AlertTriangle className="w-6 h-6 text-red-400" />
+              </div>
+              <h2 className="text-xl font-bold text-red-400">Quit Game?</h2>
+            </div>
+
+            {/* Message */}
+            <p className="text-stone-300 mb-6">
+              Are you sure you want to quit? All progress in this run will be
+              lost and you'll return to the main menu.
+            </p>
+
+            {/* Buttons */}
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowQuitConfirm(false)}
+                className="flex-1 py-3 px-4 bg-stone-700 hover:bg-stone-600 text-stone-200 rounded-lg font-bold transition-colors border border-stone-600"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setShowQuitConfirm(false);
+                  setScreen("title");
+                }}
+                className="flex-1 py-3 px-4 bg-red-700 hover:bg-red-600 text-white rounded-lg font-bold transition-colors border border-red-600"
+              >
+                Quit Game
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="max-w-7xl mx-auto grid grid-cols-12 gap-4 flex-1 w-full min-h-0">
         {/* Left Panel - Players */}
@@ -646,8 +725,8 @@ export function GameScreen() {
             )}
           </div>
 
-          {/* Monster Area - takes remaining space */}
-          <div className="flex-1 flex items-center justify-center min-h-0 overflow-y-auto">
+          {/* Monster Area - takes remaining space, aligned to top */}
+          <div className="flex-1 flex items-start justify-center min-h-0 overflow-y-auto pt-4">
             <div
               className={`grid gap-4 w-full ${
                 monsters.length > 1
@@ -824,7 +903,7 @@ export function GameScreen() {
         </div>
 
         {/* Right Panel - Log */}
-        <div className="col-span-3 flex flex-col min-h-0">
+        <div className="col-span-3 flex flex-col min-h-0 mt-10">
           <h2 className="text-lg font-bold text-amber-400 mb-2">Battle Log</h2>
           <div
             ref={logContainerRef}

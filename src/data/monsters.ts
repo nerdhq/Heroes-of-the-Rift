@@ -1,4 +1,4 @@
-import type { Monster, MonsterAbility } from "../types";
+import type { Monster, MonsterAbility, EliteModifier } from "../types";
 
 // ============================================
 // MONSTER TEMPLATES
@@ -7,9 +7,59 @@ import type { Monster, MonsterAbility } from "../types";
 interface MonsterTemplate {
   id: string;
   name: string;
+  icon: string; // Emoji icon
   baseHp: number;
   abilities: MonsterAbility[];
 }
+
+// ============================================
+// ELITE MODIFIER CONFIG
+// ============================================
+export interface EliteModifierConfig {
+  name: string;
+  icon: string;
+  description: string;
+  color: string;
+}
+
+export const ELITE_MODIFIERS: Record<EliteModifier, EliteModifierConfig> = {
+  fast: {
+    name: "Fast",
+    icon: "⚡",
+    description: "Acts twice per turn",
+    color: "#fbbf24", // yellow
+  },
+  armored: {
+    name: "Armored",
+    icon: "🛡️",
+    description: "+50% HP, reduces damage taken by 25%",
+    color: "#6b7280", // gray
+  },
+  enraged: {
+    name: "Enraged",
+    icon: "🔥",
+    description: "+50% damage dealt",
+    color: "#ef4444", // red
+  },
+  regenerating: {
+    name: "Regenerating",
+    icon: "💚",
+    description: "Heals 10 HP per turn",
+    color: "#22c55e", // green
+  },
+  cursed: {
+    name: "Cursed",
+    icon: "💀",
+    description: "Applies random debuffs to attackers",
+    color: "#a855f7", // purple
+  },
+  shielded: {
+    name: "Shielded",
+    icon: "🔰",
+    description: "Has shield that regenerates each turn",
+    color: "#3b82f6", // blue
+  },
+};
 
 // ============================================
 // GOBLIN (Starter Monster)
@@ -311,6 +361,616 @@ const cerberusAbilities: MonsterAbility[] = [
 ];
 
 // ============================================
+// IMP (Fast attacker, low damage)
+// ============================================
+const impAbilities: MonsterAbility[] = [
+  {
+    roll: 1,
+    name: "Cackle",
+    description: "The imp laughs mockingly.",
+    damage: 0,
+    target: "single",
+  },
+  {
+    roll: 2,
+    name: "Fire Spit",
+    description: "Spits a small fireball.",
+    damage: 4,
+    target: "single",
+    debuff: { type: "burn", value: 1, duration: 1 },
+  },
+  {
+    roll: 3,
+    name: "Quick Slash",
+    description: "A rapid claw attack.",
+    damage: 5,
+    target: "single",
+  },
+  {
+    roll: 4,
+    name: "Mischief",
+    description: "Steals resources from a hero.",
+    damage: 3,
+    target: "single",
+  },
+  {
+    roll: 5,
+    name: "Double Strike",
+    description: "Two quick attacks.",
+    damage: 7,
+    target: "single",
+  },
+  {
+    roll: 6,
+    name: "Infernal Dash",
+    description: "Dashes through all heroes.",
+    damage: 4,
+    target: "all",
+  },
+];
+
+// ============================================
+// SLIME (Splits when damaged - high HP)
+// ============================================
+const slimeAbilities: MonsterAbility[] = [
+  {
+    roll: 1,
+    name: "Wobble",
+    description: "The slime jiggles harmlessly.",
+    damage: 0,
+    target: "single",
+  },
+  {
+    roll: 2,
+    name: "Acid Splash",
+    description: "Splashes corrosive acid.",
+    damage: 5,
+    target: "single",
+    debuff: { type: "poison", value: 2, duration: 2 },
+  },
+  {
+    roll: 3,
+    name: "Engulf",
+    description: "Attempts to engulf a hero.",
+    damage: 7,
+    target: "single",
+  },
+  {
+    roll: 4,
+    name: "Toxic Cloud",
+    description: "Releases a toxic cloud.",
+    damage: 4,
+    target: "all",
+    debuff: { type: "poison", value: 1, duration: 2 },
+  },
+  {
+    roll: 5,
+    name: "Absorb",
+    description: "Absorbs damage and heals.",
+    damage: -8,
+    target: "single",
+  },
+  {
+    roll: 6,
+    name: "Acid Wave",
+    description: "A wave of acid hits everyone.",
+    damage: 6,
+    target: "all",
+  },
+];
+
+// ============================================
+// NECROMANCER (Summons skeletons, dark magic)
+// ============================================
+const necromancerAbilities: MonsterAbility[] = [
+  {
+    roll: 1,
+    name: "Dark Ritual",
+    description: "Channels dark energy.",
+    damage: 0,
+    target: "all",
+    debuff: { type: "weakness", value: 1, duration: 2 },
+  },
+  {
+    roll: 2,
+    name: "Shadow Bolt",
+    description: "Fires a bolt of shadow.",
+    damage: 8,
+    target: "single",
+  },
+  {
+    roll: 3,
+    name: "Life Tap",
+    description: "Drains life to heal.",
+    damage: 6,
+    target: "single",
+  },
+  {
+    roll: 4,
+    name: "Curse of Decay",
+    description: "Curses a hero with decay.",
+    damage: 4,
+    target: "single",
+    debuff: { type: "poison", value: 3, duration: 3 },
+  },
+  {
+    roll: 5,
+    name: "Soul Harvest",
+    description: "Harvests soul energy.",
+    damage: 10,
+    target: "single",
+  },
+  {
+    roll: 6,
+    name: "Death Wave",
+    description: "A wave of death energy.",
+    damage: 7,
+    target: "all",
+    debuff: { type: "weakness", value: 2, duration: 2 },
+  },
+];
+
+// ============================================
+// GARGOYLE (High armor, stone form)
+// ============================================
+const gargoyleAbilities: MonsterAbility[] = [
+  {
+    roll: 1,
+    name: "Stone Form",
+    description: "Hardens into stone, healing.",
+    damage: -12,
+    target: "single",
+  },
+  {
+    roll: 2,
+    name: "Claw Rake",
+    description: "Stone claws rake a hero.",
+    damage: 9,
+    target: "single",
+  },
+  {
+    roll: 3,
+    name: "Wing Buffet",
+    description: "Powerful wing attack.",
+    damage: 7,
+    target: "single",
+    debuff: { type: "stun", value: 1, duration: 1 },
+  },
+  {
+    roll: 4,
+    name: "Dive Attack",
+    description: "Dives from above.",
+    damage: 12,
+    target: "random",
+  },
+  {
+    roll: 5,
+    name: "Stone Gaze",
+    description: "Petrifying gaze.",
+    damage: 0,
+    target: "single",
+    debuff: { type: "stun", value: 1, duration: 1 },
+  },
+  {
+    roll: 6,
+    name: "Crushing Descent",
+    description: "Crashes down on all heroes.",
+    damage: 8,
+    target: "all",
+  },
+];
+
+// ============================================
+// BANSHEE (Fear debuff, drains resources)
+// ============================================
+const bansheeAbilities: MonsterAbility[] = [
+  {
+    roll: 1,
+    name: "Wail",
+    description: "A terrifying wail.",
+    damage: 0,
+    target: "all",
+    debuff: { type: "weakness", value: 2, duration: 2 },
+  },
+  {
+    roll: 2,
+    name: "Ghostly Touch",
+    description: "A chilling touch.",
+    damage: 6,
+    target: "single",
+    debuff: { type: "ice", value: 2, duration: 2 },
+  },
+  {
+    roll: 3,
+    name: "Soul Scream",
+    description: "Screams pierce the soul.",
+    damage: 8,
+    target: "single",
+  },
+  {
+    roll: 4,
+    name: "Drain Essence",
+    description: "Drains life essence.",
+    damage: 7,
+    target: "single",
+  },
+  {
+    roll: 5,
+    name: "Terrify",
+    description: "Induces pure terror.",
+    damage: 5,
+    target: "all",
+    debuff: { type: "accuracy", value: 3, duration: 2 },
+  },
+  {
+    roll: 6,
+    name: "Death Shriek",
+    description: "A deadly shriek.",
+    damage: 10,
+    target: "all",
+  },
+];
+
+// ============================================
+// MIMIC (Copies player abilities)
+// ============================================
+const mimicAbilities: MonsterAbility[] = [
+  {
+    roll: 1,
+    name: "Disguise",
+    description: "Shifts form confusingly.",
+    damage: 0,
+    target: "all",
+    debuff: { type: "accuracy", value: 2, duration: 2 },
+  },
+  {
+    roll: 2,
+    name: "Copied Strike",
+    description: "Mimics a hero's attack.",
+    damage: 8,
+    target: "single",
+  },
+  {
+    roll: 3,
+    name: "Tongue Lash",
+    description: "A sticky tongue attack.",
+    damage: 7,
+    target: "single",
+  },
+  {
+    roll: 4,
+    name: "Devour",
+    description: "Attempts to devour a hero.",
+    damage: 12,
+    target: "single",
+  },
+  {
+    roll: 5,
+    name: "Reflect",
+    description: "Reflects damage back.",
+    damage: 6,
+    target: "random",
+  },
+  {
+    roll: 6,
+    name: "True Form",
+    description: "Reveals monstrous true form.",
+    damage: 9,
+    target: "all",
+  },
+];
+
+// ============================================
+// ELEMENTAL (Rotates immunities)
+// ============================================
+const elementalAbilities: MonsterAbility[] = [
+  {
+    roll: 1,
+    name: "Elemental Shift",
+    description: "Changes elemental form.",
+    damage: 0,
+    target: "single",
+  },
+  {
+    roll: 2,
+    name: "Fire Burst",
+    description: "Erupts in flames.",
+    damage: 10,
+    target: "single",
+    debuff: { type: "burn", value: 3, duration: 2 },
+  },
+  {
+    roll: 3,
+    name: "Ice Shard",
+    description: "Launches ice shards.",
+    damage: 9,
+    target: "single",
+    debuff: { type: "ice", value: 2, duration: 2 },
+  },
+  {
+    roll: 4,
+    name: "Lightning Strike",
+    description: "Strikes with lightning.",
+    damage: 12,
+    target: "random",
+  },
+  {
+    roll: 5,
+    name: "Earth Slam",
+    description: "Slams the ground.",
+    damage: 8,
+    target: "all",
+  },
+  {
+    roll: 6,
+    name: "Elemental Storm",
+    description: "Unleashes all elements.",
+    damage: 11,
+    target: "all",
+    debuff: { type: "burn", value: 2, duration: 2 },
+  },
+];
+
+// ============================================
+// HYDRA (Multiple attacks per turn)
+// ============================================
+const hydraAbilities: MonsterAbility[] = [
+  {
+    roll: 1,
+    name: "Regenerate Head",
+    description: "A head regrows, healing.",
+    damage: -15,
+    target: "single",
+  },
+  {
+    roll: 2,
+    name: "Triple Bite",
+    description: "Three heads bite.",
+    damage: 12,
+    target: "single",
+  },
+  {
+    roll: 3,
+    name: "Poison Spray",
+    description: "Sprays venom everywhere.",
+    damage: 6,
+    target: "all",
+    debuff: { type: "poison", value: 3, duration: 3 },
+  },
+  {
+    roll: 4,
+    name: "Head Slam",
+    description: "Slams with multiple heads.",
+    damage: 14,
+    target: "single",
+  },
+  {
+    roll: 5,
+    name: "Constrict",
+    description: "Wraps around a hero.",
+    damage: 10,
+    target: "single",
+    debuff: { type: "stun", value: 1, duration: 1 },
+  },
+  {
+    roll: 6,
+    name: "Hydra Fury",
+    description: "All heads attack all heroes.",
+    damage: 10,
+    target: "all",
+  },
+];
+
+// ============================================
+// DEMON (Curses players)
+// ============================================
+const demonAbilities: MonsterAbility[] = [
+  {
+    roll: 1,
+    name: "Demonic Presence",
+    description: "Aura of dread.",
+    damage: 0,
+    target: "all",
+    debuff: { type: "weakness", value: 2, duration: 3 },
+  },
+  {
+    roll: 2,
+    name: "Hellfire Slash",
+    description: "Flaming sword attack.",
+    damage: 14,
+    target: "single",
+    debuff: { type: "burn", value: 3, duration: 2 },
+  },
+  {
+    roll: 3,
+    name: "Soul Rend",
+    description: "Tears at the soul.",
+    damage: 12,
+    target: "single",
+  },
+  {
+    roll: 4,
+    name: "Curse",
+    description: "Places a dark curse.",
+    damage: 8,
+    target: "single",
+    debuff: { type: "poison", value: 4, duration: 3 },
+  },
+  {
+    roll: 5,
+    name: "Infernal Charge",
+    description: "Charges through heroes.",
+    damage: 10,
+    target: "all",
+  },
+  {
+    roll: 6,
+    name: "Apocalypse",
+    description: "Unleashes hellish fury.",
+    damage: 16,
+    target: "all",
+    debuff: { type: "burn", value: 4, duration: 2 },
+  },
+];
+
+// ============================================
+// WRAITH (High evasion, drains life)
+// ============================================
+const wraithAbilities: MonsterAbility[] = [
+  {
+    roll: 1,
+    name: "Phase",
+    description: "Phases through attacks.",
+    damage: 0,
+    target: "single",
+  },
+  {
+    roll: 2,
+    name: "Life Drain",
+    description: "Drains life force.",
+    damage: 6,
+    target: "single",
+  },
+  {
+    roll: 3,
+    name: "Spectral Touch",
+    description: "A freezing touch.",
+    damage: 7,
+    target: "single",
+    debuff: { type: "ice", value: 2, duration: 2 },
+  },
+  {
+    roll: 4,
+    name: "Fear Aura",
+    description: "Emanates fear.",
+    damage: 0,
+    target: "all",
+    debuff: { type: "weakness", value: 2, duration: 2 },
+  },
+  {
+    roll: 5,
+    name: "Soul Siphon",
+    description: "Siphons soul energy.",
+    damage: 9,
+    target: "single",
+  },
+  {
+    roll: 6,
+    name: "Death Touch",
+    description: "A touch of death.",
+    damage: 12,
+    target: "single",
+    debuff: { type: "poison", value: 3, duration: 3 },
+  },
+];
+
+// ============================================
+// LICH KING (Boss - Undead master)
+// ============================================
+const lichKingAbilities: MonsterAbility[] = [
+  {
+    roll: 1,
+    name: "Raise Dead",
+    description: "Summons undead energy.",
+    damage: 0,
+    target: "all",
+    debuff: { type: "weakness", value: 2, duration: 2 },
+  },
+  {
+    roll: 2,
+    name: "Frost Bolt",
+    description: "A bolt of freezing death.",
+    damage: 12,
+    target: "single",
+    debuff: { type: "ice", value: 3, duration: 2 },
+  },
+  {
+    roll: 3,
+    name: "Death Coil",
+    description: "Dark energy coil.",
+    damage: 14,
+    target: "single",
+  },
+  {
+    roll: 4,
+    name: "Plague",
+    description: "Spreads a deadly plague.",
+    damage: 8,
+    target: "all",
+    debuff: { type: "poison", value: 4, duration: 3 },
+  },
+  {
+    roll: 5,
+    name: "Soul Freeze",
+    description: "Freezes souls solid.",
+    damage: 10,
+    target: "all",
+    debuff: { type: "stun", value: 1, duration: 1 },
+  },
+  {
+    roll: 6,
+    name: "Army of the Dead",
+    description: "Unleashes undead fury.",
+    damage: 15,
+    target: "all",
+    debuff: { type: "weakness", value: 3, duration: 2 },
+  },
+];
+
+// ============================================
+// DEMON LORD (Boss - Ultimate demon)
+// ============================================
+const demonLordAbilities: MonsterAbility[] = [
+  {
+    roll: 1,
+    name: "Hellgate",
+    description: "Opens a gate to hell.",
+    damage: 0,
+    target: "all",
+    debuff: { type: "burn", value: 3, duration: 3 },
+  },
+  {
+    roll: 2,
+    name: "Doom Blade",
+    description: "A blade of pure doom.",
+    damage: 18,
+    target: "single",
+  },
+  {
+    roll: 3,
+    name: "Corruption",
+    description: "Corrupts body and soul.",
+    damage: 12,
+    target: "single",
+    debuff: { type: "poison", value: 5, duration: 3 },
+  },
+  {
+    roll: 4,
+    name: "Inferno Wave",
+    description: "A wave of hellfire.",
+    damage: 14,
+    target: "all",
+    debuff: { type: "burn", value: 4, duration: 2 },
+  },
+  {
+    roll: 5,
+    name: "Soul Crush",
+    description: "Crushes the soul.",
+    damage: 20,
+    target: "random",
+    debuff: { type: "stun", value: 1, duration: 1 },
+  },
+  {
+    roll: 6,
+    name: "Armageddon",
+    description: "Brings forth armageddon.",
+    damage: 16,
+    target: "all",
+    debuff: { type: "burn", value: 5, duration: 3 },
+  },
+];
+
+// ============================================
 // ANCIENT DRAGON (Final Boss)
 // ============================================
 const dragonAbilities: MonsterAbility[] = [
@@ -468,113 +1128,362 @@ const darkKnightAbilities: MonsterAbility[] = [
 // MONSTER TEMPLATES
 // ============================================
 export const MONSTER_TEMPLATES: MonsterTemplate[] = [
-  { id: "goblin", name: "Goblin", baseHp: 30, abilities: goblinAbilities },
+  // Tier 1 - Early game (Rounds 1-2)
+  {
+    id: "goblin",
+    name: "Goblin",
+    icon: "👺",
+    baseHp: 30,
+    abilities: goblinAbilities,
+  },
   {
     id: "skeleton",
     name: "Skeleton",
+    icon: "💀",
     baseHp: 40,
     abilities: skeletonAbilities,
   },
+  { id: "imp", name: "Imp", icon: "😈", baseHp: 25, abilities: impAbilities },
+  {
+    id: "slime",
+    name: "Slime",
+    icon: "🟢",
+    baseHp: 50,
+    abilities: slimeAbilities,
+  },
+  {
+    id: "wraith",
+    name: "Wraith",
+    icon: "👻",
+    baseHp: 40,
+    abilities: wraithAbilities,
+  },
+
+  // Tier 2 - Mid game (Rounds 2-3)
   {
     id: "werewolf",
     name: "Werewolf",
+    icon: "🐺",
     baseHp: 60,
     abilities: werewolfAbilities,
   },
-  { id: "troll", name: "Troll", baseHp: 80, abilities: trollAbilities },
-  { id: "vampire", name: "Vampire", baseHp: 70, abilities: vampireAbilities },
   {
-    id: "cerberus",
-    name: "Cerberus",
-    baseHp: 120,
-    abilities: cerberusAbilities,
+    id: "necromancer",
+    name: "Necromancer",
+    icon: "🧙",
+    baseHp: 60,
+    abilities: necromancerAbilities,
+  },
+  {
+    id: "gargoyle",
+    name: "Gargoyle",
+    icon: "🗿",
+    baseHp: 80,
+    abilities: gargoyleAbilities,
+  },
+  {
+    id: "banshee",
+    name: "Banshee",
+    icon: "👰",
+    baseHp: 55,
+    abilities: bansheeAbilities,
+  },
+  {
+    id: "mimic",
+    name: "Mimic",
+    icon: "📦",
+    baseHp: 70,
+    abilities: mimicAbilities,
+  },
+
+  // Tier 3 - Late game (Rounds 3-4)
+  {
+    id: "troll",
+    name: "Troll",
+    icon: "🧌",
+    baseHp: 80,
+    abilities: trollAbilities,
+  },
+  {
+    id: "vampire",
+    name: "Vampire",
+    icon: "🧛",
+    baseHp: 70,
+    abilities: vampireAbilities,
+  },
+  {
+    id: "elemental",
+    name: "Elemental",
+    icon: "🌀",
+    baseHp: 90,
+    abilities: elementalAbilities,
   },
   {
     id: "dark-knight",
     name: "Dark Knight",
+    icon: "⚔️",
     baseHp: 100,
     abilities: darkKnightAbilities,
+  },
+
+  // Tier 4 - Elite (Rounds 4-5)
+  {
+    id: "hydra",
+    name: "Hydra",
+    icon: "🐍",
+    baseHp: 120,
+    abilities: hydraAbilities,
+  },
+  {
+    id: "demon",
+    name: "Demon",
+    icon: "👿",
+    baseHp: 150,
+    abilities: demonAbilities,
+  },
+  {
+    id: "cerberus",
+    name: "Cerberus",
+    icon: "🐕",
+    baseHp: 120,
+    abilities: cerberusAbilities,
   },
   {
     id: "orc-warlord",
     name: "Orc Warlord",
+    icon: "👹",
     baseHp: 150,
     abilities: orcWarlordAbilities,
+  },
+
+  // Bosses (Rounds 4, 5, 6)
+  {
+    id: "lich-king",
+    name: "Lich King",
+    icon: "👑",
+    baseHp: 200,
+    abilities: lichKingAbilities,
+  },
+  {
+    id: "demon-lord",
+    name: "Demon Lord",
+    icon: "😡",
+    baseHp: 280,
+    abilities: demonLordAbilities,
   },
   {
     id: "dragon",
     name: "Ancient Dragon",
-    baseHp: 250,
+    icon: "🐉",
+    baseHp: 300,
     abilities: dragonAbilities,
   },
 ];
 
 // ============================================
+// MONSTER TIERS FOR RANDOM SELECTION
+// ============================================
+export const MONSTER_TIERS = {
+  tier1: ["goblin", "skeleton", "imp", "slime", "wraith"],
+  tier2: ["werewolf", "necromancer", "gargoyle", "banshee", "mimic"],
+  tier3: ["troll", "vampire", "elemental", "dark-knight"],
+  tier4: ["hydra", "demon", "cerberus", "orc-warlord"],
+  bosses: ["lich-king", "demon-lord", "dragon"],
+};
+
+// ============================================
 // CREATE MONSTER INSTANCE
 // ============================================
-export const createMonster = (templateId: string, level: number): Monster => {
+export const createMonster = (
+  templateId: string,
+  level: number,
+  eliteModifier?: EliteModifier
+): Monster => {
   const template = MONSTER_TEMPLATES.find((t) => t.id === templateId);
   if (!template) {
     throw new Error(`Monster template not found: ${templateId}`);
   }
 
-  const scaledHp = Math.floor(template.baseHp * (1 + (level - 1) * 0.5));
+  let scaledHp = Math.floor(template.baseHp * (1 + (level - 1) * 0.5));
+  let damageReduction = 0;
+  let shield = 0;
+
+  // Apply elite modifier effects
+  if (eliteModifier === "armored") {
+    scaledHp = Math.floor(scaledHp * 1.5); // +50% HP
+    damageReduction = 0.25; // 25% damage reduction
+  }
+  if (eliteModifier === "shielded") {
+    shield = Math.floor(scaledHp * 0.2); // 20% of HP as shield
+  }
+
+  const modifierConfig = eliteModifier ? ELITE_MODIFIERS[eliteModifier] : null;
+  const displayName = modifierConfig
+    ? `${modifierConfig.icon} ${template.name}`
+    : template.name;
 
   return {
     id: `${template.id}-${Date.now()}-${Math.random()
       .toString(36)
       .substr(2, 5)}`,
-    name: template.name,
+    name: displayName,
+    icon: template.icon,
     level,
     maxHp: scaledHp,
     hp: scaledHp,
+    shield,
     abilities: template.abilities,
     buffs: [],
     debuffs: [],
     isAlive: true,
+    eliteModifier,
+    damageReduction: damageReduction > 0 ? damageReduction : undefined,
   };
 };
 
 // ============================================
-// ROUND CONFIGURATION
+// ELITE MODIFIER CHANCE BY ROUND
+// ============================================
+const ELITE_CHANCE_BY_ROUND: Record<number, number> = {
+  1: 0, // No elites in round 1
+  2: 0.15, // 15% chance
+  3: 0.25, // 25% chance
+  4: 0.3, // 30% chance
+  5: 0.35, // 35% chance
+  6: 0, // Boss round - no random elites
+};
+
+const ALL_ELITE_MODIFIERS: EliteModifier[] = [
+  "fast",
+  "armored",
+  "enraged",
+  "regenerating",
+  "cursed",
+  "shielded",
+];
+
+export const getRandomEliteModifier = (
+  round: number
+): EliteModifier | undefined => {
+  const chance = ELITE_CHANCE_BY_ROUND[round] || 0;
+  if (Math.random() < chance) {
+    return ALL_ELITE_MODIFIERS[
+      Math.floor(Math.random() * ALL_ELITE_MODIFIERS.length)
+    ];
+  }
+  return undefined;
+};
+
+// ============================================
+// ROUND CONFIGURATION (6 rounds total)
 // ============================================
 export interface RoundConfig {
   round: number;
   name: string;
-  description: string;
-  monsters: { templateId: string; level: number }[];
+  descriptions: string[]; // Multiple descriptions for variety
+  monsterTiers: string[]; // Which tiers to pull from
+  monsterCount: number; // How many monsters
+  level: number; // Monster level scaling
   isBoss: boolean;
+  bossPool?: string[]; // Optional boss pool for boss rounds
 }
 
 export const ROUNDS: RoundConfig[] = [
   {
     round: 1,
     name: "The Dark Passage",
-    description: "Goblins and undead block your path...",
-    monsters: [
-      { templateId: "goblin", level: 1 },
-      { templateId: "skeleton", level: 1 },
+    descriptions: [
+      "Goblins lurk in the shadows...",
+      "Undead rise from the depths...",
+      "Creatures stir in the darkness...",
+      "Something moves in the gloom...",
     ],
+    monsterTiers: ["tier1"],
+    monsterCount: 2,
+    level: 1,
     isBoss: false,
   },
   {
     round: 2,
-    name: "The Orc Stronghold",
-    description: "An Orc Warlord commands his forces!",
-    monsters: [{ templateId: "orc-warlord", level: 2 }],
-    isBoss: true,
+    name: "The Haunted Halls",
+    descriptions: [
+      "More dangerous foes await...",
+      "The dungeon grows more treacherous...",
+      "Stronger creatures block your path...",
+      "The air grows thick with menace...",
+    ],
+    monsterTiers: ["tier1", "tier2"],
+    monsterCount: 2,
+    level: 1,
+    isBoss: false,
   },
   {
     round: 3,
-    name: "The Dragon's Lair",
-    description: "Face the Ancient Dragon... if you dare!",
-    monsters: [{ templateId: "dragon", level: 3 }],
+    name: "The Chamber of Horrors",
+    descriptions: [
+      "Powerful monsters guard this place...",
+      "Elite creatures sense your presence...",
+      "The dungeon's guardians emerge...",
+      "Ancient evils stir...",
+    ],
+    monsterTiers: ["tier2", "tier3"],
+    monsterCount: 2,
+    level: 2,
+    isBoss: false,
+  },
+  {
+    round: 4,
+    name: "The Lich King's Crypt",
+    descriptions: [
+      "The Lich King rises with his skeleton army!",
+      "Undead legions answer their master's call!",
+      "Death itself awaits in this cursed place!",
+    ],
+    monsterTiers: ["tier3"],
+    monsterCount: 1,
+    level: 2,
     isBoss: true,
+    bossPool: ["lich-king"],
+  },
+  {
+    round: 5,
+    name: "The Demon Gate",
+    descriptions: [
+      "A Demon Lord commands his lesser demons!",
+      "Hellfire burns as demons pour forth!",
+      "The gates of hell have opened!",
+    ],
+    monsterTiers: ["tier4"],
+    monsterCount: 1,
+    level: 3,
+    isBoss: true,
+    bossPool: ["demon-lord"],
+  },
+  {
+    round: 6,
+    name: "The Dragon's Lair",
+    descriptions: [
+      "The Ancient Dragon awaits in its evolved form!",
+      "Face the ultimate challenge... if you dare!",
+      "The most powerful creature in the dungeon!",
+    ],
+    monsterTiers: [],
+    monsterCount: 0,
+    level: 4,
+    isBoss: true,
+    bossPool: ["dragon"],
   },
 ];
 
 // ============================================
-// GET MONSTERS FOR ROUND
+// HELPER: Pick random from array
+// ============================================
+const pickRandom = <T>(arr: T[]): T => {
+  return arr[Math.floor(Math.random() * arr.length)];
+};
+
+// ============================================
+// GET RANDOM MONSTERS FOR ROUND
 // ============================================
 export const getMonstersForRound = (round: number): Monster[] => {
   const roundConfig = ROUNDS.find((r) => r.round === round);
@@ -583,7 +1492,61 @@ export const getMonstersForRound = (round: number): Monster[] => {
     return [createMonster("goblin", 1)];
   }
 
-  return roundConfig.monsters.map((m) => createMonster(m.templateId, m.level));
+  const monsters: Monster[] = [];
+
+  // Add boss if it's a boss round (bosses don't get random elite modifiers)
+  if (roundConfig.isBoss && roundConfig.bossPool) {
+    const bossId = pickRandom(roundConfig.bossPool);
+    monsters.push(createMonster(bossId, roundConfig.level));
+  }
+
+  // Add random monsters from tiers
+  const availableMonsters: string[] = [];
+  for (const tier of roundConfig.monsterTiers) {
+    const tierMonsters = MONSTER_TIERS[tier as keyof typeof MONSTER_TIERS];
+    if (tierMonsters) {
+      availableMonsters.push(...tierMonsters);
+    }
+  }
+
+  // Pick random monsters (avoid duplicates)
+  const selectedIds = new Set<string>();
+  for (
+    let i = 0;
+    i < roundConfig.monsterCount && availableMonsters.length > 0;
+    i++
+  ) {
+    // Filter out already selected
+    const remaining = availableMonsters.filter((id) => !selectedIds.has(id));
+    if (remaining.length === 0) break;
+
+    const monsterId = pickRandom(remaining);
+    selectedIds.add(monsterId);
+
+    // Chance for elite modifier based on round
+    const eliteModifier = getRandomEliteModifier(round);
+    monsters.push(createMonster(monsterId, roundConfig.level, eliteModifier));
+  }
+
+  return monsters;
+};
+
+// ============================================
+// GET ROUND DESCRIPTION (random)
+// ============================================
+export const getRoundDescription = (round: number): string => {
+  const roundConfig = ROUNDS.find((r) => r.round === round);
+  if (!roundConfig) return "Unknown dangers await...";
+  return pickRandom(roundConfig.descriptions);
+};
+
+// ============================================
+// GET ROUND NAME
+// ============================================
+export const getRoundName = (round: number): string => {
+  const roundConfig = ROUNDS.find((r) => r.round === round);
+  if (!roundConfig) return "Unknown";
+  return roundConfig.name;
 };
 
 // Legacy function for backwards compatibility

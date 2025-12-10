@@ -209,42 +209,74 @@ Spend full resource bar to enhance a card's effects:
 
 ---
 
-### 5. Expanded Content
+### 5. Expanded Content ✅ (NEW)
 
-#### More Rounds (5-6 total)
+#### More Rounds (6 total) ✅
 
-- Round 4: Lich King + Skeleton Army
-- Round 5: Demon Lord + Lesser Demons
-- Round 6: Ancient Dragon Evolved Form
+- **Round 1**: The Dark Passage - Tier 1 monsters (2 random)
+- **Round 2**: The Haunted Halls - Tier 1-2 monsters (2 random)
+- **Round 3**: The Chamber of Horrors - Tier 2-3 monsters (2 random)
+- **Round 4**: The Lich King's Crypt - Lich King boss + Tier 3 monster
+- **Round 5**: The Demon Gate - Demon Lord boss + Tier 4 monster
+- **Round 6**: The Dragon's Lair - Ancient Dragon final boss
 
-#### New Monster Types (10+ new enemies)
+#### Randomized Encounters ✅
 
-- **Imp** (25 HP) - Fast attacker, low damage
-- **Slime** (50 HP) - Splits when damaged
-- **Necromancer** (60 HP) - Summons skeletons
-- **Gargoyle** (80 HP) - High armor, stone form
-- **Banshee** (55 HP) - Fear debuff, drains resources
-- **Mimic** (70 HP) - Copies player abilities
-- **Elemental** (90 HP) - Rotates immunities
-- **Hydra** (120 HP) - Multiple attacks per turn
-- **Demon** (150 HP) - Curses players
-- **Wraith** (40 HP) - High evasion, drains life
+- Each playthrough has different monster combinations
+- Monsters selected randomly from tier pools
+- Multiple round descriptions for variety
+- No two games are exactly the same!
 
-#### Elite Enemy Modifiers
+#### New Monster Types (12 new enemies) ✅
 
-- **Fast**: Acts twice per turn
-- **Armored**: +50% HP, reduces damage taken
-- **Enraged**: +50% damage dealt
-- **Regenerating**: Heals 10 HP per turn
-- **Cursed**: Applies random debuffs to attackers
-- **Shielded**: Has shield that regenerates
+**Tier 1 (Early Game)**
 
-#### More Cards Per Class (15-20 total)
+- **Imp** (25 HP) - Fast attacker, fire damage
+- **Slime** (50 HP) - Acid attacks, self-healing
+- **Wraith** (40 HP) - Life drain, fear aura
 
-- Expand starting pool to 15 cards
-- Add 5 "advanced" cards unlockable through progression
-- Include more situational/combo cards
-- Add cards with alternative costs
+**Tier 2 (Mid Game)**
+
+- **Necromancer** (60 HP) - Dark magic, curses
+- **Gargoyle** (80 HP) - Stone form healing, stuns
+- **Banshee** (55 HP) - Fear debuffs, soul screams
+- **Mimic** (70 HP) - Copies attacks, disguise
+
+**Tier 3 (Late Game)**
+
+- **Elemental** (90 HP) - Multi-element attacks
+
+**Tier 4 (Elite)**
+
+- **Hydra** (120 HP) - Multi-head attacks, regeneration
+- **Demon** (150 HP) - Hellfire, curses
+
+**Bosses**
+
+- **Lich King** (200 HP) - Undead master, plague, frost
+- **Demon Lord** (280 HP) - Ultimate demon, armageddon
+
+#### Elite Enemy Modifiers ✅
+
+Random chance for monsters to spawn with elite modifiers (15-35% based on round):
+
+- **⚡ Fast**: Acts twice per turn
+- **🛡️ Armored**: +50% HP, 25% damage reduction
+- **🔥 Enraged**: +50% damage dealt
+- **💚 Regenerating**: Heals 10 HP per turn
+- **💀 Cursed**: Applies random debuffs to attackers
+- **🔰 Shielded**: Has shield that regenerates each turn
+
+Elite modifiers are displayed with colored badges on monster cards.
+
+#### More Cards Per Class (15 total) ✅
+
+Each class now has 15 cards (up from 10):
+
+- 10 base cards (common to rare)
+- 5 advanced cards (uncommon to legendary)
+- More situational/combo cards
+- Better variety for deck building
 
 ### 6. Meta-Progression
 

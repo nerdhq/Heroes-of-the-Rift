@@ -16,7 +16,11 @@ import type {
 } from "../types";
 import { CLASS_CONFIGS } from "../data/classes";
 import { getCardsByClass } from "../data/cards";
-import { getMonstersForRound, ROUNDS } from "../data/monsters";
+import {
+  getMonstersForRound,
+  ROUNDS,
+  getRoundDescription,
+} from "../data/monsters";
 
 // ============================================
 // UTILITY FUNCTIONS
@@ -25,6 +29,21 @@ const rollD20 = (): number => Math.floor(Math.random() * 20) + 1;
 const rollD6 = (): number => Math.floor(Math.random() * 6) + 1;
 
 const generateId = (): string => Math.random().toString(36).substring(2, 9);
+
+// Format debuff type into a proper past-tense verb phrase
+const formatDebuffMessage = (type: string): string => {
+  const messages: Record<string, string> = {
+    poison: "poisoned",
+    burn: "burning",
+    stun: "stunned",
+    weakness: "weakened",
+    ice: "frozen",
+    accuracy: "blinded",
+    disable: "silenced",
+    bleed: "bleeding",
+  };
+  return messages[type] || `afflicted with ${type}`;
+};
 
 // Roll intent for all alive monsters
 const rollMonsterIntents = (monsters: Monster[]): Monster[] => {
@@ -111,7 +130,7 @@ const initialState: GameState = {
   turn: 1,
   level: 1,
   round: 1,
-  maxRounds: 3,
+  maxRounds: 6,
   selectedCardId: null,
   selectedTargetId: null,
   drawnCards: [],
@@ -399,12 +418,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
           `ROUND ${round}: ${roundConfig?.name || "Unknown"}`,
           "info"
         ),
-        createLogEntry(
-          get().turn,
-          "DRAW",
-          roundConfig?.description || "",
-          "info"
-        ),
+        createLogEntry(get().turn, "DRAW", getRoundDescription(round), "info"),
         createLogEntry(
           get().turn,
           "DRAW",
@@ -880,224 +894,245 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
         continue;
       }
 
-      // Use the pre-rolled intent, or roll if not available
-      const ability =
-        monster.intent ||
-        monster.abilities.find((a) => a.roll === rollD6()) ||
-        monster.abilities[0];
+      // Fast elite modifier - acts twice per turn
+      const actCount = monster.eliteModifier === "fast" ? 2 : 1;
 
-      // Show monster preparing to attack
-      get().addActionMessage(`${monster.name} uses ${ability.name}!`, "roll");
-      set({
-        log: [
-          ...get().log,
-          createLogEntry(
-            turn,
-            "MONSTER_ACTION",
-            `${monster.name} uses ${ability.name}!`,
-            "roll"
-          ),
-        ],
-      });
-      await delay(1500);
+      for (let actionNum = 0; actionNum < actCount; actionNum++) {
+        // Re-check if monster is still alive (might have died from counter-attack)
+        const currentMonster = get().monsters.find((m) => m.id === monster.id);
+        if (!currentMonster?.isAlive) break;
 
-      // Find target(s)
-      const alivePlayers = updatedPlayers.filter((p) => p.isAlive);
-      if (alivePlayers.length === 0) continue;
-
-      // Check for taunt
-      const tauntPlayer = alivePlayers.find((p) => p.hasTaunt);
-
-      let targets: Player[] = [];
-      if (ability.target === "all") {
-        targets = alivePlayers.filter((p) => !p.isStealth);
-      } else if (ability.target === "random") {
-        const validTargets = alivePlayers.filter((p) => !p.isStealth);
-        if (validTargets.length > 0) {
-          targets = [
-            validTargets[Math.floor(Math.random() * validTargets.length)],
-          ];
+        // Show "Fast!" message on second action
+        if (actionNum === 1) {
+          get().addActionMessage(`${monster.name} acts again! ⚡`, "roll");
+          await delay(800);
         }
-      } else {
-        // Single target - highest aggro or taunt
-        if (tauntPlayer && !tauntPlayer.isStealth) {
-          targets = [tauntPlayer];
-        } else {
-          const validTargets = alivePlayers.filter((p) => !p.isStealth);
-          if (validTargets.length > 0) {
-            // Sort by total aggro (baseAggro + diceAggro)
-            validTargets.sort(
-              (a, b) => b.baseAggro + b.diceAggro - (a.baseAggro + a.diceAggro)
-            );
-            targets = [validTargets[0]];
-          }
-        }
-      }
 
-      // Apply damage
-      if (ability.damage > 0) {
-        for (const target of targets) {
-          const playerIndex = updatedPlayers.findIndex(
-            (p) => p.id === target.id
-          );
-          if (playerIndex === -1) continue;
+        // Use the pre-rolled intent, or roll if not available
+        const ability =
+          monster.intent ||
+          monster.abilities.find((a) => a.roll === rollD6()) ||
+          monster.abilities[0];
 
-          let damage = ability.damage;
-
-          // Apply weakness debuff on monster (reduces damage)
-          const weakness = monster.debuffs.find((d) => d.type === "weakness");
-          if (weakness) {
-            damage = Math.max(0, damage - weakness.value);
-          }
-
-          // Apply shield first
-          let remainingDamage = damage;
-          let newShield = updatedPlayers[playerIndex].shield;
-          if (newShield > 0) {
-            if (newShield >= remainingDamage) {
-              newShield -= remainingDamage;
-              remainingDamage = 0;
-            } else {
-              remainingDamage -= newShield;
-              newShield = 0;
-            }
-          }
-
-          const newHp = Math.max(
-            0,
-            updatedPlayers[playerIndex].hp - remainingDamage
-          );
-          const isAlive = newHp > 0;
-
-          updatedPlayers[playerIndex] = {
-            ...updatedPlayers[playerIndex],
-            hp: newHp,
-            shield: newShield,
-            isAlive,
-          };
-
-          // Add floating damage number
-          get().addDamageNumber(target.id, damage, "damage");
-
-          // Resource gains from taking damage
-          const damagedPlayer = updatedPlayers[playerIndex];
-          if (damagedPlayer.class === "warrior" && damage > 0) {
-            // Warrior gains Rage from taking damage
-            const rageGain = Math.min(2, Math.ceil(damage / 15));
-            updatedPlayers[playerIndex] = {
-              ...updatedPlayers[playerIndex],
-              resource: Math.min(
-                updatedPlayers[playerIndex].resource + rageGain,
-                updatedPlayers[playerIndex].maxResource
-              ),
-            };
-          } else if (damagedPlayer.class === "archer" && damage > 0) {
-            // Archer loses Focus when hit
-            updatedPlayers[playerIndex] = {
-              ...updatedPlayers[playerIndex],
-              resource: Math.max(0, updatedPlayers[playerIndex].resource - 1),
-            };
-          }
-
-          // Update state and show damage
-          const damageMsg = `${target.name} takes ${damage} damage!${
-            !isAlive ? " 💀" : ""
-          }`;
-          get().addActionMessage(damageMsg, "damage");
-          set({
-            players: updatedPlayers,
-            log: [
-              ...get().log,
-              createLogEntry(
-                turn,
-                "MONSTER_ACTION",
-                `${monster.name} deals ${damage} damage to ${target.name}!${
-                  !isAlive ? ` ${target.name} falls!` : ""
-                }`,
-                "damage"
-              ),
-            ],
-          });
-          await delay(1200);
-        }
-      } else if (ability.damage < 0) {
-        // Monster heals itself
-        const monsterIndex = monsters.findIndex((m) => m.id === monster.id);
-        const healAmount = Math.abs(ability.damage);
-        const newHp = Math.min(monster.maxHp, monster.hp + healAmount);
-        const updatedMonster = { ...monster, hp: newHp };
-        const updatedMonstersArray = [...monsters];
-        updatedMonstersArray[monsterIndex] = updatedMonster;
-
-        // Add floating heal number
-        get().addDamageNumber(monster.id, healAmount, "heal");
-
-        get().addActionMessage(
-          `${monster.name} heals for ${healAmount}!`,
-          "heal"
-        );
+        // Show monster preparing to attack
+        get().addActionMessage(`${monster.name} uses ${ability.name}!`, "roll");
         set({
-          monsters: updatedMonstersArray,
           log: [
             ...get().log,
             createLogEntry(
               turn,
               "MONSTER_ACTION",
-              `${monster.name} heals for ${healAmount}!`,
-              "heal"
+              `${monster.name} uses ${ability.name}!`,
+              "roll"
             ),
           ],
         });
-        await delay(1200);
-      }
+        await delay(1500);
 
-      // Apply debuff
-      if (ability.debuff) {
-        for (const target of targets) {
-          const playerIndex = updatedPlayers.findIndex(
-            (p) => p.id === target.id
-          );
-          if (playerIndex === -1) continue;
+        // Find target(s)
+        const alivePlayers = updatedPlayers.filter((p) => p.isAlive);
+        if (alivePlayers.length === 0) continue;
 
-          const newDebuff: StatusEffect = {
-            type: ability.debuff.type,
-            value: ability.debuff.value,
-            duration: ability.debuff.duration,
-            source: monster.name,
-          };
+        // Check for taunt
+        const tauntPlayer = alivePlayers.find((p) => p.hasTaunt);
 
-          updatedPlayers[playerIndex] = {
-            ...updatedPlayers[playerIndex],
-            debuffs: [...updatedPlayers[playerIndex].debuffs, newDebuff],
-            isStunned:
-              ability.debuff.type === "stun" ||
-              updatedPlayers[playerIndex].isStunned,
-            accuracyPenalty:
-              ability.debuff.type === "accuracy"
-                ? updatedPlayers[playerIndex].accuracyPenalty +
-                  ability.debuff.value
-                : updatedPlayers[playerIndex].accuracyPenalty,
-          };
+        let targets: Player[] = [];
+        if (ability.target === "all") {
+          targets = alivePlayers.filter((p) => !p.isStealth);
+        } else if (ability.target === "random") {
+          const validTargets = alivePlayers.filter((p) => !p.isStealth);
+          if (validTargets.length > 0) {
+            targets = [
+              validTargets[Math.floor(Math.random() * validTargets.length)],
+            ];
+          }
+        } else {
+          // Single target - highest aggro or taunt
+          if (tauntPlayer && !tauntPlayer.isStealth) {
+            targets = [tauntPlayer];
+          } else {
+            const validTargets = alivePlayers.filter((p) => !p.isStealth);
+            if (validTargets.length > 0) {
+              // Sort by total aggro (baseAggro + diceAggro)
+              validTargets.sort(
+                (a, b) =>
+                  b.baseAggro + b.diceAggro - (a.baseAggro + a.diceAggro)
+              );
+              targets = [validTargets[0]];
+            }
+          }
+        }
+
+        // Apply damage
+        if (ability.damage > 0) {
+          for (const target of targets) {
+            const playerIndex = updatedPlayers.findIndex(
+              (p) => p.id === target.id
+            );
+            if (playerIndex === -1) continue;
+
+            let damage = ability.damage;
+
+            // Apply enraged elite modifier (+50% damage)
+            if (monster.eliteModifier === "enraged") {
+              damage = Math.floor(damage * 1.5);
+            }
+
+            // Apply weakness debuff on monster (reduces damage)
+            const weakness = monster.debuffs.find((d) => d.type === "weakness");
+            if (weakness) {
+              damage = Math.max(0, damage - weakness.value);
+            }
+
+            // Apply shield first
+            let remainingDamage = damage;
+            let newShield = updatedPlayers[playerIndex].shield;
+            if (newShield > 0) {
+              if (newShield >= remainingDamage) {
+                newShield -= remainingDamage;
+                remainingDamage = 0;
+              } else {
+                remainingDamage -= newShield;
+                newShield = 0;
+              }
+            }
+
+            const newHp = Math.max(
+              0,
+              updatedPlayers[playerIndex].hp - remainingDamage
+            );
+            const isAlive = newHp > 0;
+
+            updatedPlayers[playerIndex] = {
+              ...updatedPlayers[playerIndex],
+              hp: newHp,
+              shield: newShield,
+              isAlive,
+            };
+
+            // Add floating damage number
+            get().addDamageNumber(target.id, damage, "damage");
+
+            // Resource gains from taking damage
+            const damagedPlayer = updatedPlayers[playerIndex];
+            if (damagedPlayer.class === "warrior" && damage > 0) {
+              // Warrior gains Rage from taking damage
+              const rageGain = Math.min(2, Math.ceil(damage / 15));
+              updatedPlayers[playerIndex] = {
+                ...updatedPlayers[playerIndex],
+                resource: Math.min(
+                  updatedPlayers[playerIndex].resource + rageGain,
+                  updatedPlayers[playerIndex].maxResource
+                ),
+              };
+            } else if (damagedPlayer.class === "archer" && damage > 0) {
+              // Archer loses Focus when hit
+              updatedPlayers[playerIndex] = {
+                ...updatedPlayers[playerIndex],
+                resource: Math.max(0, updatedPlayers[playerIndex].resource - 1),
+              };
+            }
+
+            // Update state and show damage
+            const damageMsg = `${target.name} takes ${damage} damage!${
+              !isAlive ? " 💀" : ""
+            }`;
+            get().addActionMessage(damageMsg, "damage");
+            set({
+              players: updatedPlayers,
+              log: [
+                ...get().log,
+                createLogEntry(
+                  turn,
+                  "MONSTER_ACTION",
+                  `${monster.name} deals ${damage} damage to ${target.name}!${
+                    !isAlive ? ` ${target.name} falls!` : ""
+                  }`,
+                  "damage"
+                ),
+              ],
+            });
+            await delay(1200);
+          }
+        } else if (ability.damage < 0) {
+          // Monster heals itself
+          const monsterIndex = monsters.findIndex((m) => m.id === monster.id);
+          const healAmount = Math.abs(ability.damage);
+          const newHp = Math.min(monster.maxHp, monster.hp + healAmount);
+          const updatedMonster = { ...monster, hp: newHp };
+          const updatedMonstersArray = [...monsters];
+          updatedMonstersArray[monsterIndex] = updatedMonster;
+
+          // Add floating heal number
+          get().addDamageNumber(monster.id, healAmount, "heal");
 
           get().addActionMessage(
-            `${target.name} is ${ability.debuff!.type}ed!`,
-            "debuff"
+            `${monster.name} heals for ${healAmount}!`,
+            "heal"
           );
           set({
-            players: updatedPlayers,
+            monsters: updatedMonstersArray,
             log: [
               ...get().log,
               createLogEntry(
                 turn,
                 "MONSTER_ACTION",
-                `${target.name} is afflicted with ${ability.debuff!.type}!`,
-                "debuff"
+                `${monster.name} heals for ${healAmount}!`,
+                "heal"
               ),
             ],
           });
-          await delay(1000);
+          await delay(1200);
         }
-      }
+
+        // Apply debuff
+        if (ability.debuff) {
+          for (const target of targets) {
+            const playerIndex = updatedPlayers.findIndex(
+              (p) => p.id === target.id
+            );
+            if (playerIndex === -1) continue;
+
+            const newDebuff: StatusEffect = {
+              type: ability.debuff.type,
+              value: ability.debuff.value,
+              duration: ability.debuff.duration,
+              source: monster.name,
+            };
+
+            updatedPlayers[playerIndex] = {
+              ...updatedPlayers[playerIndex],
+              debuffs: [...updatedPlayers[playerIndex].debuffs, newDebuff],
+              isStunned:
+                ability.debuff.type === "stun" ||
+                updatedPlayers[playerIndex].isStunned,
+              accuracyPenalty:
+                ability.debuff.type === "accuracy"
+                  ? updatedPlayers[playerIndex].accuracyPenalty +
+                    ability.debuff.value
+                  : updatedPlayers[playerIndex].accuracyPenalty,
+            };
+
+            get().addActionMessage(
+              `${target.name} is ${formatDebuffMessage(ability.debuff!.type)}!`,
+              "debuff"
+            );
+            set({
+              players: updatedPlayers,
+              log: [
+                ...get().log,
+                createLogEntry(
+                  turn,
+                  "MONSTER_ACTION",
+                  `${target.name} is afflicted with ${ability.debuff!.type}!`,
+                  "debuff"
+                ),
+              ],
+            });
+            await delay(1000);
+          }
+        }
+      } // End of actCount loop for fast modifier
 
       // Small pause between monsters
       await delay(500);
@@ -1197,7 +1232,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       };
     }
 
-    // Resolve monster debuffs (DOTs)
+    // Resolve monster debuffs (DOTs) and elite modifiers
     for (let i = 0; i < updatedMonsters.length; i++) {
       const monster = updatedMonsters[i];
       if (!monster.isAlive) continue;
@@ -1240,6 +1275,50 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
             "damage"
           )
         );
+      }
+
+      // Regenerating elite modifier - heal 10 HP per turn
+      if (monster.eliteModifier === "regenerating" && monster.isAlive) {
+        const healAmount = 10;
+        const newHp = Math.min(
+          monster.maxHp,
+          updatedMonsters[i].hp + healAmount
+        );
+        updatedMonsters[i] = {
+          ...updatedMonsters[i],
+          hp: newHp,
+        };
+        logs.push(
+          createLogEntry(
+            turn,
+            "DEBUFF_RESOLUTION",
+            `${monster.name} regenerates ${healAmount} HP! 💚`,
+            "heal"
+          )
+        );
+      }
+
+      // Shielded elite modifier - regenerate shield each turn
+      if (monster.eliteModifier === "shielded" && monster.isAlive) {
+        const shieldRegen = Math.floor(monster.maxHp * 0.1); // 10% of max HP
+        const newShield = Math.min(
+          Math.floor(monster.maxHp * 0.2), // Cap at 20% of max HP
+          updatedMonsters[i].shield + shieldRegen
+        );
+        if (newShield > updatedMonsters[i].shield) {
+          updatedMonsters[i] = {
+            ...updatedMonsters[i],
+            shield: newShield,
+          };
+          logs.push(
+            createLogEntry(
+              turn,
+              "DEBUFF_RESOLUTION",
+              `${monster.name}'s shield regenerates! 🔰`,
+              "buff"
+            )
+          );
+        }
       }
 
       // Tick down debuff durations
@@ -1975,14 +2054,81 @@ function applyEffect(
           }
         }
 
-        const newHp = Math.max(0, monster.hp - damage);
+        // Apply armored elite modifier (25% damage reduction)
+        if (monster.damageReduction) {
+          const reducedAmount = Math.floor(damage * monster.damageReduction);
+          damage = damage - reducedAmount;
+          logs.push(
+            createLogEntry(
+              turn,
+              "PLAYER_ACTION",
+              `${monster.name}'s armor reduces damage by ${reducedAmount}!`,
+              "info",
+              true
+            )
+          );
+        }
+
+        // Apply damage to shield first (for shielded monsters)
+        let remainingDamage = damage;
+        let newShield = monster.shield;
+        if (newShield > 0) {
+          if (newShield >= remainingDamage) {
+            newShield -= remainingDamage;
+            remainingDamage = 0;
+          } else {
+            remainingDamage -= newShield;
+            newShield = 0;
+          }
+        }
+
+        const newHp = Math.max(0, monster.hp - remainingDamage);
         const isAlive = newHp > 0;
 
         updatedMonsters[idx] = {
           ...monster,
           hp: newHp,
+          shield: newShield,
           isAlive,
         };
+
+        // Cursed elite modifier - apply random debuff to attacker
+        if (monster.eliteModifier === "cursed" && currentCaster) {
+          const debuffTypes: Array<"poison" | "burn" | "weakness" | "ice"> = [
+            "poison",
+            "burn",
+            "weakness",
+            "ice",
+          ];
+          const randomDebuff =
+            debuffTypes[Math.floor(Math.random() * debuffTypes.length)];
+          const casterIdx = updatedPlayers.findIndex((p) => p.id === caster.id);
+          if (casterIdx !== -1) {
+            const existingDebuff = updatedPlayers[casterIdx].debuffs.find(
+              (d) => d.type === randomDebuff
+            );
+            if (existingDebuff) {
+              existingDebuff.duration = Math.max(existingDebuff.duration, 2);
+            } else {
+              updatedPlayers[casterIdx] = {
+                ...updatedPlayers[casterIdx],
+                debuffs: [
+                  ...updatedPlayers[casterIdx].debuffs,
+                  { type: randomDebuff, value: 2, duration: 2 },
+                ],
+              };
+            }
+            logs.push(
+              createLogEntry(
+                turn,
+                "PLAYER_ACTION",
+                `${monster.name}'s curse afflicts ${caster.name} with ${randomDebuff}!`,
+                "debuff",
+                true
+              )
+            );
+          }
+        }
 
         logs.push(
           createLogEntry(
