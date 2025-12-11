@@ -266,7 +266,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
   setHeroName: (index, name) => {
     const { heroNames } = get();
     const newNames = [...heroNames];
-    newNames[index] = name || `Hero ${index + 1}`;
+    newNames[index] = name;
     set({ heroNames: newNames });
   },
 
