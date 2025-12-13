@@ -98,12 +98,41 @@ const createPlayer = (
     hand: [],
     resource: 0,
     maxResource: config.maxResource,
+    gold: 0,
     isAlive: true,
     isStealth: false,
     hasTaunt: false,
     isStunned: false,
     accuracyPenalty: 0,
   };
+};
+
+// ============================================
+// DISTRIBUTE GOLD
+// ============================================
+const distributeGold = (
+  players: Player[],
+  goldAmount: number
+): { players: Player[]; message: string } => {
+  const alivePlayers = players.filter((p) => p.isAlive);
+  if (alivePlayers.length === 0) {
+    return { players, message: "" };
+  }
+
+  const goldPerPlayer = Math.floor(goldAmount / alivePlayers.length);
+  const updatedPlayers = players.map((player) => {
+    if (player.isAlive) {
+      return { ...player, gold: player.gold + goldPerPlayer };
+    }
+    return player;
+  });
+
+  const message =
+    alivePlayers.length > 1
+      ? `Each hero receives ${goldPerPlayer} gold!`
+      : `${alivePlayers[0].name} receives ${goldPerPlayer} gold!`;
+
+  return { players: updatedPlayers, message };
 };
 
 // ============================================
@@ -116,6 +145,64 @@ const shuffleArray = <T>(array: T[]): T[] => {
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
   return shuffled;
+};
+
+// ============================================
+// WEIGHTED RANDOM CARD SELECTION
+// ============================================
+const getRarityWeight = (rarity: Card["rarity"]): number => {
+  const weights = {
+    common: 50,
+    uncommon: 30,
+    rare: 15,
+    legendary: 5,
+  };
+  return weights[rarity];
+};
+
+// ============================================
+// CARD PRICING
+// ============================================
+const getCardPrice = (rarity: Card["rarity"]): number => {
+  const prices = {
+    common: 10,
+    uncommon: 25,
+    rare: 50,
+    legendary: 100,
+  };
+  return prices[rarity];
+};
+
+const selectWeightedRandomCards = (cards: Card[], count: number): Card[] => {
+  const selected: Card[] = [];
+  const available = [...cards];
+
+  while (selected.length < count && available.length > 0) {
+    // Calculate total weight
+    const totalWeight = available.reduce(
+      (sum, card) => sum + getRarityWeight(card.rarity),
+      0
+    );
+
+    // Pick a random weighted value
+    let random = Math.random() * totalWeight;
+
+    // Select card based on weight
+    let selectedIndex = 0;
+    for (let i = 0; i < available.length; i++) {
+      random -= getRarityWeight(available[i].rarity);
+      if (random <= 0) {
+        selectedIndex = i;
+        break;
+      }
+    }
+
+    // Add selected card and remove from available
+    selected.push(available[selectedIndex]);
+    available.splice(selectedIndex, 1);
+  }
+
+  return selected;
 };
 
 // ============================================
@@ -143,6 +230,9 @@ const initialState: GameState = {
   rewardPlayerIndex: 0,
   rewardCards: [],
   selectedRewardCardId: null,
+  shopPlayerIndex: 0,
+  shopCards: [],
+  selectedShopCardId: null,
   animation: {
     isAnimating: false,
     diceRoll: null,
@@ -195,6 +285,12 @@ interface GameActions {
   selectRewardCard: (cardId: string) => void;
   confirmRewardCard: () => void;
   skipReward: () => void;
+
+  // Card shop
+  startShopPhase: () => void;
+  selectShopCard: (cardId: string) => void;
+  purchaseShopCard: () => void;
+  skipShop: () => void;
 
   // Animation
   startDiceRoll: () => void;
@@ -276,7 +372,8 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
 
     // Move to deck building for first player
     const firstClass = selectedClasses[0];
-    const availableCards = getCardsByClass(firstClass);
+    const allCards = getCardsByClass(firstClass);
+    const availableCards = selectWeightedRandomCards(allCards, 8);
 
     set({
       currentScreen: "deckBuilder",
@@ -336,7 +433,8 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
     const nextIndex = deckBuildingPlayerIndex + 1;
     if (nextIndex < selectedClasses.length) {
       const nextClass = selectedClasses[nextIndex];
-      const nextAvailableCards = getCardsByClass(nextClass);
+      const allNextCards = getCardsByClass(nextClass);
+      const nextAvailableCards = selectWeightedRandomCards(allNextCards, 8);
       set({
         players: updatedPlayers,
         deckBuildingPlayerIndex: nextIndex,
@@ -832,6 +930,14 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
         : updatedPlayers[currentPlayerIndex].deck,
     };
 
+    // Update state immediately so UI reflects changes
+    set({
+      players: updatedPlayers,
+      monsters: updatedMonsters,
+      selectedCardId: null,
+      drawnCards: [],
+    });
+
     // Show effects
     for (const logEntry of logs) {
       const msgType =
@@ -847,13 +953,6 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       set({ log: [...get().log, logEntry] });
       await delay(1000);
     }
-
-    set({
-      players: updatedPlayers,
-      monsters: updatedMonsters,
-      selectedCardId: null,
-      drawnCards: [],
-    });
 
     // Check for round victory
     if (updatedMonsters.every((m) => !m.isAlive)) {
@@ -1152,7 +1251,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
 
   resolveDebuffs: () => {
     const { players, monsters, turn } = get();
-    const updatedPlayers = [...players];
+    let updatedPlayers = [...players];
     const updatedMonsters = [...monsters];
     const logs: LogEntry[] = [];
 
@@ -1275,6 +1374,23 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
             "damage"
           )
         );
+
+        // Distribute gold if monster was just defeated
+        if (monster.isAlive && !isAlive) {
+          const goldDistribution = distributeGold(
+            updatedPlayers,
+            monster.goldReward
+          );
+          updatedPlayers = goldDistribution.players;
+          logs.push(
+            createLogEntry(
+              turn,
+              "DEBUFF_RESOLUTION",
+              goldDistribution.message,
+              "info"
+            )
+          );
+        }
       }
 
       // Regenerating elite modifier - heal 10 HP per turn
@@ -1340,8 +1456,13 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
 
     // Check for round victory/defeat
     if (updatedMonsters.every((m) => !m.isAlive)) {
-      // Go to card reward phase before next round
-      get().startRewardPhase();
+      // Go to shop or reward phase before next round
+      const { round } = get();
+      if (round > 2) {
+        get().startShopPhase();
+      } else {
+        get().startRewardPhase();
+      }
       return;
     }
     if (updatedPlayers.every((p) => !p.isAlive)) {
@@ -1556,6 +1677,162 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
         rewardPlayerIndex: nextAliveIndex,
         rewardCards: availableRewards,
         selectedRewardCardId: null,
+      });
+    } else {
+      get().nextRound();
+    }
+  },
+
+  // ============================================
+  // CARD SHOP
+  // ============================================
+  startShopPhase: () => {
+    const { players, selectedClasses, round } = get();
+
+    // Only show shop after round 2
+    if (round <= 2) {
+      get().nextRound();
+      return;
+    }
+
+    // Get first alive player
+    const firstAlivePlayer = players.find((p) => p.isAlive);
+    if (!firstAlivePlayer) {
+      get().nextRound();
+      return;
+    }
+
+    const playerIndex = players.findIndex((p) => p.id === firstAlivePlayer.id);
+    const playerClass = selectedClasses[playerIndex];
+    const allClassCards = getCardsByClass(playerClass);
+
+    // Get cards not in player's current deck/hand/discard
+    const playerCardNames = new Set([
+      ...firstAlivePlayer.deck.map((c) => c.name),
+      ...firstAlivePlayer.discard.map((c) => c.name),
+      ...firstAlivePlayer.hand.map((c) => c.name),
+    ]);
+
+    const availableCards = allClassCards.filter(
+      (c: Card) => !playerCardNames.has(c.name)
+    );
+
+    // Select 3 weighted random cards
+    const shopCards = selectWeightedRandomCards(availableCards, 3);
+
+    set({
+      currentScreen: "cardShop",
+      shopPlayerIndex: playerIndex,
+      shopCards,
+      selectedShopCardId: null,
+    });
+  },
+
+  selectShopCard: (cardId) => {
+    set({ selectedShopCardId: cardId });
+  },
+
+  purchaseShopCard: () => {
+    const {
+      players,
+      shopPlayerIndex,
+      shopCards,
+      selectedShopCardId,
+      selectedClasses,
+    } = get();
+
+    if (!selectedShopCardId) return;
+
+    const selectedCard = shopCards.find((c) => c.id === selectedShopCardId);
+    if (!selectedCard) return;
+
+    const currentPlayer = players[shopPlayerIndex];
+    const cardPrice = getCardPrice(selectedCard.rarity);
+
+    // Check if player has enough gold
+    if (currentPlayer.gold < cardPrice) {
+      return; // Not enough gold
+    }
+
+    // Purchase the card
+    const updatedPlayers = [...players];
+    updatedPlayers[shopPlayerIndex] = {
+      ...updatedPlayers[shopPlayerIndex],
+      gold: updatedPlayers[shopPlayerIndex].gold - cardPrice,
+      deck: [
+        ...updatedPlayers[shopPlayerIndex].deck,
+        {
+          ...selectedCard,
+          id: `${selectedCard.id}-shop-${generateId()}`, // Create unique instance
+        },
+      ],
+    };
+
+    // Move to next alive player or continue game
+    const nextAliveIndex = players.findIndex(
+      (p, i) => i > shopPlayerIndex && p.isAlive
+    );
+
+    if (nextAliveIndex !== -1) {
+      // More players need to shop
+      const nextPlayerClass = selectedClasses[nextAliveIndex];
+      const allClassCards = getCardsByClass(nextPlayerClass);
+      const nextPlayer = updatedPlayers[nextAliveIndex];
+
+      const playerCardNames = new Set([
+        ...nextPlayer.deck.map((c) => c.name),
+        ...nextPlayer.discard.map((c) => c.name),
+        ...nextPlayer.hand.map((c) => c.name),
+      ]);
+
+      const availableCards = allClassCards.filter(
+        (c: Card) => !playerCardNames.has(c.name)
+      );
+
+      const nextShopCards = selectWeightedRandomCards(availableCards, 3);
+
+      set({
+        players: updatedPlayers,
+        shopPlayerIndex: nextAliveIndex,
+        shopCards: nextShopCards,
+        selectedShopCardId: null,
+      });
+    } else {
+      // All players have shopped, continue to next round
+      set({ players: updatedPlayers });
+      get().nextRound();
+    }
+  },
+
+  skipShop: () => {
+    const { players, shopPlayerIndex, selectedClasses } = get();
+
+    // Move to next alive player or continue game
+    const nextAliveIndex = players.findIndex(
+      (p, i) => i > shopPlayerIndex && p.isAlive
+    );
+
+    if (nextAliveIndex !== -1) {
+      const nextPlayerClass = selectedClasses[nextAliveIndex];
+      const allClassCards = getCardsByClass(nextPlayerClass);
+      const nextPlayer = players[nextAliveIndex];
+
+      const playerCardNames = new Set([
+        ...nextPlayer.deck.map((c) => c.name),
+        ...nextPlayer.discard.map((c) => c.name),
+        ...nextPlayer.hand.map((c) => c.name),
+      ]);
+
+      const availableCards = allClassCards.filter(
+        (c: Card) => !playerCardNames.has(c.name)
+      );
+
+      const nextShopCards = selectWeightedRandomCards(availableCards, 3);
+
+      set({
+        shopPlayerIndex: nextAliveIndex,
+        shopCards: nextShopCards,
+        selectedShopCardId: null,
       });
     } else {
       get().nextRound();
@@ -2092,6 +2369,24 @@ function applyEffect(
           isAlive,
         };
 
+        // Distribute gold if monster was just defeated
+        if (monster.isAlive && !isAlive) {
+          const goldDistribution = distributeGold(
+            updatedPlayers,
+            monster.goldReward
+          );
+          updatedPlayers = goldDistribution.players;
+          logs.push(
+            createLogEntry(
+              turn,
+              "PLAYER_ACTION",
+              goldDistribution.message,
+              "info",
+              true
+            )
+          );
+        }
+
         // Cursed elite modifier - apply random debuff to attacker
         if (monster.eliteModifier === "cursed" && currentCaster) {
           const debuffTypes: Array<"poison" | "burn" | "weakness" | "ice"> = [
@@ -2201,15 +2496,15 @@ function applyEffect(
         const shieldAmount = effect.value || 0;
 
         updatedPlayers[idx] = {
-          ...target,
-          shield: target.shield + shieldAmount,
+          ...updatedPlayers[idx],
+          shield: updatedPlayers[idx].shield + shieldAmount,
         };
 
         logs.push(
           createLogEntry(
             turn,
             "PLAYER_ACTION",
-            `${target.name} gains ${shieldAmount} shield!`,
+            `${updatedPlayers[idx].name} gains ${shieldAmount} shield!`,
             "buff"
           )
         );

@@ -62,6 +62,7 @@ export type ScreenType =
   | "deckBuilder"
   | "game"
   | "cardReward"
+  | "cardShop"
   | "victory"
   | "defeat";
 
@@ -117,6 +118,7 @@ export interface Player {
   hand: Card[];
   resource: number; // class-specific meter
   maxResource: number;
+  gold: number; // gold earned from defeating monsters
   isAlive: boolean;
   isStealth: boolean;
   hasTaunt: boolean;
@@ -170,6 +172,7 @@ export interface Monster {
   intent?: MonsterAbility; // What the monster plans to do next turn
   eliteModifier?: EliteModifier; // Optional elite modifier
   damageReduction?: number; // For armored modifier
+  goldReward: number; // Gold awarded when defeated
 }
 
 // ============================================
@@ -292,6 +295,11 @@ export interface GameState {
   rewardPlayerIndex: number;
   rewardCards: Card[];
   selectedRewardCardId: string | null;
+
+  // Card shop state (after round 2+)
+  shopPlayerIndex: number;
+  shopCards: Card[];
+  selectedShopCardId: string | null;
 
   // Animation state
   animation: AnimationState;

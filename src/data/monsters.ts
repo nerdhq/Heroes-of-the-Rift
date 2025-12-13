@@ -10,6 +10,7 @@ interface MonsterTemplate {
   name: string;
   icon: string; // Emoji icon (fallback)
   baseHp: number;
+  baseGoldReward: number; // Base gold reward for defeating
   abilities: MonsterAbility[];
 }
 
@@ -1135,6 +1136,7 @@ export const MONSTER_TEMPLATES: MonsterTemplate[] = [
     name: "Goblin",
     icon: "👺",
     baseHp: 30,
+    baseGoldReward: 5,
     abilities: goblinAbilities,
   },
   {
@@ -1142,14 +1144,23 @@ export const MONSTER_TEMPLATES: MonsterTemplate[] = [
     name: "Skeleton",
     icon: "💀",
     baseHp: 40,
+    baseGoldReward: 7,
     abilities: skeletonAbilities,
   },
-  { id: "imp", name: "Imp", icon: "😈", baseHp: 25, abilities: impAbilities },
+  {
+    id: "imp",
+    name: "Imp",
+    icon: "😈",
+    baseHp: 25,
+    baseGoldReward: 6,
+    abilities: impAbilities,
+  },
   {
     id: "slime",
     name: "Slime",
     icon: "🟢",
     baseHp: 50,
+    baseGoldReward: 8,
     abilities: slimeAbilities,
   },
   {
@@ -1157,6 +1168,7 @@ export const MONSTER_TEMPLATES: MonsterTemplate[] = [
     name: "Wraith",
     icon: "👻",
     baseHp: 40,
+    baseGoldReward: 10,
     abilities: wraithAbilities,
   },
 
@@ -1166,6 +1178,7 @@ export const MONSTER_TEMPLATES: MonsterTemplate[] = [
     name: "Werewolf",
     icon: "🐺",
     baseHp: 60,
+    baseGoldReward: 15,
     abilities: werewolfAbilities,
   },
   {
@@ -1173,6 +1186,7 @@ export const MONSTER_TEMPLATES: MonsterTemplate[] = [
     name: "Necromancer",
     icon: "🧙",
     baseHp: 60,
+    baseGoldReward: 16,
     abilities: necromancerAbilities,
   },
   {
@@ -1180,6 +1194,7 @@ export const MONSTER_TEMPLATES: MonsterTemplate[] = [
     name: "Gargoyle",
     icon: "🗿",
     baseHp: 80,
+    baseGoldReward: 18,
     abilities: gargoyleAbilities,
   },
   {
@@ -1187,6 +1202,7 @@ export const MONSTER_TEMPLATES: MonsterTemplate[] = [
     name: "Banshee",
     icon: "👰",
     baseHp: 55,
+    baseGoldReward: 14,
     abilities: bansheeAbilities,
   },
   {
@@ -1194,6 +1210,7 @@ export const MONSTER_TEMPLATES: MonsterTemplate[] = [
     name: "Mimic",
     icon: "📦",
     baseHp: 70,
+    baseGoldReward: 12,
     abilities: mimicAbilities,
   },
 
@@ -1203,6 +1220,7 @@ export const MONSTER_TEMPLATES: MonsterTemplate[] = [
     name: "Troll",
     icon: "🧌",
     baseHp: 80,
+    baseGoldReward: 22,
     abilities: trollAbilities,
   },
   {
@@ -1210,6 +1228,7 @@ export const MONSTER_TEMPLATES: MonsterTemplate[] = [
     name: "Vampire",
     icon: "🧛",
     baseHp: 70,
+    baseGoldReward: 20,
     abilities: vampireAbilities,
   },
   {
@@ -1217,6 +1236,7 @@ export const MONSTER_TEMPLATES: MonsterTemplate[] = [
     name: "Elemental",
     icon: "🌀",
     baseHp: 90,
+    baseGoldReward: 24,
     abilities: elementalAbilities,
   },
   {
@@ -1224,6 +1244,7 @@ export const MONSTER_TEMPLATES: MonsterTemplate[] = [
     name: "Dark Knight",
     icon: "⚔️",
     baseHp: 100,
+    baseGoldReward: 25,
     abilities: darkKnightAbilities,
   },
 
@@ -1233,6 +1254,7 @@ export const MONSTER_TEMPLATES: MonsterTemplate[] = [
     name: "Hydra",
     icon: "🐍",
     baseHp: 120,
+    baseGoldReward: 35,
     abilities: hydraAbilities,
   },
   {
@@ -1240,6 +1262,7 @@ export const MONSTER_TEMPLATES: MonsterTemplate[] = [
     name: "Demon",
     icon: "👿",
     baseHp: 150,
+    baseGoldReward: 40,
     abilities: demonAbilities,
   },
   {
@@ -1247,6 +1270,7 @@ export const MONSTER_TEMPLATES: MonsterTemplate[] = [
     name: "Cerberus",
     icon: "🐕",
     baseHp: 120,
+    baseGoldReward: 32,
     abilities: cerberusAbilities,
   },
   {
@@ -1254,6 +1278,7 @@ export const MONSTER_TEMPLATES: MonsterTemplate[] = [
     name: "Orc Warlord",
     icon: "👹",
     baseHp: 150,
+    baseGoldReward: 38,
     abilities: orcWarlordAbilities,
   },
 
@@ -1263,6 +1288,7 @@ export const MONSTER_TEMPLATES: MonsterTemplate[] = [
     name: "Lich King",
     icon: "👑",
     baseHp: 200,
+    baseGoldReward: 60,
     abilities: lichKingAbilities,
   },
   {
@@ -1270,6 +1296,7 @@ export const MONSTER_TEMPLATES: MonsterTemplate[] = [
     name: "Demon Lord",
     icon: "😡",
     baseHp: 280,
+    baseGoldReward: 80,
     abilities: demonLordAbilities,
   },
   {
@@ -1277,6 +1304,7 @@ export const MONSTER_TEMPLATES: MonsterTemplate[] = [
     name: "Ancient Dragon",
     icon: "🐉",
     baseHp: 300,
+    baseGoldReward: 100,
     abilities: dragonAbilities,
   },
 ];
@@ -1309,6 +1337,12 @@ export const createMonster = (
   let damageReduction = 0;
   let shield = 0;
 
+  // Calculate gold reward (scales with level and elite modifier)
+  let goldReward = Math.floor(template.baseGoldReward * (1 + (level - 1) * 0.3));
+  if (eliteModifier) {
+    goldReward = Math.floor(goldReward * 1.5); // +50% gold for elite monsters
+  }
+
   // Apply elite modifier effects
   if (eliteModifier === "armored") {
     scaledHp = Math.floor(scaledHp * 1.5); // +50% HP
@@ -1340,6 +1374,7 @@ export const createMonster = (
     isAlive: true,
     eliteModifier,
     damageReduction: damageReduction > 0 ? damageReduction : undefined,
+    goldReward,
   };
 };
 

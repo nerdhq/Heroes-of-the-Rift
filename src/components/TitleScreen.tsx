@@ -11,7 +11,7 @@ export function TitleScreen() {
         <div className="flex items-center justify-center gap-4 mb-4">
           <Sword className="w-12 h-12 text-amber-500" />
           <h1 className="text-6xl font-bold text-amber-100 tracking-wider">
-            PAPER DUNGEON
+            HEROES OF THE RIFT
           </h1>
           <Shield className="w-12 h-12 text-amber-500" />
         </div>
