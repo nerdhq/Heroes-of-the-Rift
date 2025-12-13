@@ -21,6 +21,7 @@ import {
   ROUNDS,
   getRoundDescription,
 } from "../data/monsters";
+import { getEnvironmentForRound } from "../data/environments";
 
 // ============================================
 // UTILITY FUNCTIONS
@@ -148,6 +149,58 @@ const shuffleArray = <T>(array: T[]): T[] => {
 };
 
 // ============================================
+// APPLY ENVIRONMENT EFFECTS
+// ============================================
+import type { Environment, EffectType } from "../types";
+
+const applyEnvironmentModifier = (
+  value: number,
+  effectType: EffectType,
+  environment: Environment | null
+): number => {
+  if (!environment || !environment.effects || value === 0) return value;
+
+  let modifier = 1.0;
+
+  for (const envEffect of environment.effects) {
+    switch (envEffect.type) {
+      case "frostBonus":
+        if (effectType === "ice") {
+          modifier *= envEffect.value;
+        }
+        break;
+      case "fireBonus":
+        if (effectType === "burn") {
+          modifier *= envEffect.value;
+        }
+        break;
+      case "poisonBonus":
+        if (effectType === "poison") {
+          modifier *= envEffect.value;
+        }
+        break;
+      case "healingBonus":
+        if (effectType === "heal") {
+          modifier *= envEffect.value;
+        }
+        break;
+      case "damageBonus":
+        if (effectType === "damage") {
+          modifier *= envEffect.value;
+        }
+        break;
+      case "shieldBonus":
+        if (effectType === "shield") {
+          modifier *= envEffect.value;
+        }
+        break;
+    }
+  }
+
+  return Math.floor(value * modifier);
+};
+
+// ============================================
 // WEIGHTED RANDOM CARD SELECTION
 // ============================================
 const getRarityWeight = (rarity: Card["rarity"]): number => {
@@ -218,6 +271,7 @@ const initialState: GameState = {
   level: 1,
   round: 1,
   maxRounds: 6,
+  environment: null,
   selectedCardId: null,
   selectedTargetId: null,
   drawnCards: [],
@@ -380,6 +434,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       deckBuildingPlayerIndex: 0,
       availableCards,
       selectedDeckCards: [],
+      players: [], // Clear old players from previous game
     });
   },
 
@@ -469,10 +524,19 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       deck: shuffleArray(player.deck),
     }));
 
+    // Reset game state for a fresh start
     set({
       players: shuffledPlayers,
+      monsters: [],
       round: 1,
       turn: 1,
+      currentPlayerIndex: 0,
+      phase: "DRAW",
+      selectedCardId: null,
+      selectedTargetId: null,
+      drawnCards: [],
+      log: [],
+      environment: null,
       savedParty,
     });
 
@@ -486,6 +550,9 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
     const rawMonsters = getMonstersForRound(round);
     // Roll initial intents for monsters
     const monsters = rollMonsterIntents(rawMonsters);
+
+    // Select environment for this round
+    const environment = getEnvironmentForRound(round);
 
     // Reset player shields between rounds (aggro persists during battle)
     const refreshedPlayers = players.map((player) => ({
@@ -505,6 +572,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
     set({
       players: refreshedPlayers,
       monsters,
+      environment,
       phase: "DRAW",
       currentPlayerIndex: firstAlivePlayerIndex,
       log: [
@@ -517,6 +585,16 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
           "info"
         ),
         createLogEntry(get().turn, "DRAW", getRoundDescription(round), "info"),
+        ...(environment
+          ? [
+              createLogEntry(
+                get().turn,
+                "DRAW",
+                `Environment: ${environment.name} - ${environment.description}`,
+                "info"
+              ),
+            ]
+          : []),
         createLogEntry(
           get().turn,
           "DRAW",
@@ -830,7 +908,8 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
         updatedPlayers,
         updatedMonsters,
         turn,
-        selectedTargetId
+        selectedTargetId,
+        get().environment
       );
       updatedPlayers = result.players;
       updatedMonsters = result.monsters;
@@ -1262,17 +1341,21 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
 
       let totalDotDamage = 0;
       const dotSources: string[] = [];
+      const { environment } = get();
 
       for (const debuff of player.debuffs) {
         if (debuff.type === "poison") {
-          totalDotDamage += debuff.value;
-          dotSources.push(`poison (${debuff.value})`);
+          const poisonDamage = applyEnvironmentModifier(debuff.value, "poison", environment);
+          totalDotDamage += poisonDamage;
+          dotSources.push(`poison (${poisonDamage})`);
         } else if (debuff.type === "burn") {
-          totalDotDamage += debuff.value;
-          dotSources.push(`burn (${debuff.value})`);
+          const burnDamage = applyEnvironmentModifier(debuff.value, "burn", environment);
+          totalDotDamage += burnDamage;
+          dotSources.push(`burn (${burnDamage})`);
         } else if (debuff.type === "ice") {
-          totalDotDamage += debuff.value;
-          dotSources.push(`frost (${debuff.value})`);
+          const iceDamage = applyEnvironmentModifier(debuff.value, "ice", environment);
+          totalDotDamage += iceDamage;
+          dotSources.push(`frost (${iceDamage})`);
         }
       }
 
@@ -1341,14 +1424,17 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
 
       for (const debuff of monster.debuffs) {
         if (debuff.type === "poison") {
-          totalDotDamage += debuff.value;
-          dotSources.push(`poison (${debuff.value})`);
+          const modifiedValue = applyEnvironmentModifier(debuff.value, "poison", environment);
+          totalDotDamage += modifiedValue;
+          dotSources.push(`poison (${modifiedValue})`);
         } else if (debuff.type === "burn") {
-          totalDotDamage += debuff.value;
-          dotSources.push(`burn (${debuff.value})`);
+          const modifiedValue = applyEnvironmentModifier(debuff.value, "burn", environment);
+          totalDotDamage += modifiedValue;
+          dotSources.push(`burn (${modifiedValue})`);
         } else if (debuff.type === "ice") {
-          totalDotDamage += debuff.value;
-          dotSources.push(`frost (${debuff.value})`);
+          const modifiedValue = applyEnvironmentModifier(debuff.value, "ice", environment);
+          totalDotDamage += modifiedValue;
+          dotSources.push(`frost (${modifiedValue})`);
         }
       }
 
@@ -2021,7 +2107,8 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
         finalPlayers,
         finalMonsters,
         turn,
-        null
+        null,
+        get().environment
       );
       finalPlayers = result.players;
       finalMonsters = result.monsters;
@@ -2239,10 +2326,11 @@ function applyEffect(
   players: Player[],
   monsters: Monster[],
   turn: number,
-  selectedTargetId: string | null = null
+  selectedTargetId: string | null = null,
+  environment: Environment | null = null
 ): { players: Player[]; monsters: Monster[]; logs: LogEntry[] } {
   const logs: LogEntry[] = [];
-  const updatedPlayers = [...players];
+  let updatedPlayers = [...players];
   const updatedMonsters = [...monsters];
 
   const getTargets = (): Player[] => {
@@ -2295,6 +2383,9 @@ function applyEffect(
         if (idx === -1) continue;
 
         let damage = effect.value || 0;
+
+        // Apply environment modifier to damage
+        damage = applyEnvironmentModifier(damage, "damage", environment);
 
         // Check for strength buff on caster (use updatedPlayers to get current state)
         const currentCaster = updatedPlayers.find((p) => p.id === caster.id);
@@ -2467,7 +2558,9 @@ function applyEffect(
         const idx = updatedPlayers.findIndex((p) => p.id === target.id);
         if (idx === -1) continue;
 
-        const healAmount = effect.value || 0;
+        let healAmount = effect.value || 0;
+        // Apply environment modifier to healing
+        healAmount = applyEnvironmentModifier(healAmount, "heal", environment);
         const newHp = Math.min(target.maxHp, target.hp + healAmount);
 
         updatedPlayers[idx] = {
@@ -2493,7 +2586,9 @@ function applyEffect(
         const idx = updatedPlayers.findIndex((p) => p.id === target.id);
         if (idx === -1) continue;
 
-        const shieldAmount = effect.value || 0;
+        let shieldAmount = effect.value || 0;
+        // Apply environment modifier to shield
+        shieldAmount = applyEnvironmentModifier(shieldAmount, "shield", environment);
 
         updatedPlayers[idx] = {
           ...updatedPlayers[idx],

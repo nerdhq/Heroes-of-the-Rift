@@ -244,7 +244,7 @@ export function CardHand({
                 ))}
             {targetType === "ally" &&
               players
-                .filter((p) => p.isAlive && p.id !== currentPlayer?.id)
+                .filter((p) => p.isAlive)
                 .map((player) => (
                   <button
                     key={player.id}

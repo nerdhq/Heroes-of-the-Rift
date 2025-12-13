@@ -248,6 +248,45 @@ export interface AnimationState {
 export type GameSpeed = "normal" | "fast" | "instant";
 
 // ============================================
+// ENVIRONMENT
+// ============================================
+export type EnvironmentType =
+  | "forest"
+  | "castle"
+  | "volcano"
+  | "iceCave"
+  | "swamp"
+  | "desert"
+  | "crypt"
+  | "void";
+
+export type EnvironmentEffectType =
+  | "frostBonus"
+  | "fireBonus"
+  | "poisonBonus"
+  | "healingBonus"
+  | "damageBonus"
+  | "shieldBonus";
+
+export interface EnvironmentEffect {
+  type: EnvironmentEffectType;
+  value: number; // Multiplier (1.5 = +50%) or flat bonus
+  description: string;
+}
+
+export interface Environment {
+  type: EnvironmentType;
+  name: string;
+  description: string;
+  theme: {
+    background: string;
+    primaryColor: string;
+    secondaryColor: string;
+  };
+  effects: EnvironmentEffect[];
+}
+
+// ============================================
 // SAVED PARTY (for quick restart)
 // ============================================
 export interface SavedParty {
@@ -271,6 +310,7 @@ export interface GameState {
   level: number;
   round: number;
   maxRounds: number;
+  environment: Environment | null;
 
   // Selection state
   selectedCardId: string | null;

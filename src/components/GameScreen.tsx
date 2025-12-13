@@ -13,6 +13,7 @@ import {
   QuitConfirmModal,
   TopControls,
   CardHand,
+  EnvironmentDisplay,
 } from "./game";
 
 export function GameScreen() {
@@ -36,6 +37,7 @@ export function GameScreen() {
   const gameSpeed = useGameStore((state) => state.gameSpeed);
   const skipAnimations = useGameStore((state) => state.skipAnimations);
   const enhanceMode = useGameStore((state) => state.enhanceMode);
+  const environment = useGameStore((state) => state.environment);
 
   // Actions from store
   const selectCard = useGameStore((state) => state.selectCard);
@@ -106,9 +108,7 @@ export function GameScreen() {
   const handleConfirmCard = () => {
     if (needsTarget) {
       const validMonsters = monsters.filter((m) => m.isAlive);
-      const validAllies = players.filter(
-        (p) => p.isAlive && p.id !== currentPlayer?.id
-      );
+      const validAllies = players.filter((p) => p.isAlive);
 
       if (targetType === "monster" && validMonsters.length === 1) {
         useGameStore.setState({ selectedTargetId: validMonsters[0].id });
@@ -184,6 +184,9 @@ export function GameScreen() {
             turn={turn}
             phase={phase}
           />
+
+          {/* Environment Display */}
+          <EnvironmentDisplay environment={environment} />
 
           {/* Monster Area */}
           <div className="flex-1 flex items-start justify-center min-h-0 overflow-y-auto pt-4">

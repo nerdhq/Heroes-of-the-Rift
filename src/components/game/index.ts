@@ -11,3 +11,4 @@ export { SpeedSettings } from "./SpeedSettings";
 export { QuitConfirmModal } from "./QuitConfirmModal";
 export { TopControls } from "./TopControls";
 export { CardHand } from "./CardHand";
+export { EnvironmentDisplay } from "./EnvironmentDisplay";
