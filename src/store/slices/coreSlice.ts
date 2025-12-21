@@ -15,7 +15,14 @@ export const createCoreSlice: SliceCreator<CoreActions> = (set, get) => ({
   },
 
   nextPhase: () => {
-    const { phase, players, currentPlayerIndex } = get();
+    const { phase, players, currentPlayerIndex, isOnline } = get();
+
+    // Helper to sync if online
+    const syncIfOnline = () => {
+      if (isOnline) {
+        get().syncGameStateToSupabase();
+      }
+    };
 
     switch (phase) {
       case "DRAW":
@@ -25,6 +32,10 @@ export const createCoreSlice: SliceCreator<CoreActions> = (set, get) => ({
       case "TARGET_SELECT":
         break;
       case "AGGRO":
+        break;
+      case "RESOLVE":
+        // Simultaneous play - resolve is handled by resolveAllActions
+        // which directly transitions to MONSTER_ACTION
         break;
       case "PLAYER_ACTION": {
         const nextAlivePlayer = players.findIndex(
@@ -36,19 +47,23 @@ export const createCoreSlice: SliceCreator<CoreActions> = (set, get) => ({
             currentPlayerIndex: nextAlivePlayer,
             phase: "DRAW",
           });
+          syncIfOnline();
           get().drawCards();
         } else {
           set({ phase: "MONSTER_ACTION" });
+          syncIfOnline();
           get().monsterAct();
         }
         break;
       }
       case "MONSTER_ACTION":
         set({ phase: "DEBUFF_RESOLUTION" });
+        syncIfOnline();
         get().resolveDebuffs();
         break;
       case "DEBUFF_RESOLUTION":
         set({ phase: "END_TURN" });
+        syncIfOnline();
         get().endTurn();
         break;
       case "END_TURN":

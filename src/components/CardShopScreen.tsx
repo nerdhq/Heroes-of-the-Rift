@@ -24,7 +24,6 @@ export function CardShopScreen() {
   const selectShopCard = useGameStore((state) => state.selectShopCard);
   const purchaseShopCard = useGameStore((state) => state.purchaseShopCard);
   const skipShop = useGameStore((state) => state.skipShop);
-  const round = useGameStore((state) => state.round);
 
   const currentPlayer = players[shopPlayerIndex];
   const classConfig = currentPlayer ? CLASS_CONFIGS[currentPlayer.class] : null;

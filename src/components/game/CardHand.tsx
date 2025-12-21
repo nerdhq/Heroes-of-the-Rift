@@ -1,9 +1,18 @@
-import { Target } from "lucide-react";
+import { Target, Check, Clock } from "lucide-react";
 import { CLASS_CONFIGS } from "../../data/classes";
 import type { Card, Player, Monster, Rarity, GamePhase } from "../../types";
 
+interface PlayerSelection {
+  playerId: string;
+  cardId: string | null;
+  targetId: string | null;
+  isReady: boolean;
+  enhanceMode: boolean;
+}
+
 interface CardHandProps {
   currentPlayer: Player | undefined;
+  localPlayer: Player | undefined;
   drawnCards: Card[];
   phase: GamePhase;
   selectedCardId: string | null;
@@ -15,16 +24,23 @@ interface CardHandProps {
   players: Player[];
   canUseSpecialAbility: boolean;
   canEnhanceCard: boolean;
+  isOnline: boolean;
+  isLocalPlayerTurn: boolean;
+  playerSelections: PlayerSelection[];
+  localPlayerSelection: PlayerSelection | null | undefined;
   onSelectCard: (cardId: string) => void;
   onSelectTarget: (targetId: string) => void;
   onConfirmCard: () => void;
   onConfirmTarget: () => void;
   onUseSpecialAbility: () => void;
   onToggleEnhanceMode: () => void;
+  onSetPlayerSelection: (playerId: string, cardId: string | null, targetId: string | null, enhanceMode?: boolean) => void;
+  onSetPlayerReady: (playerId: string, isReady: boolean) => void;
 }
 
 export function CardHand({
   currentPlayer,
+  localPlayer,
   drawnCards,
   phase,
   selectedCardId,
@@ -36,12 +52,18 @@ export function CardHand({
   players,
   canUseSpecialAbility,
   canEnhanceCard,
+  isOnline,
+  isLocalPlayerTurn,
+  playerSelections,
+  localPlayerSelection,
   onSelectCard,
   onSelectTarget,
   onConfirmCard,
   onConfirmTarget,
   onUseSpecialAbility,
   onToggleEnhanceMode,
+  onSetPlayerSelection,
+  onSetPlayerReady,
 }: CardHandProps) {
   const getRarityColor = (rarity: Rarity): string => {
     const colors: Record<Rarity, string> = {
@@ -63,29 +85,92 @@ export function CardHand({
     return colors[rarity];
   };
 
+  // For online simultaneous play
+  const isSimultaneousMode = isOnline && phase === "SELECT";
+  const localSelectedCardId = isSimultaneousMode ? localPlayerSelection?.cardId : selectedCardId;
+  const localSelectedTargetId = isSimultaneousMode ? localPlayerSelection?.targetId : selectedTargetId;
+  const localEnhanceMode = isSimultaneousMode ? localPlayerSelection?.enhanceMode : enhanceMode;
+  const isLocalPlayerReady = localPlayerSelection?.isReady || false;
+
+  // Handle card selection for simultaneous play
+  const handleCardSelect = (cardId: string) => {
+    if (isSimultaneousMode && localPlayer && !isLocalPlayerReady) {
+      onSetPlayerSelection(localPlayer.id, cardId, localSelectedTargetId || null, localEnhanceMode);
+    } else if (!isOnline) {
+      onSelectCard(cardId);
+    }
+  };
+
+  // Handle target selection for simultaneous play
+  const handleTargetSelect = (targetId: string) => {
+    if (isSimultaneousMode && localPlayer && !isLocalPlayerReady) {
+      onSetPlayerSelection(localPlayer.id, localSelectedCardId || null, targetId, localEnhanceMode);
+    } else if (!isOnline) {
+      onSelectTarget(targetId);
+    }
+  };
+
+  // Handle ready button for simultaneous play
+  const handleReady = () => {
+    if (localPlayer && localSelectedCardId) {
+      onSetPlayerReady(localPlayer.id, true);
+    }
+  };
+
+  // Handle unready (cancel)
+  const handleUnready = () => {
+    if (localPlayer) {
+      onSetPlayerReady(localPlayer.id, false);
+    }
+  };
+
+  // Check if selected card needs target selection
+  const getCardNeedsTarget = (cardId: string | null): boolean => {
+    if (!cardId || !localPlayer) return false;
+    const card = localPlayer.hand.find((c) => c.id === cardId);
+    if (!card) return false;
+    return card.effects.some((e) => e.target === "monster" || e.target === "ally");
+  };
+
+  const cardNeedsTarget = getCardNeedsTarget(localSelectedCardId || null);
+
+  // Get target type for selected card
+  const getSelectedCardTargetType = (): "ally" | "monster" | null => {
+    if (!localSelectedCardId || !localPlayer) return null;
+    const card = localPlayer.hand.find((c) => c.id === localSelectedCardId);
+    if (!card) return null;
+    for (const effect of card.effects) {
+      if (effect.target === "monster") return "monster";
+      if (effect.target === "ally") return "ally";
+    }
+    return null;
+  };
+
+  const selectedCardTargetType = getSelectedCardTargetType();
+
   const renderCard = (card: Card, isSelectable: boolean) => {
-    const isSelected = selectedCardId === card.id;
+    const isSelected = localSelectedCardId === card.id;
     const rarityStyle = getRarityColor(card.rarity);
     const rarityText = getRarityTextColor(card.rarity);
-    const projectedTotal = currentPlayer
-      ? card.aggro + currentPlayer.diceAggro
+    const projectedTotal = localPlayer
+      ? card.aggro + localPlayer.diceAggro
       : card.aggro;
-    const willBeEnhanced = enhanceMode && isSelected && canEnhanceCard;
+    const willBeEnhanced = localEnhanceMode && isSelected && canEnhanceCard;
 
     return (
       <button
         key={card.id}
-        onClick={() => isSelectable && onSelectCard(card.id)}
-        disabled={!isSelectable}
+        onClick={() => isSelectable && handleCardSelect(card.id)}
+        disabled={!isSelectable || isLocalPlayerReady}
         className={`p-4 rounded-xl border-2 transition-all transform text-left relative ${
-          isSelectable ? "hover:scale-105 cursor-pointer" : "cursor-default"
+          isSelectable && !isLocalPlayerReady ? "hover:scale-105 cursor-pointer" : "cursor-default"
         } ${
           willBeEnhanced
             ? "border-amber-400 ring-2 ring-amber-400 bg-gradient-to-br from-amber-900/50 to-purple-900/50 animate-card-glow"
             : isSelected
             ? "border-amber-400 ring-2 ring-amber-400 bg-amber-900/30 animate-card-glow"
             : rarityStyle
-        }`}
+        } ${isLocalPlayerReady ? "opacity-75" : ""}`}
       >
         {willBeEnhanced && (
           <div className="absolute -top-2 -right-2 bg-amber-500 text-amber-900 text-xs px-2 py-0.5 rounded-full font-bold">
@@ -104,7 +189,7 @@ export function CardHand({
         <div className="flex items-center justify-between text-sm">
           <span className="text-amber-400">
             ⚡ Base: {card.aggro}
-            {currentPlayer && currentPlayer.diceAggro > 0 && isSelected && (
+            {localPlayer && localPlayer.diceAggro > 0 && isSelected && (
               <span className="text-amber-300 ml-2">
                 (Total: {projectedTotal})
               </span>
@@ -124,34 +209,190 @@ export function CardHand({
         players.filter((p) => p.isAlive && p.id !== currentPlayer?.id).length >
           1));
 
+  // Cards to display - always show local player's hand in online mode
+  const cardsToDisplay = isOnline
+    ? localPlayer?.hand || []
+    : drawnCards;
+
+  // The player whose hand we're showing
+  const displayPlayer = isOnline ? localPlayer : currentPlayer;
+
+  // Can select cards in online simultaneous mode or offline when it's your turn
+  const canSelectCards = isSimultaneousMode
+    ? !isLocalPlayerReady
+    : phase === "SELECT" && isLocalPlayerTurn;
+
+  // Count ready players
+  const readyCount = playerSelections.filter((sel) => sel.isReady).length;
+  const totalPlayers = playerSelections.length;
+
   return (
-    <div className="bg-stone-800/50 rounded-xl p-4 border border-stone-700 mt-3 flex-shrink-0 max-h-[50vh] overflow-y-auto">
+    <div className="bg-stone-800/50 rounded-xl p-4 border border-stone-700 mt-3 flex-shrink-0 max-h-[50vh] overflow-hidden">
+      {/* Header with ready status for online mode */}
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-lg font-bold text-amber-100">
-          {currentPlayer?.name}'s Hand
+          {displayPlayer?.name}'s Hand
         </h3>
-        {phase === "SELECT" && !selectedCardId && (
-          <span className="text-amber-400 text-sm animate-pulse">
-            Choose a card to play
-          </span>
+
+        {/* Online simultaneous mode status */}
+        {isSimultaneousMode && (
+          <div className="flex items-center gap-3">
+            {/* Ready count */}
+            <div className="flex items-center gap-1 text-sm">
+              <Check className="w-4 h-4 text-green-400" />
+              <span className="text-green-400">{readyCount}/{totalPlayers} Ready</span>
+            </div>
+
+            {/* Local player status */}
+            {isLocalPlayerReady ? (
+              <span className="text-green-400 text-sm flex items-center gap-1">
+                <Check className="w-4 h-4" /> You're ready!
+              </span>
+            ) : localSelectedCardId ? (
+              <span className="text-amber-400 text-sm animate-pulse">
+                Click Ready when done
+              </span>
+            ) : (
+              <span className="text-amber-400 text-sm animate-pulse">
+                Choose a card
+              </span>
+            )}
+          </div>
         )}
-        {phase === "SELECT" && selectedCardId && (
-          <span className="text-green-400 text-sm">
-            Card selected - click Confirm
+
+        {/* Offline mode status */}
+        {!isOnline && (
+          <>
+            {isLocalPlayerTurn && phase === "SELECT" && !selectedCardId && (
+              <span className="text-amber-400 text-sm animate-pulse">
+                Choose a card to play
+              </span>
+            )}
+            {isLocalPlayerTurn && phase === "SELECT" && selectedCardId && (
+              <span className="text-green-400 text-sm">
+                Card selected - click Confirm
+              </span>
+            )}
+          </>
+        )}
+
+        {/* Waiting for resolve */}
+        {phase === "RESOLVE" && (
+          <span className="text-purple-400 text-sm flex items-center gap-1">
+            <Clock className="w-4 h-4 animate-spin" /> Resolving actions...
           </span>
         )}
       </div>
 
-      {drawnCards.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 overflow-x-auto">
-          {drawnCards.map((card) => renderCard(card, phase === "SELECT"))}
+      {/* Player ready indicators for online mode */}
+      {isSimultaneousMode && playerSelections.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-3">
+          {playerSelections.map((sel) => {
+            const player = players.find((p) => p.id === sel.playerId);
+            if (!player) return null;
+            return (
+              <div
+                key={sel.playerId}
+                className={`text-xs px-2 py-1 rounded-full flex items-center gap-1 ${
+                  sel.isReady
+                    ? "bg-green-900/50 text-green-400 border border-green-500"
+                    : sel.cardId
+                    ? "bg-amber-900/50 text-amber-400 border border-amber-500"
+                    : "bg-stone-700 text-stone-400 border border-stone-600"
+                }`}
+              >
+                {sel.isReady ? <Check className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
+                {player.name}
+              </div>
+            );
+          })}
         </div>
-      ) : (
-        <p className="text-stone-500 text-center py-4">Waiting for cards...</p>
       )}
 
-      {/* Special Ability Button */}
-      {phase === "SELECT" && canUseSpecialAbility && currentPlayer && (
+      {cardsToDisplay.length > 0 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-1">
+          {cardsToDisplay.map((card) => renderCard(card, canSelectCards))}
+        </div>
+      ) : (
+        <p className="text-stone-500 text-center py-4">
+          {phase === "DRAW" ? "Drawing cards..." : "Your hand is empty"}
+        </p>
+      )}
+
+      {/* Target Selection for simultaneous mode */}
+      {isSimultaneousMode && localSelectedCardId && cardNeedsTarget && !isLocalPlayerReady && (
+        <div className="mt-3 p-4 bg-purple-900/30 rounded-lg border border-purple-500">
+          <div className="flex items-center gap-2 mb-3 text-purple-300">
+            <Target className="w-5 h-5" />
+            <span className="font-bold">
+              Select a {selectedCardTargetType === "ally" ? "ally" : "monster"} to target
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-2 justify-center">
+            {selectedCardTargetType === "monster" &&
+              monsters
+                .filter((m) => m.isAlive)
+                .map((monster) => (
+                  <button
+                    key={monster.id}
+                    onClick={() => handleTargetSelect(monster.id)}
+                    className={`px-4 py-2 rounded-lg border-2 transition-all ${
+                      localSelectedTargetId === monster.id
+                        ? "border-purple-400 bg-purple-800/50 text-purple-100"
+                        : "border-stone-600 bg-stone-700 text-stone-300 hover:border-purple-500"
+                    }`}
+                  >
+                    {monster.name} ({monster.hp}/{monster.maxHp})
+                  </button>
+                ))}
+            {selectedCardTargetType === "ally" &&
+              players
+                .filter((p) => p.isAlive)
+                .map((player) => (
+                  <button
+                    key={player.id}
+                    onClick={() => handleTargetSelect(player.id)}
+                    className={`px-4 py-2 rounded-lg border-2 transition-all ${
+                      localSelectedTargetId === player.id
+                        ? "border-purple-400 bg-purple-800/50 text-purple-100"
+                        : "border-stone-600 bg-stone-700 text-stone-300 hover:border-purple-500"
+                    }`}
+                  >
+                    {player.name} ({player.hp}/{player.maxHp})
+                  </button>
+                ))}
+          </div>
+        </div>
+      )}
+
+      {/* Ready/Unready button for simultaneous mode */}
+      {isSimultaneousMode && localSelectedCardId && (
+        <div className="mt-3 text-center">
+          {isLocalPlayerReady ? (
+            <button
+              onClick={handleUnready}
+              className="bg-gradient-to-r from-stone-700 to-stone-600 hover:from-stone-600 hover:to-stone-500 text-stone-100 font-bold py-3 px-8 rounded-lg transition-all transform hover:scale-105 shadow-lg"
+            >
+              Cancel ✕
+            </button>
+          ) : (
+            <button
+              onClick={handleReady}
+              disabled={cardNeedsTarget && !localSelectedTargetId}
+              className={`font-bold py-3 px-8 rounded-lg transition-all transform hover:scale-105 shadow-lg ${
+                cardNeedsTarget && !localSelectedTargetId
+                  ? "bg-stone-600 text-stone-400 cursor-not-allowed"
+                  : "bg-gradient-to-r from-green-700 to-green-600 hover:from-green-600 hover:to-green-500 text-green-100 shadow-green-900/50"
+              }`}
+            >
+              Ready ✓
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Special Ability Button - only for offline mode */}
+      {!isOnline && phase === "SELECT" && isLocalPlayerTurn && canUseSpecialAbility && currentPlayer && (
         <div className="mt-3 p-3 bg-gradient-to-r from-purple-900/50 to-pink-900/50 rounded-lg border border-purple-500">
           <div className="flex items-center justify-between mb-2">
             <span className="text-purple-300 font-bold text-sm">
@@ -196,8 +437,8 @@ export function CardHand({
         </div>
       )}
 
-      {/* Confirm Card Selection Button */}
-      {phase === "SELECT" && selectedCardId && (
+      {/* Confirm Card Selection Button - only for offline mode */}
+      {!isOnline && phase === "SELECT" && isLocalPlayerTurn && selectedCardId && (
         <div className="mt-3 text-center">
           <button
             onClick={onConfirmCard}
@@ -216,8 +457,8 @@ export function CardHand({
         </div>
       )}
 
-      {/* Target Selection UI */}
-      {phase === "TARGET_SELECT" && (
+      {/* Target Selection UI - only for offline mode */}
+      {!isOnline && phase === "TARGET_SELECT" && isLocalPlayerTurn && (
         <div className="mt-3 p-4 bg-purple-900/30 rounded-lg border border-purple-500">
           <div className="flex items-center gap-2 mb-3 text-purple-300">
             <Target className="w-5 h-5" />

@@ -51,13 +51,26 @@ export type GamePhase =
   | "TARGET_SELECT"
   | "AGGRO"
   | "PLAYER_ACTION"
+  | "RESOLVE" // All players' actions resolve simultaneously
   | "MONSTER_ACTION"
   | "DEBUFF_RESOLUTION"
   | "END_TURN";
 
+// Player Selection (for simultaneous action selection)
+export interface PlayerSelection {
+  playerId: string;
+  cardId: string | null;
+  targetId: string | null;
+  isReady: boolean;
+  enhanceMode: boolean;
+}
+
 // Screen Types
 export type ScreenType =
   | "title"
+  | "login"
+  | "lobby"
+  | "waitingRoom"
   | "classSelect"
   | "deckBuilder"
   | "game"
@@ -312,11 +325,14 @@ export interface GameState {
   maxRounds: number;
   environment: Environment | null;
 
-  // Selection state
+  // Selection state (legacy - for local/offline mode)
   selectedCardId: string | null;
   selectedTargetId: string | null;
 
-  // Cards drawn this turn
+  // Player selections (for simultaneous action in online mode)
+  playerSelections: PlayerSelection[];
+
+  // Cards drawn this turn (legacy - now stored per-player in player.hand)
   drawnCards: Card[];
 
   // Game log

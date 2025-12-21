@@ -1,8 +1,18 @@
 import { useGameStore } from "../store/gameStore";
-import { Sword, Shield, Scroll } from "lucide-react";
+import { Sword, Shield, Scroll, Users, Wifi } from "lucide-react";
+import { isSupabaseConfigured } from "../lib/supabase";
 
 export function TitleScreen() {
   const setScreen = useGameStore((state) => state.setScreen);
+  const isAuthenticated = useGameStore((state) => state.isAuthenticated);
+
+  const handlePlayOnline = () => {
+    if (isAuthenticated) {
+      setScreen("lobby");
+    } else {
+      setScreen("login");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-stone-900 via-stone-800 to-stone-900 flex flex-col items-center justify-center p-8">
@@ -29,14 +39,28 @@ export function TitleScreen() {
           onClick={() => setScreen("classSelect")}
           className="bg-gradient-to-r from-amber-700 to-amber-600 hover:from-amber-600 hover:to-amber-500 text-amber-100 font-bold py-4 px-8 rounded-lg text-xl transition-all transform hover:scale-105 shadow-lg shadow-amber-900/50"
         >
-          New Adventure
+          Local Game
         </button>
-        <button
-          disabled
-          className="bg-stone-700 text-stone-500 font-bold py-4 px-8 rounded-lg text-xl cursor-not-allowed opacity-50"
-        >
-          Continue (Coming Soon)
-        </button>
+
+        {isSupabaseConfigured() ? (
+          <button
+            onClick={handlePlayOnline}
+            className="bg-gradient-to-r from-blue-700 to-blue-600 hover:from-blue-600 hover:to-blue-500 text-blue-100 font-bold py-4 px-8 rounded-lg text-xl transition-all transform hover:scale-105 shadow-lg shadow-blue-900/50 flex items-center justify-center gap-3"
+          >
+            <Users className="w-6 h-6" />
+            Play Online
+          </button>
+        ) : (
+          <button
+            disabled
+            className="bg-stone-700 text-stone-500 font-bold py-4 px-8 rounded-lg text-xl cursor-not-allowed opacity-50 flex items-center justify-center gap-3"
+            title="Supabase not configured"
+          >
+            <Wifi className="w-6 h-6" />
+            Online (Not Configured)
+          </button>
+        )}
+
         <button
           disabled
           className="bg-stone-700 text-stone-500 font-bold py-4 px-8 rounded-lg text-xl cursor-not-allowed opacity-50"

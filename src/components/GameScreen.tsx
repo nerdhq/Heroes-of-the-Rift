@@ -63,9 +63,37 @@ export function GameScreen() {
   );
   const canEnhanceCard = useGameStore((state) => state.canEnhanceCard);
 
+  // Online multiplayer state
+  const isOnline = useGameStore((state) => state.isOnline);
+  const localPlayerIndex = useGameStore((state) => state.localPlayerIndex);
+  const playerSelections = useGameStore((state) => state.playerSelections);
+  const subscribeToGameState = useGameStore((state) => state.subscribeToGameState);
+  const unsubscribeFromGameState = useGameStore((state) => state.unsubscribeFromGameState);
+  const setPlayerSelection = useGameStore((state) => state.setPlayerSelection);
+  const setPlayerReady = useGameStore((state) => state.setPlayerReady);
+
   const currentPlayer = players[currentPlayerIndex];
+  const localPlayer = isOnline ? players[localPlayerIndex] : currentPlayer;
+  const isLocalPlayerTurn = !isOnline || localPlayerIndex === currentPlayerIndex;
   const needsTarget = needsTargetSelection();
   const targetType = getTargetType();
+
+  // Get local player's selection state (for simultaneous play)
+  const localPlayerSelection = isOnline && localPlayer
+    ? playerSelections.find((sel) => sel.playerId === localPlayer.id)
+    : null;
+
+  // Subscribe to game state changes when online
+  useEffect(() => {
+    if (isOnline) {
+      subscribeToGameState();
+    }
+    return () => {
+      if (isOnline) {
+        unsubscribeFromGameState();
+      }
+    };
+  }, [isOnline, subscribeToGameState, unsubscribeFromGameState]);
 
   // Clean up old action messages after they've been displayed
   useEffect(() => {
@@ -159,7 +187,7 @@ export function GameScreen() {
 
       <div className="max-w-7xl mx-auto grid grid-cols-12 gap-4 flex-1 w-full min-h-0">
         {/* Left Panel - Players */}
-        <div className="col-span-3 flex flex-col gap-3 overflow-y-auto pr-1 min-h-0">
+        <div className="col-span-3 flex flex-col gap-3 overflow-y-auto overflow-x-hidden pr-1 min-h-0">
           <h2 className="text-lg font-bold text-amber-400">Party</h2>
           {players.map((player, index) => (
             <PlayerCard
@@ -176,7 +204,7 @@ export function GameScreen() {
         </div>
 
         {/* Center Panel - Battlefield */}
-        <div className="col-span-6 flex flex-col h-full min-h-0">
+        <div className="col-span-6 flex flex-col h-full min-h-0 overflow-hidden">
           {/* Round & Turn Info + Phase Progress */}
           <GameHeader
             round={round}
@@ -189,7 +217,7 @@ export function GameScreen() {
           <EnvironmentDisplay environment={environment} />
 
           {/* Monster Area */}
-          <div className="flex-1 flex items-start justify-center min-h-0 overflow-y-auto pt-4">
+          <div className="flex-1 flex items-start justify-center min-h-0 overflow-hidden pt-4">
             <div
               className={`grid gap-4 w-full ${
                 monsters.length > 1
@@ -206,6 +234,7 @@ export function GameScreen() {
           {/* Hand Area */}
           <CardHand
             currentPlayer={currentPlayer}
+            localPlayer={localPlayer}
             drawnCards={drawnCards}
             phase={phase}
             selectedCardId={selectedCardId}
@@ -217,12 +246,18 @@ export function GameScreen() {
             players={players}
             canUseSpecialAbility={canUseSpecialAbility()}
             canEnhanceCard={canEnhanceCard()}
+            isOnline={isOnline}
+            isLocalPlayerTurn={isLocalPlayerTurn}
+            playerSelections={playerSelections}
+            localPlayerSelection={localPlayerSelection}
             onSelectCard={selectCard}
             onSelectTarget={selectTarget}
             onConfirmCard={handleConfirmCard}
             onConfirmTarget={confirmTarget}
             onUseSpecialAbility={useSpecialAbility}
             onToggleEnhanceMode={() => setEnhanceMode(!enhanceMode)}
+            onSetPlayerSelection={setPlayerSelection}
+            onSetPlayerReady={setPlayerReady}
           />
         </div>
 

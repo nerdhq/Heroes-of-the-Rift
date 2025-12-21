@@ -1,4 +1,5 @@
 import type { StateCreator } from "zustand";
+import type { User } from "@supabase/supabase-js";
 import type {
   GameState,
   GamePhase,
@@ -13,9 +14,10 @@ import type {
   SavedParty,
   Environment,
 } from "../types";
+import type { Profile, GamePlayer } from "../lib/database.types";
 
 // Combined store type
-export type GameStore = GameState & GameActions;
+export type GameStore = GameState & AuthState & LobbyState & MultiplayerState & GameActions;
 
 // Slice creator type helper
 export type SliceCreator<T> = StateCreator<GameStore, [], [], T>;
@@ -54,6 +56,13 @@ export interface CombatState {
   selectedTargetId: string | null;
   drawnCards: Card[];
   enhanceMode: boolean;
+  playerSelections: Array<{
+    playerId: string;
+    cardId: string | null;
+    targetId: string | null;
+    isReady: boolean;
+    enhanceMode: boolean;
+  }>;
 }
 
 export interface RewardsState {
@@ -84,6 +93,32 @@ export interface SettingsState {
   gameSpeed: GameSpeed;
   skipAnimations: boolean;
   savedParty: SavedParty | null;
+}
+
+export interface AuthState {
+  user: User | null;
+  profile: Profile | null;
+  isAuthenticated: boolean;
+  isAuthLoading: boolean;
+  authError: string | null;
+}
+
+export interface LobbyState {
+  currentGameId: string | null;
+  gameCode: string | null;
+  isHost: boolean;
+  lobbyPlayers: GamePlayer[];
+  lobbyError: string | null;
+  isInLobby: boolean;
+}
+
+export interface MultiplayerState {
+  isOnline: boolean;
+  isConnected: boolean;
+  isSyncing: boolean;
+  lastSyncedVersion: number;
+  syncError: string | null;
+  localPlayerIndex: number;
 }
 
 // ============================================
@@ -128,6 +163,13 @@ export interface CombatActions {
   canUseSpecialAbility: () => boolean;
   canEnhanceCard: () => boolean;
   startDiceRoll: () => void;
+  // Simultaneous play actions
+  drawAllPlayersCards: () => void;
+  setPlayerSelection: (playerId: string, cardId: string | null, targetId: string | null, enhanceMode?: boolean) => void;
+  setPlayerReady: (playerId: string, isReady: boolean) => void;
+  resolveAllActions: () => Promise<void>;
+  initializePlayerSelections: () => void;
+  areAllPlayersReady: () => boolean;
 }
 
 export interface RewardsActions {
@@ -160,6 +202,39 @@ export interface SettingsActions {
   playAgainNewParty: () => void;
 }
 
+export interface AuthActions {
+  initializeAuth: () => Promise<void>;
+  signInAnonymously: (username: string) => Promise<boolean>;
+  signOut: () => Promise<void>;
+  updateProfile: (updates: Partial<Pick<Profile, "username" | "display_name" | "avatar_url">>) => Promise<boolean>;
+  clearAuthError: () => void;
+}
+
+export interface LobbyActions {
+  createGame: (maxPlayers?: number) => Promise<boolean>;
+  joinGame: (code: string) => Promise<boolean>;
+  leaveGame: () => Promise<void>;
+  startOnlineGame: () => Promise<boolean>;
+  kickPlayer: (playerId: string) => Promise<void>;
+  subscribeToGame: (gameId: string) => void;
+  unsubscribeFromGame: () => void;
+  clearLobbyError: () => void;
+  setLobbyPlayers: (players: GamePlayer[]) => void;
+  initializeOnlineGame: () => Promise<void>;
+}
+
+export interface MultiplayerActions {
+  setOnlineMode: (online: boolean) => void;
+  setConnected: (connected: boolean) => void;
+  syncState: () => Promise<void>;
+  syncGameStateToSupabase: () => Promise<void>;
+  subscribeToGameState: () => void;
+  unsubscribeFromGameState: () => void;
+  submitAction: (actionType: string, actionData: Record<string, unknown>) => Promise<boolean>;
+  handleStateUpdate: (newState: Record<string, unknown>) => void;
+  clearSyncError: () => void;
+}
+
 // Combined actions type
 export interface GameActions
   extends CoreActions,
@@ -167,4 +242,7 @@ export interface GameActions
     CombatActions,
     RewardsActions,
     AnimationActions,
-    SettingsActions {}
+    SettingsActions,
+    AuthActions,
+    LobbyActions,
+    MultiplayerActions {}

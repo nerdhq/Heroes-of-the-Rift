@@ -127,6 +127,33 @@ export const shuffleArray = <T>(array: T[]): T[] => {
   return shuffled;
 };
 
+// Seeded random number generator for deterministic shuffling
+export const seededRandom = (seed: string): (() => number) => {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) {
+    const char = seed.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+
+  return () => {
+    hash = (hash * 1103515245 + 12345) & 0x7fffffff;
+    return hash / 0x7fffffff;
+  };
+};
+
+// Shuffle array with a seed for deterministic results
+export const seededShuffleArray = <T>(array: T[], seed: string): T[] => {
+  const shuffled = [...array];
+  const random = seededRandom(seed);
+
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+};
+
 // ============================================
 // ENVIRONMENT UTILITIES
 // ============================================

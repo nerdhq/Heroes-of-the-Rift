@@ -9,18 +9,30 @@ import {
   createRewardsSlice,
   createAnimationSlice,
   createSettingsSlice,
+  createAuthSlice,
+  initialAuthState,
+  createLobbySlice,
+  initialLobbyState,
+  createMultiplayerSlice,
+  initialMultiplayerState,
 } from "./slices";
 
 export const useGameStore = create<GameStore>()(
   persist(
     (...a) => ({
       ...initialState,
+      ...initialAuthState,
+      ...initialLobbyState,
+      ...initialMultiplayerState,
       ...createCoreSlice(...a),
       ...createPlayersSlice(...a),
       ...createCombatSlice(...a),
       ...createRewardsSlice(...a),
       ...createAnimationSlice(...a),
       ...createSettingsSlice(...a),
+      ...createAuthSlice(...a),
+      ...createLobbySlice(...a),
+      ...createMultiplayerSlice(...a),
     }),
     {
       name: "dungeon-crawler-storage",

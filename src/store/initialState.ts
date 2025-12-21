@@ -13,6 +13,7 @@ export const initialState: GameState = {
   environment: null,
   selectedCardId: null,
   selectedTargetId: null,
+  playerSelections: [],
   drawnCards: [],
   log: [],
   selectedClasses: [],
