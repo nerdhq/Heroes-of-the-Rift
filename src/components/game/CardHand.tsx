@@ -125,7 +125,7 @@ export function CardHand({
           1));
 
   return (
-    <div className="bg-stone-800/50 rounded-xl p-4 border border-stone-700 mt-3 flex-shrink-0">
+    <div className="bg-stone-800/50 rounded-xl p-4 border border-stone-700 mt-3 flex-shrink-0 max-h-[50vh] overflow-y-auto">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-lg font-bold text-amber-100">
           {currentPlayer?.name}'s Hand
@@ -143,7 +143,7 @@ export function CardHand({
       </div>
 
       {drawnCards.length > 0 ? (
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 overflow-x-auto">
           {drawnCards.map((card) => renderCard(card, phase === "SELECT"))}
         </div>
       ) : (
