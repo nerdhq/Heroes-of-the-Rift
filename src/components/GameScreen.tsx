@@ -38,6 +38,7 @@ export function GameScreen() {
   const skipAnimations = useGameStore((state) => state.skipAnimations);
   const enhanceMode = useGameStore((state) => state.enhanceMode);
   const environment = useGameStore((state) => state.environment);
+  const userData = useGameStore((state) => state.userData);
 
   // Actions from store
   const selectCard = useGameStore((state) => state.selectCard);
@@ -49,9 +50,9 @@ export function GameScreen() {
   const toggleSkipAnimations = useGameStore(
     (state) => state.toggleSkipAnimations
   );
-  const setScreen = useGameStore((state) => state.setScreen);
   const useSpecialAbility = useGameStore((state) => state.useSpecialAbility);
   const setEnhanceMode = useGameStore((state) => state.setEnhanceMode);
+  const resetGame = useGameStore((state) => state.resetGame);
 
   // Computed values
   const needsTargetSelection = useGameStore(
@@ -181,7 +182,7 @@ export function GameScreen() {
         onCancel={() => setShowQuitConfirm(false)}
         onConfirm={() => {
           setShowQuitConfirm(false);
-          setScreen("title");
+          resetGame();
         }}
       />
 
@@ -211,6 +212,7 @@ export function GameScreen() {
             maxRounds={maxRounds}
             turn={turn}
             phase={phase}
+            gold={userData.gold}
           />
 
           {/* Environment Display */}
@@ -225,9 +227,29 @@ export function GameScreen() {
                   : "grid-cols-1 max-w-md"
               }`}
             >
-              {monsters.map((monster) => (
-                <MonsterCard key={monster.id} monster={monster} />
-              ))}
+              {monsters.map((monster) => {
+                // Monster is selectable when a card requiring monster target is selected
+                const isMonsterSelectable = 
+                  phase === "SELECT" && 
+                  !!selectedCardId && 
+                  needsTarget && 
+                  targetType === "monster" && 
+                  monster.isAlive && 
+                  isLocalPlayerTurn;
+                return (
+                  <MonsterCard 
+                    key={monster.id} 
+                    monster={monster}
+                    isSelectable={isMonsterSelectable}
+                    isSelected={selectedTargetId === monster.id}
+                    onSelect={(monsterId) => {
+                      // Auto-confirm: select target and immediately start dice roll
+                      useGameStore.setState({ selectedTargetId: monsterId });
+                      startDiceRoll();
+                    }}
+                  />
+                );
+              })}
             </div>
           </div>
 

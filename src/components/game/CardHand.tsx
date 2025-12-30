@@ -200,14 +200,12 @@ export function CardHand({
     );
   };
 
-  // Determine if we should show "Select Target" or "Play Card" button
+  // Determine if we should show "Select Target" button - only for ally targeting now
+  // Monster targeting is handled by clicking directly on monster cards
   const showSelectTargetButton =
     needsTarget &&
-    ((targetType === "monster" &&
-      monsters.filter((m) => m.isAlive).length > 1) ||
-      (targetType === "ally" &&
-        players.filter((p) => p.isAlive && p.id !== currentPlayer?.id).length >
-          1));
+    targetType === "ally" &&
+    players.filter((p) => p.isAlive && p.id !== currentPlayer?.id).length > 1;
 
   // Cards to display - always show local player's hand in online mode
   const cardsToDisplay = isOnline
@@ -440,65 +438,53 @@ export function CardHand({
       {/* Confirm Card Selection Button - only for offline mode */}
       {!isOnline && phase === "SELECT" && isLocalPlayerTurn && selectedCardId && (
         <div className="mt-3 text-center">
-          <button
-            onClick={onConfirmCard}
-            className={`font-bold py-3 px-8 rounded-lg transition-all transform hover:scale-105 shadow-lg ${
-              enhanceMode && canEnhanceCard
-                ? "bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-amber-100 shadow-amber-900/50"
-                : "bg-gradient-to-r from-green-700 to-green-600 hover:from-green-600 hover:to-green-500 text-green-100 shadow-green-900/50"
-            }`}
-          >
-            {enhanceMode && canEnhanceCard
-              ? "Play Enhanced Card ✨"
-              : showSelectTargetButton
-              ? "Select Target →"
-              : "Play Card ⚔️"}
-          </button>
+          {/* Show hint for monster targeting instead of button */}
+          {needsTarget && targetType === "monster" ? (
+            <div className="text-purple-300 font-medium animate-pulse">
+              🎯 Click on a monster above to attack
+            </div>
+          ) : (
+            <button
+              onClick={onConfirmCard}
+              className={`font-bold py-3 px-8 rounded-lg transition-all transform hover:scale-105 shadow-lg ${
+                enhanceMode && canEnhanceCard
+                  ? "bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-amber-100 shadow-amber-900/50"
+                  : "bg-gradient-to-r from-green-700 to-green-600 hover:from-green-600 hover:to-green-500 text-green-100 shadow-green-900/50"
+              }`}
+            >
+              {enhanceMode && canEnhanceCard
+                ? "Play Enhanced Card ✨"
+                : showSelectTargetButton
+                ? "Select Target →"
+                : "Play Card ⚔️"}
+            </button>
+          )}
         </div>
       )}
 
-      {/* Target Selection UI - only for offline mode */}
-      {!isOnline && phase === "TARGET_SELECT" && isLocalPlayerTurn && (
+      {/* Target Selection UI - only for ally targeting in offline mode */}
+      {!isOnline && phase === "TARGET_SELECT" && isLocalPlayerTurn && targetType === "ally" && (
         <div className="mt-3 p-4 bg-purple-900/30 rounded-lg border border-purple-500">
           <div className="flex items-center gap-2 mb-3 text-purple-300">
             <Target className="w-5 h-5" />
-            <span className="font-bold">
-              Select a {targetType === "ally" ? "ally" : "monster"} to target
-            </span>
+            <span className="font-bold">Select an ally to target</span>
           </div>
           <div className="flex flex-wrap gap-2 justify-center">
-            {targetType === "monster" &&
-              monsters
-                .filter((m) => m.isAlive)
-                .map((monster) => (
-                  <button
-                    key={monster.id}
-                    onClick={() => onSelectTarget(monster.id)}
-                    className={`px-4 py-2 rounded-lg border-2 transition-all ${
-                      selectedTargetId === monster.id
-                        ? "border-purple-400 bg-purple-800/50 text-purple-100"
-                        : "border-stone-600 bg-stone-700 text-stone-300 hover:border-purple-500"
-                    }`}
-                  >
-                    {monster.name} ({monster.hp}/{monster.maxHp})
-                  </button>
-                ))}
-            {targetType === "ally" &&
-              players
-                .filter((p) => p.isAlive)
-                .map((player) => (
-                  <button
-                    key={player.id}
-                    onClick={() => onSelectTarget(player.id)}
-                    className={`px-4 py-2 rounded-lg border-2 transition-all ${
-                      selectedTargetId === player.id
-                        ? "border-purple-400 bg-purple-800/50 text-purple-100"
-                        : "border-stone-600 bg-stone-700 text-stone-300 hover:border-purple-500"
-                    }`}
-                  >
-                    {player.name} ({player.hp}/{player.maxHp})
-                  </button>
-                ))}
+            {players
+              .filter((p) => p.isAlive)
+              .map((player) => (
+                <button
+                  key={player.id}
+                  onClick={() => onSelectTarget(player.id)}
+                  className={`px-4 py-2 rounded-lg border-2 transition-all ${
+                    selectedTargetId === player.id
+                      ? "border-purple-400 bg-purple-800/50 text-purple-100"
+                      : "border-stone-600 bg-stone-700 text-stone-300 hover:border-purple-500"
+                  }`}
+                >
+                  {player.name} ({player.hp}/{player.maxHp})
+                </button>
+              ))}
           </div>
           {selectedTargetId && (
             <div className="mt-3 text-center">

@@ -11,7 +11,8 @@ export const createCoreSlice: SliceCreator<CoreActions> = (set, get) => ({
   },
 
   resetGame: () => {
-    set(initialState);
+    const { userData } = get();
+    set({ ...initialState, userData });
   },
 
   nextPhase: () => {

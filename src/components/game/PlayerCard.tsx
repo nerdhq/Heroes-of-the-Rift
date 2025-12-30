@@ -1,4 +1,4 @@
-import { Heart, Shield, Skull, Zap, Coins } from "lucide-react";
+import { Heart, Shield, Skull, Zap } from "lucide-react";
 import { CLASS_CONFIGS } from "../../data/classes";
 import type { Player } from "../../types";
 import { HealthBar } from "./HealthBar";
@@ -117,12 +117,6 @@ export function PlayerCard({
           {player.baseAggro > 0 && `(${player.baseAggro} base)`}
         </div>
       )}
-
-      {/* Gold */}
-      <div className="text-sm mb-2 text-yellow-500 font-semibold">
-        <Coins className="w-3 h-3 inline mr-1" />
-        {player.gold} gold
-      </div>
 
       {/* Status Effects */}
       <StatusEffects buffs={player.buffs} debuffs={player.debuffs} />

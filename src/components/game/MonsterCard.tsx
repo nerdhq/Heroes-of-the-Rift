@@ -5,9 +5,12 @@ import { HealthBar } from "./HealthBar";
 
 interface MonsterCardProps {
   monster: Monster;
+  isSelectable?: boolean;
+  isSelected?: boolean;
+  onSelect?: (monsterId: string) => void;
 }
 
-export function MonsterCard({ monster }: MonsterCardProps) {
+export function MonsterCard({ monster, isSelectable = false, isSelected = false, onSelect }: MonsterCardProps) {
   const getStatusIcon = (type: StatusEffect["type"]): string => {
     const icons: Record<string, string> = {
       poison: "☠️",
@@ -44,14 +47,31 @@ export function MonsterCard({ monster }: MonsterCardProps) {
     } turns remaining)`;
   };
 
+  const handleClick = () => {
+    if (isSelectable && monster.isAlive && onSelect) {
+      onSelect(monster.id);
+    }
+  };
+
   return (
     <div
-      className={`p-5 rounded-xl border-2 transition-all ${
+      onClick={handleClick}
+      className={`p-5 rounded-xl border-2 transition-all relative ${
         monster.isAlive
-          ? "border-red-700 bg-red-950/30"
+          ? isSelected
+            ? "border-purple-400 bg-purple-900/40 ring-2 ring-purple-400 shadow-lg shadow-purple-500/30"
+            : isSelectable
+            ? "border-red-700 bg-red-950/30 cursor-pointer hover:border-purple-500 hover:bg-purple-900/20"
+            : "border-red-700 bg-red-950/30"
           : "border-stone-700 bg-stone-800/30 opacity-50"
       }`}
     >
+      {/* Target Selection Indicator */}
+      {isSelected && (
+        <div className="absolute -top-2 -right-2 bg-purple-500 text-white text-xs px-2 py-0.5 rounded-full font-bold animate-pulse">
+          🎯 TARGET
+        </div>
+      )}
       {/* Monster Header */}
       <div className="text-center mb-3">
         {/* Elite Modifier Badge */}
