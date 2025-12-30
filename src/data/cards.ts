@@ -163,6 +163,68 @@ const warriorCards: Card[] = [
       { type: "stun", value: 1, target: "monster", duration: 1 },
     ],
   },
+  // Legendary cards (16-20)
+  {
+    id: "warrior-16",
+    name: "Unstoppable Force",
+    class: "warrior",
+    rarity: "legendary",
+    aggro: 7,
+    description: "Deal 40 damage and gain 15 shield. Cannot be stunned this turn.",
+    effects: [
+      { type: "damage", value: 40, target: "monster" },
+      { type: "shield", value: 15, target: "self" },
+    ],
+  },
+  {
+    id: "warrior-17",
+    name: "Warlord's Command",
+    class: "warrior",
+    rarity: "legendary",
+    aggro: 5,
+    description: "All allies gain 6 Strength and 8 shield for 2 turns.",
+    effects: [
+      { type: "strength", value: 6, target: "allAllies", duration: 2 },
+      { type: "shield", value: 8, target: "allAllies" },
+    ],
+  },
+  {
+    id: "warrior-18",
+    name: "Bladestorm",
+    class: "warrior",
+    rarity: "legendary",
+    aggro: 6,
+    description: "Deal 18 damage to all monsters twice.",
+    effects: [
+      { type: "damage", value: 18, target: "allMonsters" },
+      { type: "damage", value: 18, target: "allMonsters" },
+    ],
+  },
+  {
+    id: "warrior-19",
+    name: "Immortal Stand",
+    class: "warrior",
+    rarity: "legendary",
+    aggro: 4,
+    description: "Gain 30 shield, Taunt for 2 turns, and heal 15 HP.",
+    effects: [
+      { type: "shield", value: 30, target: "self" },
+      { type: "taunt", value: 1, target: "self", duration: 2 },
+      { type: "heal", value: 15, target: "self" },
+    ],
+  },
+  {
+    id: "warrior-20",
+    name: "Champion's Fury",
+    class: "warrior",
+    rarity: "legendary",
+    aggro: 6,
+    description: "Deal 35 damage and gain 8 Strength for 2 turns.",
+    effects: [
+      { type: "damage", value: 35, target: "monster" },
+      { type: "strength", value: 8, target: "self", duration: 2 },
+    ],
+  },
 ];
 
 // ============================================
@@ -331,6 +393,65 @@ const rogueCards: Card[] = [
     description: "Deal 25 damage from the shadows.",
     effects: [{ type: "damage", value: 25, target: "monster" }],
   },
+  // Legendary cards (16-20)
+  {
+    id: "rogue-16",
+    name: "Phantom Strike",
+    class: "rogue",
+    rarity: "legendary",
+    aggro: 2,
+    description: "Deal 30 damage, gain Stealth for 2 turns, and apply 5 Poison for 3 turns.",
+    effects: [
+      { type: "damage", value: 30, target: "monster" },
+      { type: "stealth", value: 1, target: "self", duration: 2 },
+      { type: "poison", value: 5, target: "monster", duration: 3 },
+    ],
+  },
+  {
+    id: "rogue-17",
+    name: "Master Assassin",
+    class: "rogue",
+    rarity: "legendary",
+    aggro: 3,
+    description: "Deal 40 damage to a monster. If in Stealth, deal 60 instead.",
+    effects: [{ type: "damage", value: 40, target: "monster" }],
+  },
+  {
+    id: "rogue-18",
+    name: "Venomous Barrage",
+    class: "rogue",
+    rarity: "legendary",
+    aggro: 4,
+    description: "Deal 15 damage to all monsters and apply 6 Poison for 4 turns.",
+    effects: [
+      { type: "damage", value: 15, target: "allMonsters" },
+      { type: "poison", value: 6, target: "allMonsters", duration: 4 },
+    ],
+  },
+  {
+    id: "rogue-19",
+    name: "Shadow Lord",
+    class: "rogue",
+    rarity: "legendary",
+    aggro: 1,
+    description: "All allies gain Stealth for 2 turns and 10 shield.",
+    effects: [
+      { type: "stealth", value: 1, target: "allAllies", duration: 2 },
+      { type: "shield", value: 10, target: "allAllies" },
+    ],
+  },
+  {
+    id: "rogue-20",
+    name: "Coup de Grace",
+    class: "rogue",
+    rarity: "legendary",
+    aggro: 5,
+    description: "Deal 50 damage to a monster and stun for 1 turn.",
+    effects: [
+      { type: "damage", value: 50, target: "monster" },
+      { type: "stun", value: 1, target: "monster", duration: 1 },
+    ],
+  },
 ];
 
 // ============================================
@@ -498,6 +619,65 @@ const paladinCards: Card[] = [
       { type: "shield", value: 10, target: "self" },
     ],
   },
+  // Legendary cards (16-20)
+  {
+    id: "paladin-16",
+    name: "Divine Wrath",
+    class: "paladin",
+    rarity: "legendary",
+    aggro: 7,
+    description: "Deal 35 damage to all monsters and heal all allies for 15.",
+    effects: [
+      { type: "damage", value: 35, target: "allMonsters" },
+      { type: "heal", value: 15, target: "allAllies" },
+    ],
+  },
+  {
+    id: "paladin-17",
+    name: "Archangel's Blessing",
+    class: "paladin",
+    rarity: "legendary",
+    aggro: 4,
+    description: "Revive all fallen allies at 40% HP.",
+    effects: [{ type: "revive", value: 40, target: "allAllies" }],
+  },
+  {
+    id: "paladin-18",
+    name: "Crusader's Judgment",
+    class: "paladin",
+    rarity: "legendary",
+    aggro: 6,
+    description: "Deal 30 damage, stun for 2 turns, and gain 15 shield.",
+    effects: [
+      { type: "damage", value: 30, target: "monster" },
+      { type: "stun", value: 1, target: "monster", duration: 2 },
+      { type: "shield", value: 15, target: "self" },
+    ],
+  },
+  {
+    id: "paladin-19",
+    name: "Sanctuary",
+    class: "paladin",
+    rarity: "legendary",
+    aggro: 5,
+    description: "All allies gain 20 shield and Block for 2 turns.",
+    effects: [
+      { type: "shield", value: 20, target: "allAllies" },
+      { type: "block", value: 1, target: "allAllies", duration: 2 },
+    ],
+  },
+  {
+    id: "paladin-20",
+    name: "Holy Avenger",
+    class: "paladin",
+    rarity: "legendary",
+    aggro: 6,
+    description: "Deal 45 damage and heal self for 20 HP.",
+    effects: [
+      { type: "damage", value: 45, target: "monster" },
+      { type: "heal", value: 20, target: "self" },
+    ],
+  },
 ];
 
 // ============================================
@@ -661,6 +841,68 @@ const mageCards: Card[] = [
     effects: [
       { type: "damage", value: 20, target: "allMonsters" },
       { type: "burn", value: 5, target: "allMonsters", duration: 3 },
+    ],
+  },
+  // Legendary cards (16-20)
+  {
+    id: "mage-16",
+    name: "Arcane Apocalypse",
+    class: "mage",
+    rarity: "legendary",
+    aggro: 7,
+    description: "Deal 25 damage to all monsters three times.",
+    effects: [
+      { type: "damage", value: 25, target: "allMonsters" },
+      { type: "damage", value: 25, target: "allMonsters" },
+      { type: "damage", value: 25, target: "allMonsters" },
+    ],
+  },
+  {
+    id: "mage-17",
+    name: "Frozen Eternity",
+    class: "mage",
+    rarity: "legendary",
+    aggro: 5,
+    description: "Deal 20 damage to all monsters and apply 5 Ice for 4 turns.",
+    effects: [
+      { type: "damage", value: 20, target: "allMonsters" },
+      { type: "ice", value: 5, target: "allMonsters", duration: 4 },
+    ],
+  },
+  {
+    id: "mage-18",
+    name: "Inferno",
+    class: "mage",
+    rarity: "legendary",
+    aggro: 6,
+    description: "Deal 40 damage to a monster and apply 8 Burn for 4 turns.",
+    effects: [
+      { type: "damage", value: 40, target: "monster" },
+      { type: "burn", value: 8, target: "monster", duration: 4 },
+    ],
+  },
+  {
+    id: "mage-19",
+    name: "Arcane Barrier",
+    class: "mage",
+    rarity: "legendary",
+    aggro: 3,
+    description: "All allies gain 15 shield and 4 Strength for 2 turns.",
+    effects: [
+      { type: "shield", value: 15, target: "allAllies" },
+      { type: "strength", value: 4, target: "allAllies", duration: 2 },
+    ],
+  },
+  {
+    id: "mage-20",
+    name: "Supernova",
+    class: "mage",
+    rarity: "legendary",
+    aggro: 7,
+    description: "Deal 50 damage to a monster. Deal 10 damage to self.",
+    effects: [
+      { type: "damage", value: 50, target: "monster" },
+      { type: "damage", value: 10, target: "self" },
     ],
   },
 ];
@@ -829,6 +1071,64 @@ const priestCards: Card[] = [
       { type: "heal", value: 10, target: "allAllies" },
     ],
   },
+  // Legendary cards (16-20)
+  {
+    id: "priest-16",
+    name: "Miracle",
+    class: "priest",
+    rarity: "legendary",
+    aggro: 6,
+    description: "Heal all allies to full HP and cleanse all debuffs.",
+    effects: [
+      { type: "heal", value: 999, target: "allAllies" },
+      { type: "cleanse", target: "allAllies" },
+    ],
+  },
+  {
+    id: "priest-17",
+    name: "Holy Nova",
+    class: "priest",
+    rarity: "legendary",
+    aggro: 5,
+    description: "Deal 25 damage to all monsters and heal all allies for 20.",
+    effects: [
+      { type: "damage", value: 25, target: "allMonsters" },
+      { type: "heal", value: 20, target: "allAllies" },
+    ],
+  },
+  {
+    id: "priest-18",
+    name: "Divine Resurrection",
+    class: "priest",
+    rarity: "legendary",
+    aggro: 4,
+    description: "Revive all fallen allies at 60% HP.",
+    effects: [{ type: "revive", value: 60, target: "allAllies" }],
+  },
+  {
+    id: "priest-19",
+    name: "Angelic Protection",
+    class: "priest",
+    rarity: "legendary",
+    aggro: 4,
+    description: "All allies gain 25 shield and Block for 2 turns.",
+    effects: [
+      { type: "shield", value: 25, target: "allAllies" },
+      { type: "block", value: 1, target: "allAllies", duration: 2 },
+    ],
+  },
+  {
+    id: "priest-20",
+    name: "Wrath of Heaven",
+    class: "priest",
+    rarity: "legendary",
+    aggro: 6,
+    description: "Deal 40 damage to a monster and heal all allies for 15.",
+    effects: [
+      { type: "damage", value: 40, target: "monster" },
+      { type: "heal", value: 15, target: "allAllies" },
+    ],
+  },
 ];
 
 // ============================================
@@ -990,6 +1290,67 @@ const bardCards: Card[] = [
     effects: [
       { type: "damage", value: 15, target: "allMonsters" },
       { type: "strength", value: 5, target: "allAllies", duration: 2 },
+    ],
+  },
+  // Legendary cards (16-20)
+  {
+    id: "bard-16",
+    name: "Symphony of Destruction",
+    class: "bard",
+    rarity: "legendary",
+    aggro: 6,
+    description: "Deal 20 damage to all monsters and apply 4 Weakness for 3 turns.",
+    effects: [
+      { type: "damage", value: 20, target: "allMonsters" },
+      { type: "weakness", value: 4, target: "allMonsters", duration: 3 },
+    ],
+  },
+  {
+    id: "bard-17",
+    name: "Anthem of Heroes",
+    class: "bard",
+    rarity: "legendary",
+    aggro: 4,
+    description: "All allies gain 8 Strength for 3 turns and heal for 15.",
+    effects: [
+      { type: "strength", value: 8, target: "allAllies", duration: 3 },
+      { type: "heal", value: 15, target: "allAllies" },
+    ],
+  },
+  {
+    id: "bard-18",
+    name: "Requiem",
+    class: "bard",
+    rarity: "legendary",
+    aggro: 5,
+    description: "Deal 35 damage to a monster and stun all monsters for 1 turn.",
+    effects: [
+      { type: "damage", value: 35, target: "monster" },
+      { type: "stun", value: 1, target: "allMonsters", duration: 1 },
+    ],
+  },
+  {
+    id: "bard-19",
+    name: "Ballad of Immortality",
+    class: "bard",
+    rarity: "legendary",
+    aggro: 4,
+    description: "Revive a fallen ally at 50% HP and all allies gain 10 shield.",
+    effects: [
+      { type: "revive", value: 50, target: "ally" },
+      { type: "shield", value: 10, target: "allAllies" },
+    ],
+  },
+  {
+    id: "bard-20",
+    name: "Crescendo of Power",
+    class: "bard",
+    rarity: "legendary",
+    aggro: 6,
+    description: "Deal 25 damage to all monsters and all allies gain 6 Strength for 2 turns.",
+    effects: [
+      { type: "damage", value: 25, target: "allMonsters" },
+      { type: "strength", value: 6, target: "allAllies", duration: 2 },
     ],
   },
 ];
@@ -1161,6 +1522,66 @@ const archerCards: Card[] = [
       { type: "damage", value: 10, target: "allMonsters" },
     ],
   },
+  // Legendary cards (16-20)
+  {
+    id: "archer-16",
+    name: "Arrow Storm",
+    class: "archer",
+    rarity: "legendary",
+    aggro: 6,
+    description: "Deal 15 damage to all monsters three times.",
+    effects: [
+      { type: "damage", value: 15, target: "allMonsters" },
+      { type: "damage", value: 15, target: "allMonsters" },
+      { type: "damage", value: 15, target: "allMonsters" },
+    ],
+  },
+  {
+    id: "archer-17",
+    name: "Heartseeker",
+    class: "archer",
+    rarity: "legendary",
+    aggro: 5,
+    description: "Deal 55 damage to a monster.",
+    effects: [{ type: "damage", value: 55, target: "monster" }],
+  },
+  {
+    id: "archer-18",
+    name: "Toxic Volley",
+    class: "archer",
+    rarity: "legendary",
+    aggro: 5,
+    description: "Deal 20 damage to all monsters and apply 6 Poison for 4 turns.",
+    effects: [
+      { type: "damage", value: 20, target: "allMonsters" },
+      { type: "poison", value: 6, target: "allMonsters", duration: 4 },
+    ],
+  },
+  {
+    id: "archer-19",
+    name: "Phantom Archer",
+    class: "archer",
+    rarity: "legendary",
+    aggro: 3,
+    description: "Deal 30 damage, gain Stealth for 2 turns, and 15 shield.",
+    effects: [
+      { type: "damage", value: 30, target: "monster" },
+      { type: "stealth", value: 1, target: "self", duration: 2 },
+      { type: "shield", value: 15, target: "self" },
+    ],
+  },
+  {
+    id: "archer-20",
+    name: "Legendary Marksman",
+    class: "archer",
+    rarity: "legendary",
+    aggro: 6,
+    description: "Deal 40 damage to a monster and apply 5 Weakness for 3 turns.",
+    effects: [
+      { type: "damage", value: 40, target: "monster" },
+      { type: "weakness", value: 5, target: "monster", duration: 3 },
+    ],
+  },
 ];
 
 // ============================================
@@ -1323,6 +1744,69 @@ const barbarianCards: Card[] = [
     effects: [
       { type: "damage", value: 40, target: "monster" },
       { type: "damage", value: 10, target: "self" },
+    ],
+  },
+  // Legendary cards (16-20)
+  {
+    id: "barbarian-16",
+    name: "Cataclysm",
+    class: "barbarian",
+    rarity: "legendary",
+    aggro: 7,
+    description: "Deal 25 damage to all monsters twice. Take 15 damage.",
+    effects: [
+      { type: "damage", value: 25, target: "allMonsters" },
+      { type: "damage", value: 25, target: "allMonsters" },
+      { type: "damage", value: 15, target: "self" },
+    ],
+  },
+  {
+    id: "barbarian-17",
+    name: "Primal Fury",
+    class: "barbarian",
+    rarity: "legendary",
+    aggro: 5,
+    description: "Gain 12 Strength for 3 turns and 20 shield.",
+    effects: [
+      { type: "strength", value: 12, target: "self", duration: 3 },
+      { type: "shield", value: 20, target: "self" },
+    ],
+  },
+  {
+    id: "barbarian-18",
+    name: "Titan's Wrath",
+    class: "barbarian",
+    rarity: "legendary",
+    aggro: 6,
+    description: "Deal 60 damage to a monster. Take 20 damage.",
+    effects: [
+      { type: "damage", value: 60, target: "monster" },
+      { type: "damage", value: 20, target: "self" },
+    ],
+  },
+  {
+    id: "barbarian-19",
+    name: "Berserker's Rampage",
+    class: "barbarian",
+    rarity: "legendary",
+    aggro: 6,
+    description: "Deal 30 damage to all monsters and gain 8 Strength for 2 turns.",
+    effects: [
+      { type: "damage", value: 30, target: "allMonsters" },
+      { type: "strength", value: 8, target: "self", duration: 2 },
+    ],
+  },
+  {
+    id: "barbarian-20",
+    name: "Unstoppable Rage",
+    class: "barbarian",
+    rarity: "legendary",
+    aggro: 5,
+    description: "Deal 45 damage, heal for 20, and gain 10 Strength for 1 turn.",
+    effects: [
+      { type: "damage", value: 45, target: "monster" },
+      { type: "heal", value: 20, target: "self" },
+      { type: "strength", value: 10, target: "self", duration: 1 },
     ],
   },
 ];

@@ -1,10 +1,18 @@
+import { useEffect } from "react";
 import { useGameStore } from "../store/gameStore";
-import { Sword, Shield, Scroll, Users, Wifi } from "lucide-react";
+import { Sword, Shield, Scroll, Users, Wifi, Coins, ShoppingBag } from "lucide-react";
 import { isSupabaseConfigured } from "../lib/supabase";
 
 export function TitleScreen() {
   const setScreen = useGameStore((state) => state.setScreen);
   const isAuthenticated = useGameStore((state) => state.isAuthenticated);
+  const userData = useGameStore((state) => state.userData);
+  const loadUserData = useGameStore((state) => state.loadUserData);
+
+  // Load user data on mount
+  useEffect(() => {
+    loadUserData();
+  }, [loadUserData]);
 
   const handlePlayOnline = () => {
     if (isAuthenticated) {
@@ -28,6 +36,12 @@ export function TitleScreen() {
         <p className="text-stone-400 text-xl">A Co-op Card Dungeon Crawler</p>
       </div>
 
+      {/* Gold Counter */}
+      <div className="flex items-center gap-2 mb-8 bg-stone-800/50 px-6 py-3 rounded-full border border-yellow-600/30">
+        <Coins className="w-6 h-6 text-yellow-500" />
+        <span className="text-yellow-400 font-bold text-xl">{userData?.gold ?? 0} Gold</span>
+      </div>
+
       {/* Decorative scroll */}
       <div className="relative mb-12">
         <Scroll className="w-24 h-24 text-amber-700 opacity-30" />
@@ -40,6 +54,14 @@ export function TitleScreen() {
           className="bg-gradient-to-r from-amber-700 to-amber-600 hover:from-amber-600 hover:to-amber-500 text-amber-100 font-bold py-4 px-8 rounded-lg text-xl transition-all transform hover:scale-105 shadow-lg shadow-amber-900/50"
         >
           Local Game
+        </button>
+
+        <button
+          onClick={() => setScreen("cardShop")}
+          className="bg-gradient-to-r from-green-700 to-green-600 hover:from-green-600 hover:to-green-500 text-green-100 font-bold py-4 px-8 rounded-lg text-xl transition-all transform hover:scale-105 shadow-lg shadow-green-900/50 flex items-center justify-center gap-3"
+        >
+          <ShoppingBag className="w-6 h-6" />
+          Card Shop
         </button>
 
         {isSupabaseConfigured() ? (

@@ -119,12 +119,10 @@ export function PlayerCard({
       )}
 
       {/* Gold */}
-      {player.gold > 0 && (
-        <div className="text-sm mb-2 text-yellow-500 font-semibold">
-          <Coins className="w-3 h-3 inline mr-1" />
-          {player.gold} gold
-        </div>
-      )}
+      <div className="text-sm mb-2 text-yellow-500 font-semibold">
+        <Coins className="w-3 h-3 inline mr-1" />
+        {player.gold} gold
+      </div>
 
       {/* Status Effects */}
       <StatusEffects buffs={player.buffs} debuffs={player.debuffs} />

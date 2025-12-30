@@ -1,6 +1,6 @@
 import type { SliceCreator, PlayersActions } from "../types";
 import { getCardsByClass } from "../../data/cards";
-import { createPlayer, generateId, selectWeightedRandomCards } from "../utils";
+import { createPlayer, generateId, selectDeckBuildingCards } from "../utils";
 
 export const createPlayersSlice: SliceCreator<PlayersActions> = (set, get) => ({
   toggleClassSelection: (classType) => {
@@ -29,12 +29,24 @@ export const createPlayersSlice: SliceCreator<PlayersActions> = (set, get) => ({
   },
 
   confirmClassSelection: () => {
-    const { selectedClasses } = get();
+    const { selectedClasses, userData } = get();
     if (selectedClasses.length === 0) return;
 
     const firstClass = selectedClasses[0];
     const allCards = getCardsByClass(firstClass);
-    const availableCards = selectWeightedRandomCards(allCards, 8);
+    const randomCards = selectDeckBuildingCards(allCards, 8);
+    
+    // Add owned cards for this class from user's collection
+    const ownedClassCards = (userData?.ownedCards ?? []).filter(
+      (card) => card.class === firstClass
+    );
+    
+    // Combine random cards with owned cards (avoiding duplicates by name)
+    const randomCardNames = new Set(randomCards.map((c) => c.name));
+    const uniqueOwnedCards = ownedClassCards.filter(
+      (c) => !randomCardNames.has(c.name)
+    );
+    const availableCards = [...randomCards, ...uniqueOwnedCards];
 
     set({
       currentScreen: "deckBuilder",
@@ -89,9 +101,23 @@ export const createPlayersSlice: SliceCreator<PlayersActions> = (set, get) => ({
 
     const nextIndex = deckBuildingPlayerIndex + 1;
     if (nextIndex < selectedClasses.length) {
+      const { userData } = get();
       const nextClass = selectedClasses[nextIndex];
       const allNextCards = getCardsByClass(nextClass);
-      const nextAvailableCards = selectWeightedRandomCards(allNextCards, 8);
+      const randomCards = selectDeckBuildingCards(allNextCards, 8);
+      
+      // Add owned cards for this class from user's collection
+      const ownedClassCards = (userData?.ownedCards ?? []).filter(
+        (card) => card.class === nextClass
+      );
+      
+      // Combine random cards with owned cards (avoiding duplicates by name)
+      const randomCardNames = new Set(randomCards.map((c) => c.name));
+      const uniqueOwnedCards = ownedClassCards.filter(
+        (c) => !randomCardNames.has(c.name)
+      );
+      const nextAvailableCards = [...randomCards, ...uniqueOwnedCards];
+      
       set({
         players: updatedPlayers,
         deckBuildingPlayerIndex: nextIndex,

@@ -308,11 +308,22 @@ export interface SavedParty {
 }
 
 // ============================================
+// USER DATA (persisted across games)
+// ============================================
+export interface UserData {
+  gold: number;
+  ownedCards: Card[]; // Cards purchased from the shop
+}
+
+// ============================================
 // GAME STATE
 // ============================================
 export interface GameState {
   // Screen management
   currentScreen: ScreenType;
+
+  // User data (persisted)
+  userData: UserData;
 
   // Game state
   phase: GamePhase;

@@ -255,6 +255,51 @@ export const selectWeightedRandomCards = (cards: Card[], count: number): Card[] 
   return selected;
 };
 
+// Select cards for deck building: only common/uncommon, with 50% chance of including a rare
+export const selectDeckBuildingCards = (cards: Card[], count: number): Card[] => {
+  // Filter to only common and uncommon cards
+  const commonUncommon = cards.filter(
+    (card) => card.rarity === "common" || card.rarity === "uncommon"
+  );
+  
+  // 50% chance to include a rare card
+  const includeRare = Math.random() < 0.5;
+  const rareCards = cards.filter((card) => card.rarity === "rare");
+  
+  const selected: Card[] = [];
+  const available = [...commonUncommon];
+  
+  // If we're including a rare and there are rare cards available, add one first
+  if (includeRare && rareCards.length > 0) {
+    const randomRareIndex = Math.floor(Math.random() * rareCards.length);
+    selected.push(rareCards[randomRareIndex]);
+  }
+  
+  // Fill the rest with common/uncommon cards using weighted selection
+  while (selected.length < count && available.length > 0) {
+    const totalWeight = available.reduce(
+      (sum, card) => sum + getRarityWeight(card.rarity),
+      0
+    );
+
+    let random = Math.random() * totalWeight;
+
+    let selectedIndex = 0;
+    for (let i = 0; i < available.length; i++) {
+      random -= getRarityWeight(available[i].rarity);
+      if (random <= 0) {
+        selectedIndex = i;
+        break;
+      }
+    }
+
+    selected.push(available[selectedIndex]);
+    available.splice(selectedIndex, 1);
+  }
+
+  return selected;
+};
+
 // ============================================
 // APPLY EFFECT HELPER
 // ============================================

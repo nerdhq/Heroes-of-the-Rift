@@ -95,6 +95,13 @@ export interface SettingsState {
   savedParty: SavedParty | null;
 }
 
+export interface UserDataState {
+  userData: {
+    gold: number;
+    ownedCards: Card[];
+  };
+}
+
 export interface AuthState {
   user: User | null;
   profile: Profile | null;
@@ -202,6 +209,14 @@ export interface SettingsActions {
   playAgainNewParty: () => void;
 }
 
+export interface UserDataActions {
+  addUserGold: (amount: number) => void;
+  spendUserGold: (amount: number) => boolean;
+  purchaseCardForCollection: (card: Card) => boolean;
+  loadUserData: () => void;
+  saveUserData: () => void;
+}
+
 export interface AuthActions {
   initializeAuth: () => Promise<void>;
   signInAnonymously: (username: string) => Promise<boolean>;
@@ -243,6 +258,7 @@ export interface GameActions
     RewardsActions,
     AnimationActions,
     SettingsActions,
+    UserDataActions,
     AuthActions,
     LobbyActions,
     MultiplayerActions {}

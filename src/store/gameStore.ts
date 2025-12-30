@@ -9,6 +9,7 @@ import {
   createRewardsSlice,
   createAnimationSlice,
   createSettingsSlice,
+  createUserDataSlice,
   createAuthSlice,
   initialAuthState,
   createLobbySlice,
@@ -30,12 +31,25 @@ export const useGameStore = create<GameStore>()(
       ...createRewardsSlice(...a),
       ...createAnimationSlice(...a),
       ...createSettingsSlice(...a),
+      ...createUserDataSlice(...a),
       ...createAuthSlice(...a),
       ...createLobbySlice(...a),
       ...createMultiplayerSlice(...a),
     }),
     {
       name: "dungeon-crawler-storage",
+      merge: (persistedState, currentState) => {
+        const persisted = persistedState as Partial<GameStore> | undefined;
+        return {
+          ...currentState,
+          ...persisted,
+          // Ensure userData always has valid defaults (migration for old saves)
+          userData: {
+            gold: persisted?.userData?.gold ?? 0,
+            ownedCards: persisted?.userData?.ownedCards ?? [],
+          },
+        };
+      },
       partialize: (state) => ({
         // Persist game state
         currentScreen: state.currentScreen,
@@ -68,6 +82,8 @@ export const useGameStore = create<GameStore>()(
         skipAnimations: state.skipAnimations,
         savedParty: state.savedParty,
         enhanceMode: state.enhanceMode,
+        // User data (persisted separately but also here for backup)
+        userData: state.userData,
         // Don't persist animation state - it should reset
       }),
     }

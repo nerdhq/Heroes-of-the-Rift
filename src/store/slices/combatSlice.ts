@@ -133,11 +133,16 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
         hp: Math.min(player.maxHp, player.hp + healAmount),
         baseAggro: 0,
         diceAggro: 0,
+        gold: player.gold + 1, // Award 1 gold for completing the round
         deck: shuffleArray([...player.deck, ...player.discard]),
         discard: [],
         hand: [],
       };
     });
+
+    // Award 1 gold to user's persistent gold for each alive player
+    const alivePlayerCount = players.filter((p) => p.isAlive).length;
+    get().addUserGold(alivePlayerCount);
 
     set({
       round: round + 1,
