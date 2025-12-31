@@ -11,6 +11,7 @@ import { OnlineDeckBuilderScreen } from "./components/OnlineDeckBuilderScreen";
 import { GameScreen } from "./components/GameScreen";
 import { CardRewardScreen } from "./components/CardRewardScreen";
 import { CardShopScreen } from "./components/CardShopScreen";
+import { MyCardsScreen } from "./components/MyCardsScreen";
 import { VictoryScreen } from "./components/VictoryScreen";
 import { DefeatScreen } from "./components/DefeatScreen";
 
@@ -39,6 +40,7 @@ function App() {
       {currentScreen === "game" && <GameScreen />}
       {currentScreen === "cardReward" && <CardRewardScreen />}
       {currentScreen === "cardShop" && <CardShopScreen />}
+      {currentScreen === "myCards" && <MyCardsScreen />}
       {currentScreen === "victory" && <VictoryScreen />}
       {currentScreen === "defeat" && <DefeatScreen />}
     </>

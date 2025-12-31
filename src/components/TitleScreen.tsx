@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useGameStore } from "../store/gameStore";
-import { Sword, Shield, Scroll, Users, Wifi, Coins, ShoppingBag } from "lucide-react";
+import { Sword, Shield, Scroll, Users, Wifi, Coins, ShoppingBag, Library } from "lucide-react";
 import { isSupabaseConfigured } from "../lib/supabase";
 
 export function TitleScreen() {
@@ -54,6 +54,14 @@ export function TitleScreen() {
           className="bg-gradient-to-r from-amber-700 to-amber-600 hover:from-amber-600 hover:to-amber-500 text-amber-100 font-bold py-4 px-8 rounded-lg text-xl transition-all transform hover:scale-105 shadow-lg shadow-amber-900/50"
         >
           Local Game
+        </button>
+
+        <button
+          onClick={() => setScreen("myCards")}
+          className="bg-gradient-to-r from-purple-700 to-purple-600 hover:from-purple-600 hover:to-purple-500 text-purple-100 font-bold py-4 px-8 rounded-lg text-xl transition-all transform hover:scale-105 shadow-lg shadow-purple-900/50 flex items-center justify-center gap-3"
+        >
+          <Library className="w-6 h-6" />
+          My Cards ({userData?.ownedCards?.length ?? 0})
         </button>
 
         <button

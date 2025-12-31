@@ -38,9 +38,12 @@ export function CardShopScreen() {
   const [selectedRarityFilter, setSelectedRarityFilter] = useState<Rarity | "all">("all");
   const [standaloneSelectedCardId, setStandaloneSelectedCardId] = useState<string | null>(null);
 
-  // Get all cards for standalone mode
+  // Get all cards for standalone mode, excluding cards the user already owns
   const allCards = getAllCards();
+  const ownedCardNames = new Set((userData?.ownedCards ?? []).map((c) => c.name));
   const filteredCards = allCards.filter((card) => {
+    // Exclude cards the user already owns (by name)
+    if (ownedCardNames.has(card.name)) return false;
     if (selectedClassFilter !== "all" && card.class !== selectedClassFilter) return false;
     if (selectedRarityFilter !== "all" && card.rarity !== selectedRarityFilter) return false;
     return true;

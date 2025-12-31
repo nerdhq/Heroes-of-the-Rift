@@ -76,6 +76,7 @@ export type ScreenType =
   | "game"
   | "cardReward"
   | "cardShop"
+  | "myCards"
   | "victory"
   | "defeat";
 

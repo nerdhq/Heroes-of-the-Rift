@@ -58,7 +58,7 @@ export function CardHand({
   localPlayerSelection,
   onSelectCard,
   onSelectTarget,
-  onConfirmCard,
+  onConfirmCard: _onConfirmCard,
   onConfirmTarget,
   onUseSpecialAbility,
   onToggleEnhanceMode,
@@ -200,13 +200,7 @@ export function CardHand({
     );
   };
 
-  // Determine if we should show "Select Target" button - only for ally targeting now
-  // Monster targeting is handled by clicking directly on monster cards
-  const showSelectTargetButton =
-    needsTarget &&
-    targetType === "ally" &&
-    players.filter((p) => p.isAlive && p.id !== currentPlayer?.id).length > 1;
-
+  
   // Cards to display - always show local player's hand in online mode
   const cardsToDisplay = isOnline
     ? localPlayer?.hand || []
@@ -435,30 +429,12 @@ export function CardHand({
         </div>
       )}
 
-      {/* Confirm Card Selection Button - only for offline mode */}
-      {!isOnline && phase === "SELECT" && isLocalPlayerTurn && selectedCardId && (
+      {/* Monster targeting hint - only shown when card is selected and needs monster target */}
+      {!isOnline && phase === "SELECT" && isLocalPlayerTurn && selectedCardId && needsTarget && targetType === "monster" && (
         <div className="mt-3 text-center">
-          {/* Show hint for monster targeting instead of button */}
-          {needsTarget && targetType === "monster" ? (
-            <div className="text-purple-300 font-medium animate-pulse">
-              🎯 Click on a monster above to attack
-            </div>
-          ) : (
-            <button
-              onClick={onConfirmCard}
-              className={`font-bold py-3 px-8 rounded-lg transition-all transform hover:scale-105 shadow-lg ${
-                enhanceMode && canEnhanceCard
-                  ? "bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-amber-100 shadow-amber-900/50"
-                  : "bg-gradient-to-r from-green-700 to-green-600 hover:from-green-600 hover:to-green-500 text-green-100 shadow-green-900/50"
-              }`}
-            >
-              {enhanceMode && canEnhanceCard
-                ? "Play Enhanced Card ✨"
-                : showSelectTargetButton
-                ? "Select Target →"
-                : "Play Card ⚔️"}
-            </button>
-          )}
+          <div className="text-purple-300 font-medium animate-pulse">
+            🎯 Click on a monster above to attack
+          </div>
         </div>
       )}
 

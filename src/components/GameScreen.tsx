@@ -153,6 +153,52 @@ export function GameScreen() {
     }
   };
 
+  // Auto-play card selection handler - selects card and immediately plays or goes to targeting
+  const handleAutoPlayCard = (cardId: string) => {
+    // First select the card
+    selectCard(cardId);
+    
+    // Get the selected card to check if it needs targeting
+    const card = drawnCards.find((c) => c.id === cardId);
+    if (!card) return;
+    
+    // Check if this card needs a target
+    const cardNeedsTarget = card.effects.some(
+      (e) => e.target === "monster" || e.target === "allMonsters" || e.target === "ally"
+    );
+    const cardTargetType = card.effects.find(
+      (e) => e.target === "monster" || e.target === "allMonsters" || e.target === "ally"
+    )?.target;
+    
+    if (cardNeedsTarget) {
+      const validMonsters = monsters.filter((m) => m.isAlive);
+      const validAllies = players.filter((p) => p.isAlive);
+
+      // For monster targeting, let user click on monster (don't auto-play)
+      if (cardTargetType === "monster" && validMonsters.length > 1) {
+        // Multiple monsters - wait for user to click on one
+        return;
+      } else if (cardTargetType === "monster" && validMonsters.length === 1) {
+        // Single monster - auto-target and play
+        useGameStore.setState({ selectedTargetId: validMonsters[0].id });
+        startDiceRoll();
+      } else if (cardTargetType === "allMonsters") {
+        // All monsters - no targeting needed, auto-play
+        startDiceRoll();
+      } else if (cardTargetType === "ally" && validAllies.length === 1) {
+        // Single ally - auto-target and play
+        useGameStore.setState({ selectedTargetId: validAllies[0].id });
+        startDiceRoll();
+      } else if (cardTargetType === "ally") {
+        // Multiple allies - go to target select
+        useGameStore.setState({ phase: "TARGET_SELECT" });
+      }
+    } else {
+      // No targeting needed - auto-play immediately
+      startDiceRoll();
+    }
+  };
+
   return (
     <div className="h-screen bg-gradient-to-b from-stone-900 via-stone-800 to-stone-900 p-3 overflow-hidden relative flex flex-col">
       {/* Top Right Controls */}
@@ -272,7 +318,7 @@ export function GameScreen() {
             isLocalPlayerTurn={isLocalPlayerTurn}
             playerSelections={playerSelections}
             localPlayerSelection={localPlayerSelection}
-            onSelectCard={selectCard}
+            onSelectCard={isOnline ? selectCard : handleAutoPlayCard}
             onSelectTarget={selectTarget}
             onConfirmCard={handleConfirmCard}
             onConfirmTarget={confirmTarget}

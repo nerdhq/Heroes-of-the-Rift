@@ -497,6 +497,7 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
       players: updatedPlayers,
       monsters: updatedMonsters,
       selectedCardId: null,
+      selectedTargetId: null,
       drawnCards: [],
     });
 
