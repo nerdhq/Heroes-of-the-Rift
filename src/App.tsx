@@ -12,6 +12,7 @@ import { GameScreen } from "./components/GameScreen";
 import { CardRewardScreen } from "./components/CardRewardScreen";
 import { CardShopScreen } from "./components/CardShopScreen";
 import { MyCardsScreen } from "./components/MyCardsScreen";
+import { RoundCompleteScreen } from "./components/RoundCompleteScreen";
 import { VictoryScreen } from "./components/VictoryScreen";
 import { DefeatScreen } from "./components/DefeatScreen";
 
@@ -41,6 +42,7 @@ function App() {
       {currentScreen === "cardReward" && <CardRewardScreen />}
       {currentScreen === "cardShop" && <CardShopScreen />}
       {currentScreen === "myCards" && <MyCardsScreen />}
+      {currentScreen === "roundComplete" && <RoundCompleteScreen />}
       {currentScreen === "victory" && <VictoryScreen />}
       {currentScreen === "defeat" && <DefeatScreen />}
     </>

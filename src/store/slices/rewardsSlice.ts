@@ -264,4 +264,41 @@ export const createRewardsSlice: SliceCreator<RewardsActions> = (set, get) => ({
       get().nextRound();
     }
   },
+
+  continueFromRoundComplete: (cardSelections: Record<number, string>) => {
+    const { players, userData } = get();
+    const updatedPlayers = [...players];
+
+    // Add selected cards to each player's deck
+    for (const [playerIndexStr, cardId] of Object.entries(cardSelections)) {
+      const playerIndex = parseInt(playerIndexStr);
+      const player = updatedPlayers[playerIndex];
+      if (!player) continue;
+
+      // Find the card in owned cards
+      const card = (userData?.ownedCards ?? []).find((c) => c.id === cardId);
+      if (!card) continue;
+
+      // Add card to player's deck with unique ID
+      updatedPlayers[playerIndex] = {
+        ...player,
+        deck: [
+          ...player.deck,
+          {
+            ...card,
+            id: `${card.id}-added-${Math.random().toString(36).substring(2, 9)}`,
+          },
+        ],
+      };
+    }
+
+    set({
+      players: updatedPlayers,
+      roundGoldEarned: 0,
+      currentScreen: "game",
+    });
+
+    // Continue to start the next round
+    get().startRound();
+  },
 });

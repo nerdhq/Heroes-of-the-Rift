@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useGameStore } from "../store/gameStore";
 import { CLASS_CONFIGS } from "../data/classes";
-import { Check, ArrowLeft, HelpCircle } from "lucide-react";
+import { Check, ArrowLeft, HelpCircle, Shuffle } from "lucide-react";
 import { HelpModal } from "./HelpModal";
 import type { Card } from "../types";
 
@@ -79,11 +79,24 @@ export function DeckBuilderScreen() {
           </p>
         </div>
 
-        {/* Selected count */}
-        <div className="text-center mb-8">
+        {/* Selected count and Random Selection */}
+        <div className="flex items-center justify-center gap-4 mb-8">
           <span className="bg-stone-800 text-amber-400 px-4 py-2 rounded-full font-bold">
             {selectedDeckCards.length} / 5 Cards Selected
           </span>
+          <button
+            onClick={() => {
+              // Randomly select 5 cards from available cards
+              const shuffled = [...availableCards].sort(() => Math.random() - 0.5);
+              const randomCards = shuffled.slice(0, 5).map((c) => c.id);
+              // Clear current selection and set new random selection
+              useGameStore.setState({ selectedDeckCards: randomCards });
+            }}
+            className="flex items-center gap-2 bg-purple-700 hover:bg-purple-600 text-purple-100 px-4 py-2 rounded-full font-bold transition-all hover:scale-105"
+          >
+            <Shuffle className="w-4 h-4" />
+            Random Selection
+          </button>
         </div>
 
         {/* Cards grid */}

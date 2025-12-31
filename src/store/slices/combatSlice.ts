@@ -149,14 +149,14 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
       turn: get().turn + 1,
       players: healedPlayers,
       playerSelections: [], // Clear selections for new round
+      roundGoldEarned: alivePlayerCount,
+      currentScreen: "roundComplete",
     });
 
     // Sync round transition before starting new round
     if (isOnline) {
       get().syncGameStateToSupabase();
     }
-
-    get().startRound();
   },
 
   drawCards: () => {
@@ -789,7 +789,10 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
       await delay(500);
     }
 
-    set({ players: updatedPlayers });
+    set({ 
+      players: updatedPlayers,
+      selectedTargetId: null, // Clear any target highlight after monster attacks
+    });
 
     // Sync to Supabase after monster actions
     if (get().isOnline) {

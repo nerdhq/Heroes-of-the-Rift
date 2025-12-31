@@ -72,6 +72,7 @@ export interface RewardsState {
   shopPlayerIndex: number;
   shopCards: Card[];
   selectedShopCardId: string | null;
+  roundGoldEarned: number;
 }
 
 export interface AnimationState {
@@ -188,6 +189,7 @@ export interface RewardsActions {
   selectShopCard: (cardId: string) => void;
   purchaseShopCard: () => void;
   skipShop: () => void;
+  continueFromRoundComplete: (cardSelections: Record<number, string>) => void;
 }
 
 export interface AnimationActions {

@@ -77,6 +77,7 @@ export type ScreenType =
   | "cardReward"
   | "cardShop"
   | "myCards"
+  | "roundComplete"
   | "victory"
   | "defeat";
 
@@ -368,6 +369,9 @@ export interface GameState {
   shopPlayerIndex: number;
   shopCards: Card[];
   selectedShopCardId: string | null;
+
+  // Round completion state
+  roundGoldEarned: number;
 
   // Animation state
   animation: AnimationState;

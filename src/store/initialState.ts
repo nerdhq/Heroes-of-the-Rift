@@ -31,6 +31,7 @@ export const initialState: GameState = {
   shopPlayerIndex: 0,
   shopCards: [],
   selectedShopCardId: null,
+  roundGoldEarned: 0,
   animation: {
     isAnimating: false,
     diceRoll: null,
