@@ -182,9 +182,11 @@ export function ChampionSelectScreen() {
     }
   };
 
+  const startChampionGame = useGameStore((state) => state.startChampionGame);
+
   const handlePlay = () => {
     if (activeChampion) {
-      setScreen("deckBuilder");
+      startChampionGame();
     }
   };
 

@@ -22,7 +22,24 @@ export function DeckBuilderScreen() {
   const activeChampion = useGameStore((state) => state.activeChampion);
 
   const currentClass = selectedClasses[deckBuildingPlayerIndex];
-  const classConfig = CLASS_CONFIGS[currentClass];
+  const classConfig = currentClass ? CLASS_CONFIGS[currentClass] : null;
+
+  // Guard against undefined state - redirect to title if no class selected
+  if (!classConfig) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-stone-900 via-stone-800 to-stone-900 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-stone-400 text-lg mb-4">No class selected</p>
+          <button
+            onClick={() => setScreen("title")}
+            className="text-amber-400 hover:text-amber-300"
+          >
+            Return to Title
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // Check if playing as champion (solo mode with active champion's class)
   const isChampionMode =

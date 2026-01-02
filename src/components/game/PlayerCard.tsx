@@ -18,6 +18,9 @@ export function PlayerCard({
   const config = CLASS_CONFIGS[player.class];
   const totalAggro = player.baseAggro + player.diceAggro;
 
+  // Guard against undefined config
+  if (!config) return null;
+
   const getClassIcon = (playerClass: string) => {
     const icons: Record<string, string> = {
       warrior: "⚔️",

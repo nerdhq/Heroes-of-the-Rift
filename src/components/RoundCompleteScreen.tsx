@@ -111,6 +111,7 @@ export function RoundCompleteScreen() {
             const availableCards = getAvailableCardsForPlayer(playerIndex);
             const selectedCardId = playerCardSelections[playerIndex];
             const classConfig = CLASS_CONFIGS[player.class];
+            if (!classConfig) return null;
 
             return (
               <div key={player.id} className="bg-stone-800/50 rounded-xl p-6 border border-stone-700">
