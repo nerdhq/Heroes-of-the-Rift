@@ -249,14 +249,18 @@ export function ChampionSelectScreen() {
         <div className="flex justify-center gap-4">
           {activeChampion && (
             <>
-              {activeChampion.unspentStatPoints > 0 && (
-                <button
-                  onClick={() => setScreen("statAllocation")}
-                  className="bg-gradient-to-r from-green-700 to-green-600 hover:from-green-600 hover:to-green-500 text-white font-bold py-3 px-8 rounded-lg transition-all"
-                >
-                  Allocate Stats (+{activeChampion.unspentStatPoints})
-                </button>
-              )}
+              <button
+                onClick={() => setScreen("statAllocation")}
+                className={`font-bold py-3 px-8 rounded-lg transition-all ${
+                  activeChampion.unspentStatPoints > 0
+                    ? "bg-gradient-to-r from-green-700 to-green-600 hover:from-green-600 hover:to-green-500 text-white"
+                    : "bg-stone-700 hover:bg-stone-600 text-stone-200"
+                }`}
+              >
+                {activeChampion.unspentStatPoints > 0
+                  ? `Allocate Stats (+${activeChampion.unspentStatPoints})`
+                  : "View Stats"}
+              </button>
               <button
                 onClick={handlePlay}
                 className="bg-gradient-to-r from-amber-700 to-amber-600 hover:from-amber-600 hover:to-amber-500 text-amber-100 font-bold py-3 px-8 rounded-lg text-xl transition-all"
