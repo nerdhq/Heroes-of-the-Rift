@@ -11,6 +11,8 @@ import type {
   Environment,
   StatusEffect,
   LogEntry,
+  CharacterAttributes,
+  ChampionStats,
 } from "../types";
 
 export type Json =
@@ -43,6 +45,24 @@ export interface Profile {
   games_won: number;
   created_at: string;
   updated_at: string;
+  active_champion_id: string | null;
+  max_champion_slots: number;
+}
+
+export interface ChampionRow {
+  id: string;
+  user_id: string;
+  name: string;
+  class_type: ClassType;
+  created_at: string;
+  level: number;
+  xp: number;
+  xp_to_next_level: number;
+  unspent_stat_points: number;
+  attributes: CharacterAttributes;
+  gold: number;
+  owned_cards: Card[];
+  stats: ChampionStats;
 }
 
 export interface Game {
@@ -70,6 +90,7 @@ export interface GamePlayer {
   joined_at: string;
   deck: string[] | null;
   deck_confirmed: boolean;
+  champion_id: string | null;
 }
 
 export interface GameStateRow {
@@ -113,6 +134,8 @@ export interface PlayerState {
   deck: Card[];
   discard: Card[];
   hand: Card[];
+  champion_id: string | null;
+  attributes: CharacterAttributes;
 }
 
 export interface GameAction {
@@ -136,6 +159,11 @@ export interface Database {
         Row: Profile;
         Insert: Partial<Profile> & Pick<Profile, "id" | "username">;
         Update: Partial<Profile>;
+      };
+      champions: {
+        Row: ChampionRow;
+        Insert: Partial<ChampionRow> & Pick<ChampionRow, "user_id" | "name" | "class_type">;
+        Update: Partial<ChampionRow>;
       };
       games: {
         Row: Game;
@@ -178,6 +206,28 @@ export interface Database {
           p_action_type: string;
           p_action_data: Json;
           p_expected_version: number;
+        };
+        Returns: Json;
+      };
+      create_champion: {
+        Args: {
+          p_name: string;
+          p_class_type: string;
+          p_starter_cards?: Json;
+        };
+        Returns: string;
+      };
+      add_champion_xp: {
+        Args: {
+          p_champion_id: string;
+          p_xp_amount: number;
+        };
+        Returns: Json;
+      };
+      allocate_stat_point: {
+        Args: {
+          p_champion_id: string;
+          p_stat: string;
         };
         Returns: Json;
       };

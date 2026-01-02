@@ -28,16 +28,21 @@ export const createPlayersSlice: SliceCreator<PlayersActions> = (set, get) => ({
   },
 
   confirmClassSelection: () => {
-    const { selectedClasses, userData } = get();
+    const { selectedClasses, userData, activeChampion } = get();
     if (selectedClasses.length === 0) return;
 
     const firstClass = selectedClasses[0];
-    
-    // Get owned cards for this class from user's collection
-    const ownedClassCards = (userData?.ownedCards ?? []).filter(
-      (card) => card.class === firstClass
-    );
-    
+
+    // Check if we're playing with the active champion (solo mode)
+    const isChampionSolo = activeChampion &&
+      selectedClasses.length === 1 &&
+      selectedClasses[0] === activeChampion.class;
+
+    // Get owned cards for this class from champion or legacy userData
+    const ownedClassCards = isChampionSolo
+      ? activeChampion.ownedCards.filter((card) => card.class === firstClass)
+      : (userData?.ownedCards ?? []).filter((card) => card.class === firstClass);
+
     // Use owned cards as the available cards for deck building
     const availableCards = [...ownedClassCards];
 
@@ -69,6 +74,8 @@ export const createPlayersSlice: SliceCreator<PlayersActions> = (set, get) => ({
       availableCards,
       selectedDeckCards,
       players,
+      activeChampion,
+      userData,
     } = get();
 
     if (selectedDeckCards.length !== 5) return;
@@ -83,28 +90,40 @@ export const createPlayersSlice: SliceCreator<PlayersActions> = (set, get) => ({
         ...card,
         id: `${card.id}-${deckBuildingPlayerIndex}-${generateId()}`,
       }));
+
+    // Check if first player is the active champion (for stat scaling)
+    const isChampionPlayer =
+      deckBuildingPlayerIndex === 0 &&
+      activeChampion &&
+      selectedClasses.length === 1 &&
+      selectedClasses[0] === activeChampion.class;
+
     const newPlayer = createPlayer(
       `player-${deckBuildingPlayerIndex}`,
       heroName,
       classType,
-      deck
+      deck,
+      isChampionPlayer ? activeChampion : undefined
     );
 
     const updatedPlayers = [...players, newPlayer];
 
     const nextIndex = deckBuildingPlayerIndex + 1;
     if (nextIndex < selectedClasses.length) {
-      const { userData } = get();
       const nextClass = selectedClasses[nextIndex];
-      
-      // Get owned cards for this class from user's collection
-      const ownedClassCards = (userData?.ownedCards ?? []).filter(
-        (card) => card.class === nextClass
-      );
-      
-      // Use owned cards as the available cards for deck building
+
+      // Get owned cards for this class - check if it matches a champion
+      const isNextChampion =
+        activeChampion &&
+        selectedClasses.length === 1 &&
+        nextClass === activeChampion.class;
+
+      const ownedClassCards = isNextChampion
+        ? activeChampion.ownedCards.filter((card) => card.class === nextClass)
+        : (userData?.ownedCards ?? []).filter((card) => card.class === nextClass);
+
       const nextAvailableCards = [...ownedClassCards];
-      
+
       set({
         players: updatedPlayers,
         deckBuildingPlayerIndex: nextIndex,

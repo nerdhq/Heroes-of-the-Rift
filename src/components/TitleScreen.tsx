@@ -1,18 +1,36 @@
 import { useEffect } from "react";
 import { useGameStore } from "../store/gameStore";
-import { Sword, Shield, Scroll, Users, Wifi, Coins, ShoppingBag, Library } from "lucide-react";
+import { Sword, Shield, Scroll, Users, Wifi, Coins, ShoppingBag, Library, Crown, Star } from "lucide-react";
 import { isSupabaseConfigured } from "../lib/supabase";
+import { CLASS_CONFIGS } from "../data/classes";
+
+const getClassIcon = (classType: string): string => {
+  const icons: Record<string, string> = {
+    warrior: "⚔️",
+    rogue: "🗡️",
+    paladin: "🛡️",
+    mage: "🔮",
+    priest: "✨",
+    bard: "🎵",
+    archer: "🏹",
+    barbarian: "🪓",
+  };
+  return icons[classType] || "👤";
+};
 
 export function TitleScreen() {
   const setScreen = useGameStore((state) => state.setScreen);
   const isAuthenticated = useGameStore((state) => state.isAuthenticated);
-  const userData = useGameStore((state) => state.userData);
   const loadUserData = useGameStore((state) => state.loadUserData);
+  const activeChampion = useGameStore((state) => state.activeChampion);
+  const loadProgression = useGameStore((state) => state.loadProgression);
+  const startChampionGame = useGameStore((state) => state.startChampionGame);
 
-  // Load user data on mount
+  // Load user data and progression on mount
   useEffect(() => {
     loadUserData();
-  }, [loadUserData]);
+    loadProgression();
+  }, [loadUserData, loadProgression]);
 
   const handlePlayOnline = () => {
     if (isAuthenticated) {
@@ -36,11 +54,48 @@ export function TitleScreen() {
         <p className="text-stone-400 text-xl">A Co-op Card Dungeon Crawler</p>
       </div>
 
-      {/* Gold Counter */}
-      <div className="flex items-center gap-2 mb-8 bg-stone-800/50 px-6 py-3 rounded-full border border-yellow-600/30">
-        <Coins className="w-6 h-6 text-yellow-500" />
-        <span className="text-yellow-400 font-bold text-xl">{userData?.gold ?? 0} Gold</span>
-      </div>
+      {/* Active Champion Display */}
+      {activeChampion ? (
+        <button
+          onClick={() => setScreen("championSelect")}
+          className="flex items-center gap-4 mb-8 bg-stone-800/50 px-6 py-3 rounded-xl border border-amber-600/30 hover:border-amber-500 transition-colors"
+        >
+          <span className="text-3xl">{getClassIcon(activeChampion.class)}</span>
+          <div className="text-left">
+            <div className="flex items-center gap-2">
+              <span className="text-amber-100 font-bold text-lg">{activeChampion.name}</span>
+              <span className="text-stone-500">•</span>
+              <span className="text-stone-400">{CLASS_CONFIGS[activeChampion.class].name}</span>
+            </div>
+            <div className="flex items-center gap-4 text-sm">
+              <div className="flex items-center gap-1 text-amber-400">
+                <Star className="w-3 h-3" />
+                <span>Lv. {activeChampion.level}</span>
+              </div>
+              <div className="flex items-center gap-1 text-yellow-400">
+                <Coins className="w-3 h-3" />
+                <span>{activeChampion.gold}</span>
+              </div>
+              <div className="text-stone-400">
+                {activeChampion.ownedCards.length} cards
+              </div>
+            </div>
+          </div>
+          {activeChampion.unspentStatPoints > 0 && (
+            <div className="bg-green-600 text-white text-xs px-2 py-1 rounded-full">
+              +{activeChampion.unspentStatPoints} pts
+            </div>
+          )}
+        </button>
+      ) : (
+        <button
+          onClick={() => setScreen("championSelect")}
+          className="flex items-center gap-3 mb-8 bg-stone-800/50 px-6 py-3 rounded-xl border border-stone-600 hover:border-amber-500 transition-colors text-stone-400 hover:text-amber-400"
+        >
+          <Crown className="w-6 h-6" />
+          <span className="font-bold">Select a Champion to Play</span>
+        </button>
+      )}
 
       {/* Decorative scroll */}
       <div className="relative mb-12">
@@ -49,24 +104,51 @@ export function TitleScreen() {
 
       {/* Menu buttons */}
       <div className="flex flex-col gap-4 w-80">
+        {activeChampion ? (
+          <button
+            onClick={startChampionGame}
+            className="bg-gradient-to-r from-amber-700 to-amber-600 hover:from-amber-600 hover:to-amber-500 text-amber-100 font-bold py-4 px-8 rounded-lg text-xl transition-all transform hover:scale-105 shadow-lg shadow-amber-900/50"
+          >
+            Play as {activeChampion.name}
+          </button>
+        ) : (
+          <button
+            onClick={() => setScreen("championSelect")}
+            className="bg-gradient-to-r from-amber-700 to-amber-600 hover:from-amber-600 hover:to-amber-500 text-amber-100 font-bold py-4 px-8 rounded-lg text-xl transition-all transform hover:scale-105 shadow-lg shadow-amber-900/50"
+          >
+            Start Game
+          </button>
+        )}
+
         <button
-          onClick={() => setScreen("classSelect")}
-          className="bg-gradient-to-r from-amber-700 to-amber-600 hover:from-amber-600 hover:to-amber-500 text-amber-100 font-bold py-4 px-8 rounded-lg text-xl transition-all transform hover:scale-105 shadow-lg shadow-amber-900/50"
+          onClick={() => setScreen("championSelect")}
+          className="bg-gradient-to-r from-purple-700 to-purple-600 hover:from-purple-600 hover:to-purple-500 text-purple-100 font-bold py-4 px-8 rounded-lg text-xl transition-all transform hover:scale-105 shadow-lg shadow-purple-900/50 flex items-center justify-center gap-3"
         >
-          Local Game
+          <Crown className="w-6 h-6" />
+          Champions
         </button>
 
         <button
           onClick={() => setScreen("myCards")}
-          className="bg-gradient-to-r from-purple-700 to-purple-600 hover:from-purple-600 hover:to-purple-500 text-purple-100 font-bold py-4 px-8 rounded-lg text-xl transition-all transform hover:scale-105 shadow-lg shadow-purple-900/50 flex items-center justify-center gap-3"
+          disabled={!activeChampion}
+          className={`font-bold py-4 px-8 rounded-lg text-xl transition-all flex items-center justify-center gap-3 ${
+            activeChampion
+              ? "bg-gradient-to-r from-indigo-700 to-indigo-600 hover:from-indigo-600 hover:to-indigo-500 text-indigo-100 transform hover:scale-105 shadow-lg shadow-indigo-900/50"
+              : "bg-stone-700 text-stone-500 cursor-not-allowed"
+          }`}
         >
           <Library className="w-6 h-6" />
-          My Cards ({userData?.ownedCards?.length ?? 0})
+          My Cards ({activeChampion?.ownedCards?.length ?? 0})
         </button>
 
         <button
           onClick={() => setScreen("cardShop")}
-          className="bg-gradient-to-r from-green-700 to-green-600 hover:from-green-600 hover:to-green-500 text-green-100 font-bold py-4 px-8 rounded-lg text-xl transition-all transform hover:scale-105 shadow-lg shadow-green-900/50 flex items-center justify-center gap-3"
+          disabled={!activeChampion}
+          className={`font-bold py-4 px-8 rounded-lg text-xl transition-all flex items-center justify-center gap-3 ${
+            activeChampion
+              ? "bg-gradient-to-r from-green-700 to-green-600 hover:from-green-600 hover:to-green-500 text-green-100 transform hover:scale-105 shadow-lg shadow-green-900/50"
+              : "bg-stone-700 text-stone-500 cursor-not-allowed"
+          }`}
         >
           <ShoppingBag className="w-6 h-6" />
           Card Shop

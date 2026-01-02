@@ -1,5 +1,106 @@
-import type { GamePhase, LogEntry, Card, Player, Monster, Environment, EffectType, Effect, StatusEffect } from "../types";
+import type { GamePhase, LogEntry, Card, Player, Monster, Environment, EffectType, Effect, StatusEffect, CharacterAttributes, Champion } from "../types";
 import { CLASS_CONFIGS } from "../data/classes";
+
+// ============================================
+// STAT SCALING UTILITIES
+// ============================================
+
+// Default attributes for players without a champion
+export const DEFAULT_ATTRIBUTES: CharacterAttributes = {
+  STR: 10,
+  AGI: 10,
+  CON: 10,
+  INT: 10,
+  WIS: 10,
+  LCK: 10,
+};
+
+// Physical damage scaling: base * (1 + (STR-10) * 0.03)
+export const calculateScaledDamage = (
+  base: number,
+  attrs: CharacterAttributes | undefined,
+  isPhysical: boolean
+): number => {
+  if (!attrs) return base;
+  const stat = isPhysical ? attrs.STR : attrs.INT;
+  const multiplier = 1 + (stat - 10) * (isPhysical ? 0.03 : 0.04);
+  return Math.floor(base * multiplier);
+};
+
+// Healing scaling: base * (1 + (WIS-10) * 0.035)
+export const calculateScaledHeal = (
+  base: number,
+  attrs: CharacterAttributes | undefined
+): number => {
+  if (!attrs) return base;
+  const multiplier = 1 + (attrs.WIS - 10) * 0.035;
+  return Math.floor(base * multiplier);
+};
+
+// Shield scaling: base * (1 + (CON-10) * 0.025)
+export const calculateScaledShield = (
+  base: number,
+  attrs: CharacterAttributes | undefined
+): number => {
+  if (!attrs) return base;
+  const multiplier = 1 + (attrs.CON - 10) * 0.025;
+  return Math.floor(base * multiplier);
+};
+
+// Duration bonus from WIS: floor((WIS-10) / 10)
+export const calculateDurationBonus = (
+  attrs: CharacterAttributes | undefined
+): number => {
+  if (!attrs) return 0;
+  return Math.floor((attrs.WIS - 10) / 10);
+};
+
+// Calculate max HP bonus from CON: (CON-10) * 2
+export const calculateMaxHpBonus = (
+  attrs: CharacterAttributes | undefined
+): number => {
+  if (!attrs) return 0;
+  return (attrs.CON - 10) * 2;
+};
+
+// Crit chance: 5% + (LCK * 0.5%)
+// Returns multiplier (1.5+) if crit, 1 if not
+export const rollCrit = (
+  attrs: CharacterAttributes | undefined
+): { isCrit: boolean; multiplier: number } => {
+  if (!attrs) return { isCrit: false, multiplier: 1 };
+
+  const critChance = 0.05 + attrs.LCK * 0.005;
+  const critMultiplier = 1.5 + attrs.LCK * 0.005;
+
+  if (Math.random() < critChance) {
+    return { isCrit: true, multiplier: critMultiplier };
+  }
+  return { isCrit: false, multiplier: 1 };
+};
+
+// Dodge chance: (AGI-10) * 0.5%
+export const rollDodge = (
+  attrs: CharacterAttributes | undefined
+): boolean => {
+  if (!attrs) return false;
+  const dodgeChance = (attrs.AGI - 10) * 0.005;
+  return Math.random() < dodgeChance;
+};
+
+// Accuracy penalty mitigation from AGI
+export const calculateAccuracyMitigation = (
+  attrs: CharacterAttributes | undefined
+): number => {
+  if (!attrs) return 0;
+  return Math.floor((attrs.AGI - 10) / 5);
+};
+
+// Determine if a card's damage is physical or magical based on class
+export const isPhysicalDamageClass = (classType: Player["class"]): boolean => {
+  const physicalClasses = ["warrior", "rogue", "barbarian", "archer"];
+  return physicalClasses.includes(classType);
+};
 
 // ============================================
 // DICE UTILITIES
@@ -62,15 +163,21 @@ export const createPlayer = (
   id: string,
   name: string,
   classType: Player["class"],
-  deck: Card[]
+  deck: Card[],
+  champion?: Champion
 ): Player => {
   const config = CLASS_CONFIGS[classType];
+
+  // Calculate HP bonus from champion attributes
+  const hpBonus = champion ? calculateMaxHpBonus(champion.attributes) : 0;
+  const maxHp = config.baseHp + hpBonus;
+
   return {
     id,
     name,
     class: classType,
-    hp: config.baseHp,
-    maxHp: config.baseHp,
+    hp: maxHp,
+    maxHp: maxHp,
     shield: 0,
     baseAggro: 0,
     diceAggro: 0,
@@ -87,6 +194,9 @@ export const createPlayer = (
     hasTaunt: false,
     isStunned: false,
     accuracyPenalty: 0,
+    // Champion link
+    championId: champion?.id,
+    attributes: champion?.attributes,
   };
 };
 
@@ -113,6 +223,34 @@ export const distributeGold = (
       : `${alivePlayers[0].name} receives ${goldPerPlayer} gold!`;
 
   return { players: updatedPlayers, message };
+};
+
+// Distribute XP to players with champions (returns XP amounts for store to apply)
+export const calculateXPDistribution = (
+  players: Player[],
+  xpAmount: number
+): { championXP: Map<string, number>; message: string } => {
+  const alivePlayers = players.filter((p) => p.isAlive && p.championId);
+  const championXP = new Map<string, number>();
+
+  if (alivePlayers.length === 0) {
+    return { championXP, message: "" };
+  }
+
+  const xpPerPlayer = Math.floor(xpAmount / alivePlayers.length);
+
+  for (const player of alivePlayers) {
+    if (player.championId) {
+      championXP.set(player.championId, xpPerPlayer);
+    }
+  }
+
+  const message =
+    alivePlayers.length > 1
+      ? `Each hero earns ${xpPerPlayer} XP!`
+      : `${alivePlayers[0].name} earns ${xpPerPlayer} XP!`;
+
+  return { championXP, message };
 };
 
 // ============================================
@@ -311,10 +449,11 @@ export function applyEffect(
   turn: number,
   selectedTargetId: string | null = null,
   environment: Environment | null = null
-): { players: Player[]; monsters: Monster[]; logs: LogEntry[] } {
+): { players: Player[]; monsters: Monster[]; logs: LogEntry[]; xpEarned: Map<string, number> } {
   const logs: LogEntry[] = [];
   let updatedPlayers = [...players];
   const updatedMonsters = [...monsters];
+  const xpEarned = new Map<string, number>();
 
   const getTargets = (): Player[] => {
     switch (effect.target) {
@@ -363,6 +502,10 @@ export function applyEffect(
 
         let damage = effect.value || 0;
 
+        // Apply stat scaling based on class type
+        const isPhysical = isPhysicalDamageClass(caster.class);
+        damage = calculateScaledDamage(damage, caster.attributes, isPhysical);
+
         damage = applyEnvironmentModifier(damage, "damage", environment);
 
         const currentCaster = updatedPlayers.find((p) => p.id === caster.id);
@@ -382,15 +525,33 @@ export function applyEffect(
           );
         }
 
+        // Roll for crit (based on LCK)
+        const critResult = rollCrit(caster.attributes);
+        if (critResult.isCrit) {
+          damage = Math.floor(damage * critResult.multiplier);
+          logs.push(
+            createLogEntry(
+              turn,
+              "PLAYER_ACTION",
+              `Critical hit! ${caster.name}'s damage is multiplied by ${critResult.multiplier.toFixed(2)}x!`,
+              "damage",
+              true
+            )
+          );
+        }
+
+        // Apply accuracy penalty with AGI mitigation
         const currentAccuracyPenalty = currentCaster?.accuracyPenalty || 0;
-        if (currentAccuracyPenalty > 0) {
+        const agiMitigation = calculateAccuracyMitigation(caster.attributes);
+        const effectivePenalty = Math.max(0, currentAccuracyPenalty - agiMitigation);
+        if (effectivePenalty > 0) {
           const roll = rollD20();
-          if (roll <= currentAccuracyPenalty) {
+          if (roll <= effectivePenalty) {
             logs.push(
               createLogEntry(
                 turn,
                 "PLAYER_ACTION",
-                `${caster.name} misses! (rolled ${roll} ≤ ${currentAccuracyPenalty})`,
+                `${caster.name} misses! (rolled ${roll} ≤ ${effectivePenalty})`,
                 "info"
               )
             );
@@ -435,6 +596,7 @@ export function applyEffect(
         };
 
         if (monster.isAlive && !isAlive) {
+          // Distribute gold
           const goldDistribution = distributeGold(
             updatedPlayers,
             monster.goldReward
@@ -449,6 +611,28 @@ export function applyEffect(
               true
             )
           );
+
+          // Distribute XP to champions
+          const xpDistribution = calculateXPDistribution(
+            updatedPlayers,
+            monster.xpReward
+          );
+          // Merge XP into the result map
+          for (const [championId, xp] of xpDistribution.championXP) {
+            const existing = xpEarned.get(championId) || 0;
+            xpEarned.set(championId, existing + xp);
+          }
+          if (xpDistribution.message) {
+            logs.push(
+              createLogEntry(
+                turn,
+                "PLAYER_ACTION",
+                xpDistribution.message,
+                "info",
+                true
+              )
+            );
+          }
         }
 
         if (monster.eliteModifier === "cursed" && currentCaster) {
@@ -530,6 +714,8 @@ export function applyEffect(
         if (idx === -1) continue;
 
         let healAmount = effect.value || 0;
+        // Apply stat scaling based on caster's WIS
+        healAmount = calculateScaledHeal(healAmount, caster.attributes);
         healAmount = applyEnvironmentModifier(healAmount, "heal", environment);
         const newHp = Math.min(target.maxHp, target.hp + healAmount);
 
@@ -557,6 +743,8 @@ export function applyEffect(
         if (idx === -1) continue;
 
         let shieldAmount = effect.value || 0;
+        // Apply stat scaling based on caster's CON
+        shieldAmount = calculateScaledShield(shieldAmount, caster.attributes);
         shieldAmount = applyEnvironmentModifier(shieldAmount, "shield", environment);
 
         updatedPlayers[idx] = {
@@ -585,10 +773,15 @@ export function applyEffect(
         const idx = updatedPlayers.findIndex((p) => p.id === target.id);
         if (idx === -1) continue;
 
+        // Apply duration bonus from WIS
+        const durationBonus = calculateDurationBonus(caster.attributes);
+        const baseDuration = effect.duration || 1;
+        const finalDuration = baseDuration + durationBonus;
+
         const newBuff: StatusEffect = {
           type: effect.type,
           value: effect.value || 1,
-          duration: effect.duration || 1,
+          duration: finalDuration,
           source: caster.name,
         };
 
@@ -599,11 +792,12 @@ export function applyEffect(
           hasTaunt: effect.type === "taunt" || target.hasTaunt,
         };
 
+        const durationText = durationBonus > 0 ? ` (${baseDuration}+${durationBonus} turns)` : "";
         logs.push(
           createLogEntry(
             turn,
             "PLAYER_ACTION",
-            `${target.name} gains ${effect.type}!`,
+            `${target.name} gains ${effect.type}!${durationText}`,
             "buff"
           )
         );
@@ -622,10 +816,15 @@ export function applyEffect(
         const idx = updatedMonsters.findIndex((m) => m.id === monster.id);
         if (idx === -1) continue;
 
+        // Apply duration bonus from WIS for debuffs too
+        const durationBonus = calculateDurationBonus(caster.attributes);
+        const baseDuration = effect.duration || 1;
+        const finalDuration = baseDuration + durationBonus;
+
         const newDebuff: StatusEffect = {
           type: effect.type,
           value: effect.value || 1,
-          duration: effect.duration || 1,
+          duration: finalDuration,
           source: caster.name,
         };
 
@@ -634,11 +833,12 @@ export function applyEffect(
           debuffs: [...monster.debuffs, newDebuff],
         };
 
+        const durationText = durationBonus > 0 ? ` for ${finalDuration} turns` : "";
         logs.push(
           createLogEntry(
             turn,
             "PLAYER_ACTION",
-            `${monster.name} is afflicted with ${effect.type}!`,
+            `${monster.name} is afflicted with ${effect.type}!${durationText}`,
             "debuff"
           )
         );
@@ -706,5 +906,5 @@ export function applyEffect(
     }
   }
 
-  return { players: updatedPlayers, monsters: updatedMonsters, logs };
+  return { players: updatedPlayers, monsters: updatedMonsters, logs, xpEarned };
 }

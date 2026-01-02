@@ -71,6 +71,9 @@ export type ScreenType =
   | "login"
   | "lobby"
   | "waitingRoom"
+  | "championSelect"
+  | "championCreate"
+  | "statAllocation"
   | "classSelect"
   | "deckBuilder"
   | "game"
@@ -78,6 +81,7 @@ export type ScreenType =
   | "cardShop"
   | "myCards"
   | "roundComplete"
+  | "postGame"
   | "victory"
   | "defeat";
 
@@ -139,6 +143,10 @@ export interface Player {
   hasTaunt: boolean;
   isStunned: boolean;
   accuracyPenalty: number;
+
+  // Champion link (for progression system)
+  championId?: string;
+  attributes?: CharacterAttributes;
 }
 
 // ============================================
@@ -188,6 +196,7 @@ export interface Monster {
   eliteModifier?: EliteModifier; // Optional elite modifier
   damageReduction?: number; // For armored modifier
   goldReward: number; // Gold awarded when defeated
+  xpReward: number; // XP awarded when defeated
 }
 
 // ============================================
@@ -310,11 +319,76 @@ export interface SavedParty {
 }
 
 // ============================================
-// USER DATA (persisted across games)
+// USER DATA (persisted across games) - LEGACY, migrating to Champion
 // ============================================
 export interface UserData {
   gold: number;
   ownedCards: Card[]; // Cards purchased from the shop
+}
+
+// ============================================
+// CHARACTER ATTRIBUTES (6 core stats)
+// ============================================
+export interface CharacterAttributes {
+  STR: number; // Physical damage scaling (10-99)
+  AGI: number; // Dodge chance, accuracy (10-99)
+  CON: number; // Max HP bonus, status resist (10-99)
+  INT: number; // Spell damage scaling (10-99)
+  WIS: number; // Heal scaling, buff duration (10-99)
+  LCK: number; // Crit chance, gold bonus (10-99)
+}
+
+// ============================================
+// CHAMPION STATS (tracking lifetime stats)
+// ============================================
+export interface ChampionStats {
+  gamesPlayed: number;
+  gamesWon: number;
+  monstersKilled: number;
+  bossesKilled: number;
+  totalDamageDealt: number;
+  totalHealingDone: number;
+  totalGoldEarned: number;
+  roundsCompleted: number;
+  deaths: number;
+}
+
+// ============================================
+// CHAMPION (persistent character)
+// ============================================
+export interface Champion {
+  id: string;
+  name: string;
+  class: ClassType; // Locked at creation
+  createdAt: number;
+
+  // Progression
+  level: number;
+  xp: number;
+  xpToNextLevel: number;
+  unspentStatPoints: number;
+
+  // Attributes
+  attributes: CharacterAttributes;
+
+  // Economy (per-champion)
+  gold: number;
+  ownedCards: Card[];
+
+  // Lifetime stats
+  stats: ChampionStats;
+}
+
+// ============================================
+// PLAYER ACCOUNT (collection of champions)
+// ============================================
+export interface PlayerAccount {
+  id: string;
+  champions: Champion[];
+  maxChampionSlots: number; // Start at 3
+  activeChampionId: string | null;
+  createdAt: number;
+  lastPlayedAt: number;
 }
 
 // ============================================

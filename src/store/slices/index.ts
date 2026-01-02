@@ -8,3 +8,4 @@ export { createUserDataSlice } from "./userDataSlice";
 export { createAuthSlice, initialAuthState } from "./authSlice";
 export { createLobbySlice, initialLobbyState } from "./lobbySlice";
 export { createMultiplayerSlice, initialMultiplayerState } from "./multiplayerSlice";
+export { createProgressionSlice, initialProgressionState } from "./progressionSlice";

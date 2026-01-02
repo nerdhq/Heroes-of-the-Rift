@@ -13,11 +13,14 @@ import type {
   GameSpeed,
   SavedParty,
   Environment,
+  Champion,
+  PlayerAccount,
+  CharacterAttributes,
 } from "../types";
 import type { Profile, GamePlayer } from "../lib/database.types";
 
 // Combined store type
-export type GameStore = GameState & AuthState & LobbyState & MultiplayerState & GameActions;
+export type GameStore = GameState & AuthState & LobbyState & MultiplayerState & ProgressionState & GameActions;
 
 // Slice creator type helper
 export type SliceCreator<T> = StateCreator<GameStore, [], [], T>;
@@ -127,6 +130,11 @@ export interface MultiplayerState {
   lastSyncedVersion: number;
   syncError: string | null;
   localPlayerIndex: number;
+}
+
+export interface ProgressionState {
+  playerAccount: PlayerAccount | null;
+  activeChampion: Champion | null;
 }
 
 // ============================================
@@ -252,6 +260,39 @@ export interface MultiplayerActions {
   clearSyncError: () => void;
 }
 
+export interface ProgressionActions {
+  // Account management
+  loadProgression: () => void | Promise<void>;
+  saveProgression: () => void | Promise<void>;
+
+  // Champion management
+  createChampion: (name: string, classType: ClassType) => Champion | null | Promise<Champion | null>;
+  deleteChampion: (championId: string) => boolean | Promise<boolean>;
+  selectChampion: (championId: string) => void | Promise<void>;
+  getActiveChampion: () => Champion | null;
+
+  // Game flow
+  startChampionGame: () => void; // Sets up game state for active champion
+
+  // Stat allocation
+  allocateStatPoint: (stat: keyof CharacterAttributes) => boolean | Promise<boolean>;
+  getStatCost: (currentValue: number) => number;
+
+  // XP and leveling
+  addXP: (championId: string, amount: number) => void | Promise<void>;
+  checkLevelUp: (championId: string) => boolean;
+  getXPForLevel: (level: number) => number;
+  getStatPointsForLevel: (level: number) => number;
+
+  // Economy (per-champion)
+  addChampionGold: (championId: string, amount: number) => void | Promise<void>;
+  spendChampionGold: (championId: string, amount: number) => boolean | Promise<boolean>;
+  addCardToChampion: (championId: string, card: Card) => void | Promise<void>;
+
+  // Stats tracking
+  updateChampionStats: (championId: string, stats: Partial<Champion["stats"]>) => void | Promise<void>;
+}
+
 // Combined actions type
 export interface GameActions
   extends CoreActions,
@@ -263,4 +304,5 @@ export interface GameActions
     UserDataActions,
     AuthActions,
     LobbyActions,
-    MultiplayerActions {}
+    MultiplayerActions,
+    ProgressionActions {}

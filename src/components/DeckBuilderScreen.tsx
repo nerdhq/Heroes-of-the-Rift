@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useGameStore } from "../store/gameStore";
 import { CLASS_CONFIGS } from "../data/classes";
-import { Check, ArrowLeft, HelpCircle, Shuffle } from "lucide-react";
+import { Check, ArrowLeft, HelpCircle, Shuffle, Star } from "lucide-react";
 import { HelpModal } from "./HelpModal";
 import type { Card } from "../types";
 
@@ -19,9 +19,16 @@ export function DeckBuilderScreen() {
   );
   const confirmDeck = useGameStore((state) => state.confirmDeck);
   const setScreen = useGameStore((state) => state.setScreen);
+  const activeChampion = useGameStore((state) => state.activeChampion);
 
   const currentClass = selectedClasses[deckBuildingPlayerIndex];
   const classConfig = CLASS_CONFIGS[currentClass];
+
+  // Check if playing as champion (solo mode with active champion's class)
+  const isChampionMode =
+    activeChampion &&
+    selectedClasses.length === 1 &&
+    selectedClasses[0] === activeChampion.class;
   const heroName =
     heroNames[deckBuildingPlayerIndex] || `Hero ${deckBuildingPlayerIndex + 1}`;
 
@@ -60,23 +67,36 @@ export function DeckBuilderScreen() {
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <button
-          onClick={() => setScreen("classSelect")}
+          onClick={() => setScreen(isChampionMode ? "title" : "classSelect")}
           className="flex items-center gap-2 text-stone-400 hover:text-amber-400 transition-colors mb-8"
         >
           <ArrowLeft className="w-5 h-5" />
-          Back to Class Selection
+          {isChampionMode ? "Back to Title" : "Back to Class Selection"}
         </button>
 
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-amber-100 mb-2">
             Build {heroName}'s Deck
           </h1>
-          <p className="text-stone-400">
-            Hero {deckBuildingPlayerIndex + 1} of {selectedClasses.length}:{" "}
-            <span style={{ color: classConfig.color }} className="font-bold">
-              {classConfig.name}
-            </span>
-          </p>
+          {isChampionMode && activeChampion ? (
+            <div className="flex items-center justify-center gap-3 text-stone-400">
+              <div className="flex items-center gap-1 text-amber-400">
+                <Star className="w-4 h-4" />
+                <span>Level {activeChampion.level}</span>
+              </div>
+              <span className="text-stone-600">•</span>
+              <span style={{ color: classConfig.color }} className="font-bold">
+                {classConfig.name}
+              </span>
+            </div>
+          ) : (
+            <p className="text-stone-400">
+              Hero {deckBuildingPlayerIndex + 1} of {selectedClasses.length}:{" "}
+              <span style={{ color: classConfig.color }} className="font-bold">
+                {classConfig.name}
+              </span>
+            </p>
+          )}
         </div>
 
         {/* Selected count and Random Selection */}

@@ -413,6 +413,11 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
       updatedMonsters = result.monsters;
       logs.push(...result.logs);
 
+      // Distribute XP to champions if monsters were killed
+      for (const [championId, xp] of result.xpEarned) {
+        get().addXP(championId, xp);
+      }
+
       if (isEnhanced) {
         updatedPlayers[currentPlayerIndex] = {
           ...updatedPlayers[currentPlayerIndex],
@@ -1129,6 +1134,11 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
       finalMonsters = result.monsters;
       logs.push(...result.logs);
 
+      // Distribute XP to champions if monsters were killed
+      for (const [championId, xp] of result.xpEarned) {
+        get().addXP(championId, xp);
+      }
+
       finalPlayers[currentPlayerIndex] = {
         ...finalPlayers[currentPlayerIndex],
         resource: 0,
@@ -1558,6 +1568,11 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
         updatedPlayers = result.players;
         updatedMonsters = result.monsters;
         logs.push(...result.logs);
+
+        // Distribute XP to champions if monsters were killed
+        for (const [championId, xp] of result.xpEarned) {
+          get().addXP(championId, xp);
+        }
 
         // Track damage/healing for damage numbers
         for (const monster of updatedMonsters) {

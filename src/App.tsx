@@ -4,6 +4,9 @@ import { TitleScreen } from "./components/TitleScreen";
 import { LoginScreen } from "./components/LoginScreen";
 import { LobbyScreen } from "./components/LobbyScreen";
 import { WaitingRoom } from "./components/WaitingRoom";
+import { ChampionSelectScreen } from "./components/ChampionSelectScreen";
+import { ChampionCreateScreen } from "./components/ChampionCreateScreen";
+import { StatAllocationScreen } from "./components/StatAllocationScreen";
 import { ClassSelectScreen } from "./components/ClassSelectScreen";
 import { OnlineClassSelectScreen } from "./components/OnlineClassSelectScreen";
 import { DeckBuilderScreen } from "./components/DeckBuilderScreen";
@@ -15,6 +18,7 @@ import { MyCardsScreen } from "./components/MyCardsScreen";
 import { RoundCompleteScreen } from "./components/RoundCompleteScreen";
 import { VictoryScreen } from "./components/VictoryScreen";
 import { DefeatScreen } from "./components/DefeatScreen";
+import { PostGameScreen } from "./components/PostGameScreen";
 
 function App() {
   const currentScreen = useGameStore((state) => state.currentScreen);
@@ -32,6 +36,9 @@ function App() {
       {currentScreen === "login" && <LoginScreen />}
       {currentScreen === "lobby" && <LobbyScreen />}
       {currentScreen === "waitingRoom" && <WaitingRoom />}
+      {currentScreen === "championSelect" && <ChampionSelectScreen />}
+      {currentScreen === "championCreate" && <ChampionCreateScreen />}
+      {currentScreen === "statAllocation" && <StatAllocationScreen />}
       {currentScreen === "classSelect" && (
         isOnline ? <OnlineClassSelectScreen /> : <ClassSelectScreen />
       )}
@@ -43,6 +50,7 @@ function App() {
       {currentScreen === "cardShop" && <CardShopScreen />}
       {currentScreen === "myCards" && <MyCardsScreen />}
       {currentScreen === "roundComplete" && <RoundCompleteScreen />}
+      {currentScreen === "postGame" && <PostGameScreen />}
       {currentScreen === "victory" && <VictoryScreen />}
       {currentScreen === "defeat" && <DefeatScreen />}
     </>
