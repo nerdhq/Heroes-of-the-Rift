@@ -2,7 +2,7 @@
 
 A co-op card dungeon crawler web game built with React, TypeScript, and Zustand.
 
-**Play Now:** [https://nerdhq.github.io/dungeon-crawler/](https://nerdhq.github.io/dungeon-crawler/)
+**Play Now:** [https://nerdhq.github.io/Heroes-of-the-Rift/](https://nerdhq.github.io/Heroes-of-the-Rift/)
 
 ## Features
 
@@ -45,14 +45,14 @@ Champions are persistent characters that gain XP, level up, and allocate stat po
 
 ### Attributes
 
-| Stat | Name | Effect |
-|------|------|--------|
-| STR | Strength | +3% physical damage per point above 10 |
-| AGI | Agility | +0.5% dodge chance per point above 10 |
-| CON | Constitution | +2 max HP per point, +2.5% shield effectiveness |
-| INT | Intelligence | +4% spell damage per point above 10 |
-| WIS | Wisdom | +3.5% healing per point, +1 buff duration per 10 points |
-| LCK | Luck | 5% base crit chance + 0.5% per point |
+| Stat | Name         | Effect                                                  |
+| ---- | ------------ | ------------------------------------------------------- |
+| STR  | Strength     | +3% physical damage per point above 10                  |
+| AGI  | Agility      | +0.5% dodge chance per point above 10                   |
+| CON  | Constitution | +2 max HP per point, +2.5% shield effectiveness         |
+| INT  | Intelligence | +4% spell damage per point above 10                     |
+| WIS  | Wisdom       | +3.5% healing per point, +1 buff duration per 10 points |
+| LCK  | Luck         | 5% base crit chance + 0.5% per point                    |
 
 ### Stat Scaling
 
@@ -64,6 +64,7 @@ Champions are persistent characters that gain XP, level up, and allocate stat po
 ### XP and Leveling
 
 **XP from Monsters:**
+
 - Tier 1 (Goblin, Skeleton): 15-25 XP
 - Tier 2 (Werewolf, Necromancer): 35-50 XP
 - Tier 3 (Troll, Vampire): 55-75 XP
@@ -71,6 +72,7 @@ Champions are persistent characters that gain XP, level up, and allocate stat po
 - Bosses: 200-500 XP
 
 **Stat Points per Level:**
+
 - Levels 1-10: 3 points per level
 - Levels 11-20: 2 points per level
 - Levels 21+: 1 point per level
@@ -78,6 +80,7 @@ Champions are persistent characters that gain XP, level up, and allocate stat po
 ### Per-Champion Economy
 
 Each champion has their own:
+
 - Gold balance
 - Owned cards collection
 - Lifetime statistics
@@ -96,16 +99,16 @@ Each champion has their own:
 
 ### Classes
 
-| Class | HP | Resource | Playstyle |
-|-------|-----|----------|-----------|
-| Warrior | 120 | Rage | Tank, high damage |
-| Rogue | 80 | Combo | Stealth, poison |
-| Paladin | 100 | Faith | Heals, shields |
-| Mage | 70 | Arcane | AOE damage, debuffs |
-| Priest | 90 | Holy | Healing, buffs |
-| Bard | 85 | Rhythm | Support, buffs |
-| Archer | 75 | Focus | Ranged damage |
-| Barbarian | 130 | Fury | High damage, low defense |
+| Class     | HP  | Resource | Playstyle                |
+| --------- | --- | -------- | ------------------------ |
+| Warrior   | 120 | Rage     | Tank, high damage        |
+| Rogue     | 80  | Combo    | Stealth, poison          |
+| Paladin   | 100 | Faith    | Heals, shields           |
+| Mage      | 70  | Arcane   | AOE damage, debuffs      |
+| Priest    | 90  | Holy     | Healing, buffs           |
+| Bard      | 85  | Rhythm   | Support, buffs           |
+| Archer    | 75  | Focus    | Ranged damage            |
+| Barbarian | 130 | Fury     | High damage, low defense |
 
 ### Aggro System
 
