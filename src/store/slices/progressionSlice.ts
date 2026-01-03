@@ -58,46 +58,57 @@ const STAT_SOFT_CAP = 50;
 const STAT_HARD_CAP = 99;
 
 // Generate starter cards for a specific class
+// Rules: 8 cards total
+// - 5 guaranteed common cards
+// - 2 cards with 50% chance of being uncommon (otherwise common)
+// - 1 card with 5% chance of being rare (otherwise common)
 const generateStarterCardsForClass = (classType: ClassType): Card[] => {
   const classCards = getCardsByClass(classType);
 
-  // Filter to common and uncommon cards
-  const commonUncommonCards = classCards.filter(
-    (card: Card) => card.rarity === "common" || card.rarity === "uncommon"
-  );
-
-  // Get rare cards for this class
+  // Filter cards by rarity
+  const commonCards = classCards.filter((card: Card) => card.rarity === "common");
+  const uncommonCards = classCards.filter((card: Card) => card.rarity === "uncommon");
   const rareCards = classCards.filter((card: Card) => card.rarity === "rare");
 
   const starterCards: Card[] = [];
   const usedCardNames = new Set<string>();
 
-  // 50% chance to include a rare card
-  const includeRare = Math.random() < 0.5;
-  if (includeRare && rareCards.length > 0) {
-    const shuffledRares = [...rareCards].sort(() => Math.random() - 0.5);
-    const rareCard = shuffledRares[0];
-    starterCards.push({
-      ...rareCard,
-      id: `${rareCard.id}-starter-${generateId()}`,
-    });
-    usedCardNames.add(rareCard.name);
-  }
-
-  // Fill the rest with common/uncommon cards (shuffled randomly)
-  const shuffledCommonUncommon = [...commonUncommonCards].sort(
-    () => Math.random() - 0.5
-  );
-
-  for (const card of shuffledCommonUncommon) {
-    if (starterCards.length >= 8) break;
-    if (usedCardNames.has(card.name)) continue;
-
+  // Helper function to add a card from a pool
+  const addCardFromPool = (pool: Card[]): boolean => {
+    const availableCards = pool.filter((c) => !usedCardNames.has(c.name));
+    if (availableCards.length === 0) return false;
+    
+    const shuffled = [...availableCards].sort(() => Math.random() - 0.5);
+    const card = shuffled[0];
     starterCards.push({
       ...card,
       id: `${card.id}-starter-${generateId()}`,
     });
     usedCardNames.add(card.name);
+    return true;
+  };
+
+  // 1. Add 5 guaranteed common cards
+  for (let i = 0; i < 5; i++) {
+    addCardFromPool(commonCards);
+  }
+
+  // 2. Add 2 cards with 50% chance of being uncommon (otherwise common)
+  for (let i = 0; i < 2; i++) {
+    const isUncommon = Math.random() < 0.5;
+    if (isUncommon && uncommonCards.filter((c) => !usedCardNames.has(c.name)).length > 0) {
+      addCardFromPool(uncommonCards);
+    } else {
+      addCardFromPool(commonCards);
+    }
+  }
+
+  // 3. Add 1 card with 5% chance of being rare (otherwise common)
+  const isRare = Math.random() < 0.05;
+  if (isRare && rareCards.filter((c) => !usedCardNames.has(c.name)).length > 0) {
+    addCardFromPool(rareCards);
+  } else {
+    addCardFromPool(commonCards);
   }
 
   return starterCards;

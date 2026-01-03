@@ -6,12 +6,21 @@ import type { Card, Rarity, ClassType } from "../types";
 
 export function MyCardsScreen() {
   const setScreen = useGameStore((state) => state.setScreen);
-  const userData = useGameStore((state) => state.userData);
+  const playerAccount = useGameStore((state) => state.playerAccount);
+  const activeChampion = useGameStore((state) => state.activeChampion);
 
   const [selectedClassFilter, setSelectedClassFilter] = useState<ClassType | "all">("all");
   const [selectedRarityFilter, setSelectedRarityFilter] = useState<Rarity | "all">("all");
+  const [selectedChampionId, setSelectedChampionId] = useState<string | null>(
+    activeChampion?.id ?? null
+  );
 
-  const ownedCards = userData?.ownedCards ?? [];
+  // Get the selected champion
+  const champions = playerAccount?.champions ?? [];
+  const selectedChampion = champions.find((c) => c.id === selectedChampionId) ?? null;
+  
+  // Get cards from the selected champion
+  const ownedCards = selectedChampion?.ownedCards ?? [];
 
   const filteredCards = ownedCards.filter((card) => {
     if (selectedClassFilter !== "all" && card.class !== selectedClassFilter) return false;
@@ -76,25 +85,58 @@ export function MyCardsScreen() {
             <Library className="w-10 h-10 text-amber-400" />
             <h1 className="text-4xl font-bold text-amber-100">My Cards</h1>
           </div>
-          <p className="text-stone-400 text-lg mb-4">
-            Your card collection ({ownedCards.length} cards)
-          </p>
           
-          {/* Rarity breakdown */}
-          <div className="flex justify-center gap-4 text-sm">
-            <span className="text-stone-400">
-              Common: <span className="text-stone-300 font-bold">{rarityCount.common || 0}</span>
-            </span>
-            <span className="text-stone-400">
-              Uncommon: <span className="text-green-400 font-bold">{rarityCount.uncommon || 0}</span>
-            </span>
-            <span className="text-stone-400">
-              Rare: <span className="text-blue-400 font-bold">{rarityCount.rare || 0}</span>
-            </span>
-            <span className="text-stone-400">
-              Legendary: <span className="text-amber-400 font-bold">{rarityCount.legendary || 0}</span>
-            </span>
-          </div>
+          {/* Champion Selector */}
+          {champions.length > 0 ? (
+            <div className="mb-6">
+              <label className="block text-stone-400 text-sm mb-2">Select Champion</label>
+              <div className="flex justify-center">
+                <select
+                  value={selectedChampionId ?? ""}
+                  onChange={(e) => setSelectedChampionId(e.target.value || null)}
+                  className="bg-stone-800 text-amber-100 border border-stone-600 rounded-lg px-4 py-2 min-w-[250px]"
+                >
+                  <option value="">-- Select a Champion --</option>
+                  {champions.map((champion) => (
+                    <option key={champion.id} value={champion.id}>
+                      {champion.name} ({CLASS_CONFIGS[champion.class].name} - Lvl {champion.level})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          ) : (
+            <div className="mb-6 text-stone-500">
+              <p>No champions created yet. Create a champion to view their cards.</p>
+            </div>
+          )}
+
+          {selectedChampion && (
+            <>
+              <p className="text-stone-400 text-lg mb-4">
+                <span style={{ color: CLASS_CONFIGS[selectedChampion.class].color }} className="font-bold">
+                  {selectedChampion.name}
+                </span>
+                's card collection ({ownedCards.length} cards)
+              </p>
+              
+              {/* Rarity breakdown */}
+              <div className="flex justify-center gap-4 text-sm">
+                <span className="text-stone-400">
+                  Common: <span className="text-stone-300 font-bold">{rarityCount.common || 0}</span>
+                </span>
+                <span className="text-stone-400">
+                  Uncommon: <span className="text-green-400 font-bold">{rarityCount.uncommon || 0}</span>
+                </span>
+                <span className="text-stone-400">
+                  Rare: <span className="text-blue-400 font-bold">{rarityCount.rare || 0}</span>
+                </span>
+                <span className="text-stone-400">
+                  Legendary: <span className="text-amber-400 font-bold">{rarityCount.legendary || 0}</span>
+                </span>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Filters */}
@@ -137,12 +179,20 @@ export function MyCardsScreen() {
         </div>
 
         {/* Cards Display */}
-        {ownedCards.length === 0 ? (
+        {!selectedChampion ? (
           <div className="text-center py-16">
             <Library className="w-16 h-16 text-stone-600 mx-auto mb-4" />
-            <p className="text-stone-500 text-xl mb-2">No cards in your collection yet</p>
+            <p className="text-stone-500 text-xl mb-2">Select a champion to view their cards</p>
             <p className="text-stone-600">
-              Start a game to receive starter cards, or visit the Card Shop to purchase cards!
+              Each champion has their own card collection.
+            </p>
+          </div>
+        ) : ownedCards.length === 0 ? (
+          <div className="text-center py-16">
+            <Library className="w-16 h-16 text-stone-600 mx-auto mb-4" />
+            <p className="text-stone-500 text-xl mb-2">No cards in this champion's collection</p>
+            <p className="text-stone-600">
+              Visit the Card Shop to purchase cards for this champion!
             </p>
           </div>
         ) : filteredCards.length === 0 ? (

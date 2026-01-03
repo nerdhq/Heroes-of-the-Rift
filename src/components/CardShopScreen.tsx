@@ -3,7 +3,7 @@ import { useGameStore } from "../store/gameStore";
 import { CLASS_CONFIGS } from "../data/classes";
 import { getAllCards } from "../data/cards";
 import { ShoppingCart, SkipForward, Coins, ArrowLeft, Filter } from "lucide-react";
-import type { Card, Rarity, ClassType } from "../types";
+import type { Card, Rarity } from "../types";
 
 // Card pricing based on rarity
 const getCardPrice = (rarity: Rarity): number => {
@@ -27,24 +27,35 @@ export function CardShopScreen() {
   const purchaseShopCard = useGameStore((state) => state.purchaseShopCard);
   const skipShop = useGameStore((state) => state.skipShop);
   const setScreen = useGameStore((state) => state.setScreen);
-  const userData = useGameStore((state) => state.userData);
-  const purchaseCardForCollection = useGameStore((state) => state.purchaseCardForCollection);
+  
+  // Champion-based state
+  const playerAccount = useGameStore((state) => state.playerAccount);
+  const activeChampion = useGameStore((state) => state.activeChampion);
+  const spendChampionGold = useGameStore((state) => state.spendChampionGold);
+  const addCardToChampion = useGameStore((state) => state.addCardToChampion);
 
   // Determine if we're in standalone mode (accessed from title screen)
   const isStandaloneMode = players.length === 0;
 
   // For standalone mode: local state for browsing all cards
-  const [selectedClassFilter, setSelectedClassFilter] = useState<ClassType | "all">("all");
   const [selectedRarityFilter, setSelectedRarityFilter] = useState<Rarity | "all">("all");
   const [standaloneSelectedCardId, setStandaloneSelectedCardId] = useState<string | null>(null);
+  const [selectedChampionId, setSelectedChampionId] = useState<string | null>(
+    activeChampion?.id ?? null
+  );
 
-  // Get all cards for standalone mode, excluding cards the user already owns
+  // Get the selected champion for standalone mode
+  const champions = playerAccount?.champions ?? [];
+  const selectedChampion = champions.find((c) => c.id === selectedChampionId) ?? null;
+
+  // Get all cards for standalone mode, excluding cards the champion already owns
   const allCards = getAllCards();
-  const ownedCardNames = new Set((userData?.ownedCards ?? []).map((c) => c.name));
+  const ownedCardNames = new Set((selectedChampion?.ownedCards ?? []).map((c) => c.name));
   const filteredCards = allCards.filter((card) => {
-    // Exclude cards the user already owns (by name)
+    // Exclude cards the champion already owns (by name)
     if (ownedCardNames.has(card.name)) return false;
-    if (selectedClassFilter !== "all" && card.class !== selectedClassFilter) return false;
+    // Only show cards matching the champion's class
+    if (selectedChampion && card.class !== selectedChampion.class) return false;
     if (selectedRarityFilter !== "all" && card.rarity !== selectedRarityFilter) return false;
     return true;
   });
@@ -52,8 +63,8 @@ export function CardShopScreen() {
   const currentPlayer = players[shopPlayerIndex];
   const classConfig = currentPlayer ? CLASS_CONFIGS[currentPlayer.class] : null;
 
-  // Use user gold for standalone mode, player gold for in-game mode
-  const currentGold = isStandaloneMode ? userData.gold : (currentPlayer?.gold || 0);
+  // Use champion gold for standalone mode, player gold for in-game mode
+  const currentGold = isStandaloneMode ? (selectedChampion?.gold ?? 0) : (currentPlayer?.gold || 0);
 
   const getRarityColor = (rarity: Rarity): string => {
     const colors: Record<Rarity, string> = {
@@ -132,12 +143,14 @@ export function CardShopScreen() {
     );
   };
 
-  const handleStandalonePurchase = () => {
-    if (!standaloneSelectedCardId) return;
+  const handleStandalonePurchase = async () => {
+    if (!standaloneSelectedCardId || !selectedChampion) return;
     const card = filteredCards.find((c) => c.id === standaloneSelectedCardId);
     if (card) {
-      const success = purchaseCardForCollection(card);
+      const price = getCardPrice(card.rarity);
+      const success = await spendChampionGold(selectedChampion.id, price);
       if (success) {
+        await addCardToChampion(selectedChampion.id, card);
         setStandaloneSelectedCardId(null);
       }
     }
@@ -150,9 +163,6 @@ export function CardShopScreen() {
       ? currentGold >= getCardPrice(standaloneSelectedCard.rarity)
       : false;
 
-    const classes: (ClassType | "all")[] = [
-      "all", "warrior", "rogue", "paladin", "mage", "priest", "bard", "archer", "barbarian"
-    ];
     const rarities: (Rarity | "all")[] = ["all", "common", "uncommon", "rare", "legendary"];
 
     return (
@@ -173,50 +183,70 @@ export function CardShopScreen() {
               <h1 className="text-4xl font-bold text-amber-100">Card Shop</h1>
             </div>
             <p className="text-stone-400 text-lg mb-2">
-              Purchase cards to add to your collection
+              Purchase cards for your champion
             </p>
-            <div className="flex items-center justify-center gap-2 text-2xl font-bold text-yellow-500">
-              <Coins className="w-6 h-6" />
-              {currentGold} gold
-            </div>
-            <p className="text-stone-500 text-sm mt-2">
-              Owned cards: {userData?.ownedCards?.length ?? 0}
-            </p>
+            
+            {/* Champion Selector */}
+            {champions.length > 0 ? (
+              <div className="mb-4">
+                <label className="block text-stone-400 text-sm mb-2">Select Champion to Purchase For</label>
+                <div className="flex justify-center">
+                  <select
+                    value={selectedChampionId ?? ""}
+                    onChange={(e) => setSelectedChampionId(e.target.value || null)}
+                    className="bg-stone-800 text-amber-100 border border-stone-600 rounded-lg px-4 py-2 min-w-[250px]"
+                  >
+                    <option value="">-- Select a Champion --</option>
+                    {champions.map((champion) => (
+                      <option key={champion.id} value={champion.id}>
+                        {champion.name} ({CLASS_CONFIGS[champion.class].name} - {champion.gold} gold)
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            ) : (
+              <div className="mb-4 text-stone-500">
+                <p>No champions created yet. Create a champion to purchase cards.</p>
+              </div>
+            )}
+
+            {selectedChampion && (
+              <>
+                <div className="flex items-center justify-center gap-2 text-2xl font-bold text-yellow-500">
+                  <Coins className="w-6 h-6" />
+                  {currentGold} gold
+                </div>
+                <p className="text-stone-500 text-sm mt-2">
+                  <span style={{ color: CLASS_CONFIGS[selectedChampion.class].color }} className="font-bold">
+                    {selectedChampion.name}
+                  </span>
+                  's cards: {selectedChampion.ownedCards?.length ?? 0}
+                </p>
+              </>
+            )}
           </div>
 
-          {/* Filters */}
-          <div className="flex flex-wrap gap-4 mb-8 justify-center">
-            <div className="flex items-center gap-2">
-              <Filter className="w-4 h-4 text-stone-400" />
-              <span className="text-stone-400">Class:</span>
-              <select
-                value={selectedClassFilter}
-                onChange={(e) => setSelectedClassFilter(e.target.value as ClassType | "all")}
-                className="bg-stone-800 text-amber-100 border border-stone-600 rounded-lg px-3 py-2"
-              >
-                {classes.map((cls) => (
-                  <option key={cls} value={cls}>
-                    {cls === "all" ? "All Classes" : CLASS_CONFIGS[cls].name}
-                  </option>
-                ))}
-              </select>
+          {/* Filters - only show when champion is selected */}
+          {selectedChampion && (
+            <div className="flex flex-wrap gap-4 mb-8 justify-center">
+              <div className="flex items-center gap-2">
+                <Filter className="w-4 h-4 text-stone-400" />
+                <span className="text-stone-400">Rarity:</span>
+                <select
+                  value={selectedRarityFilter}
+                  onChange={(e) => setSelectedRarityFilter(e.target.value as Rarity | "all")}
+                  className="bg-stone-800 text-amber-100 border border-stone-600 rounded-lg px-3 py-2"
+                >
+                  {rarities.map((rarity) => (
+                    <option key={rarity} value={rarity}>
+                      {rarity === "all" ? "All Rarities" : rarity.charAt(0).toUpperCase() + rarity.slice(1)}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
-
-            <div className="flex items-center gap-2">
-              <span className="text-stone-400">Rarity:</span>
-              <select
-                value={selectedRarityFilter}
-                onChange={(e) => setSelectedRarityFilter(e.target.value as Rarity | "all")}
-                className="bg-stone-800 text-amber-100 border border-stone-600 rounded-lg px-3 py-2"
-              >
-                {rarities.map((rarity) => (
-                  <option key={rarity} value={rarity}>
-                    {rarity === "all" ? "All Rarities" : rarity.charAt(0).toUpperCase() + rarity.slice(1)}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
+          )}
 
           {/* Purchase Button (fixed at top when card selected) */}
           {standaloneSelectedCardId && canAffordStandalone && (
@@ -231,15 +261,37 @@ export function CardShopScreen() {
             </div>
           )}
 
-          {/* Card Count */}
-          <div className="text-center mb-6 text-stone-400">
-            Showing {filteredCards.length} cards
-          </div>
+          {/* Card Count and Grid - only show when champion is selected */}
+          {selectedChampion ? (
+            <>
+              <div className="text-center mb-6 text-stone-400">
+                Showing {filteredCards.length} {CLASS_CONFIGS[selectedChampion.class].name} cards
+              </div>
 
-          {/* Cards Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-            {filteredCards.map((card) => renderCard(card, true))}
-          </div>
+              {/* Cards Grid */}
+              {filteredCards.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                  {filteredCards.map((card) => renderCard(card, true))}
+                </div>
+              ) : (
+                <div className="text-center py-16">
+                  <ShoppingCart className="w-16 h-16 text-stone-600 mx-auto mb-4" />
+                  <p className="text-stone-500 text-xl mb-2">No more cards available</p>
+                  <p className="text-stone-600">
+                    This champion owns all available cards of this class!
+                  </p>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="text-center py-16">
+              <ShoppingCart className="w-16 h-16 text-stone-600 mx-auto mb-4" />
+              <p className="text-stone-500 text-xl mb-2">Select a champion to browse cards</p>
+              <p className="text-stone-600">
+                Each champion can only purchase cards matching their class.
+              </p>
+            </div>
+          )}
         </div>
       </div>
     );
