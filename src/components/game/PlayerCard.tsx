@@ -1,6 +1,7 @@
-import { Heart, Shield, Skull, Zap } from "lucide-react";
+import { useState } from "react";
+import { Heart, Shield, Skull, Zap, BarChart3, Swords, Wind, Activity, Brain, Sparkles, Clover } from "lucide-react";
 import { CLASS_CONFIGS } from "../../data/classes";
-import type { Player } from "../../types";
+import type { Player, CharacterAttributes, StatusEffect } from "../../types";
 import { HealthBar } from "./HealthBar";
 import { StatusEffects } from "./StatusEffects";
 
@@ -10,11 +11,108 @@ interface PlayerCardProps {
   isTargeted: boolean;
 }
 
+// Stats tooltip component
+function StatsTooltip({
+  attributes,
+  buffs,
+  debuffs
+}: {
+  attributes: CharacterAttributes;
+  buffs: StatusEffect[];
+  debuffs: StatusEffect[];
+}) {
+  const stats = [
+    { key: "STR", value: attributes.STR, icon: Swords, color: "text-red-400", bonus: `+${Math.round((attributes.STR - 10) * 3)}% phys` },
+    { key: "AGI", value: attributes.AGI, icon: Wind, color: "text-yellow-400", bonus: `+${((attributes.AGI - 10) * 0.5).toFixed(1)}% dodge` },
+    { key: "CON", value: attributes.CON, icon: Activity, color: "text-pink-400", bonus: `+${(attributes.CON - 10) * 2} HP` },
+    { key: "INT", value: attributes.INT, icon: Brain, color: "text-blue-400", bonus: `+${Math.round((attributes.INT - 10) * 4)}% spell` },
+    { key: "WIS", value: attributes.WIS, icon: Sparkles, color: "text-purple-400", bonus: `+${Math.round((attributes.WIS - 10) * 3.5)}% heal` },
+    { key: "LCK", value: attributes.LCK, icon: Clover, color: "text-green-400", bonus: `${(5 + attributes.LCK * 0.5).toFixed(1)}% crit` },
+  ];
+
+  const getEffectIcon = (type: string) => {
+    const icons: Record<string, string> = {
+      poison: "🧪",
+      burn: "🔥",
+      ice: "❄️",
+      stun: "💫",
+      stealth: "👤",
+      taunt: "🛡️",
+      regen: "💚",
+      strength: "💪",
+      weakness: "📉",
+      haste: "⚡",
+      slow: "🐌",
+      shield: "🛡️",
+    };
+    return icons[type] || "✨";
+  };
+
+  return (
+    <div className="absolute top-full right-0 mt-2 z-50 pointer-events-none">
+      <div className="bg-stone-900 border border-stone-600 rounded-lg p-4 shadow-xl min-w-[240px]">
+        {/* Arrow */}
+        <div className="absolute bottom-full right-3 border-8 border-transparent border-b-stone-600" />
+
+        <div className="text-sm font-bold text-amber-400 mb-3">Character Stats</div>
+        <div className="grid grid-cols-2 gap-x-5 gap-y-2">
+          {stats.map(({ key, value, icon: Icon, color, bonus }) => (
+            <div key={key} className="flex items-center gap-2">
+              <Icon className={`w-4 h-4 ${color}`} />
+              <span className="text-white font-bold text-sm">{value}</span>
+              <span className="text-stone-400 text-xs">{bonus}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Buffs */}
+        {buffs.length > 0 && (
+          <div className="mt-3 pt-3 border-t border-stone-700">
+            <div className="text-sm font-bold text-green-400 mb-2">Buffs</div>
+            <div className="space-y-1.5">
+              {buffs.map((buff, i) => (
+                <div key={i} className="flex items-center justify-between text-sm">
+                  <span className="text-green-300">
+                    {getEffectIcon(buff.type)} {buff.type}
+                  </span>
+                  <span className="text-stone-400">
+                    {buff.value > 0 && `+${buff.value}`} {buff.duration}t
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Debuffs */}
+        {debuffs.length > 0 && (
+          <div className="mt-3 pt-3 border-t border-stone-700">
+            <div className="text-sm font-bold text-red-400 mb-2">Debuffs</div>
+            <div className="space-y-1.5">
+              {debuffs.map((debuff, i) => (
+                <div key={i} className="flex items-center justify-between text-sm">
+                  <span className="text-red-300">
+                    {getEffectIcon(debuff.type)} {debuff.type}
+                  </span>
+                  <span className="text-stone-400">
+                    {debuff.value > 0 && `-${debuff.value}`} {debuff.duration}t
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function PlayerCard({
   player,
   isCurrentPlayer,
   isTargeted,
 }: PlayerCardProps) {
+  const [showStats, setShowStats] = useState(false);
   const config = CLASS_CONFIGS[player.class];
   const totalAggro = player.baseAggro + player.diceAggro;
 
@@ -63,7 +161,28 @@ export function PlayerCard({
             <p className="text-xs text-stone-500">{config.name}</p>
           </div>
         </div>
-        {!player.isAlive && <Skull className="w-5 h-5 text-red-500" />}
+        <div className="flex items-center gap-2">
+          {/* Stats icon with hover tooltip */}
+          {player.attributes && (
+            <div
+              className="relative"
+              onMouseEnter={() => setShowStats(true)}
+              onMouseLeave={() => setShowStats(false)}
+            >
+              <button className="p-1 rounded bg-stone-700/50 hover:bg-stone-600 transition-colors">
+                <BarChart3 className="w-4 h-4 text-amber-400" />
+              </button>
+              {showStats && (
+                <StatsTooltip
+                  attributes={player.attributes}
+                  buffs={player.buffs}
+                  debuffs={player.debuffs}
+                />
+              )}
+            </div>
+          )}
+          {!player.isAlive && <Skull className="w-5 h-5 text-red-500" />}
+        </div>
       </div>
 
       {/* HP Bar */}
