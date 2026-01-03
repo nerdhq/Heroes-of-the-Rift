@@ -19,6 +19,7 @@ import { RoundCompleteScreen } from "./components/RoundCompleteScreen";
 import { VictoryScreen } from "./components/VictoryScreen";
 import { DefeatScreen } from "./components/DefeatScreen";
 import { PostGameScreen } from "./components/PostGameScreen";
+import { OnlineChampionSelect } from "./components/OnlineChampionSelect";
 
 function App() {
   const currentScreen = useGameStore((state) => state.currentScreen);
@@ -36,6 +37,7 @@ function App() {
       {currentScreen === "login" && <LoginScreen />}
       {currentScreen === "lobby" && <LobbyScreen />}
       {currentScreen === "waitingRoom" && <WaitingRoom />}
+      {currentScreen === "onlineChampionSelect" && <OnlineChampionSelect />}
       {currentScreen === "championSelect" && <ChampionSelectScreen />}
       {currentScreen === "championCreate" && <ChampionCreateScreen />}
       {currentScreen === "statAllocation" && <StatAllocationScreen />}

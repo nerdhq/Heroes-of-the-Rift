@@ -84,10 +84,14 @@ export const createLobbySlice: StateCreator<
         return false;
       }
 
-      // Set the host's hero_name from their profile
+      // Set the host's hero_name and class from their active champion
+      const { activeChampion } = get();
       await client
         .from("game_players")
-        .update({ hero_name: profile?.username || null })
+        .update({ 
+          hero_name: activeChampion?.name || profile?.username || null,
+          class_type: activeChampion?.class || null,
+        })
         .eq("game_id", gameId)
         .eq("user_id", user.id);
 
@@ -162,10 +166,14 @@ export const createLobbySlice: StateCreator<
         return false;
       }
 
-      // Update player's hero name
+      // Update player's hero name and class from their active champion
+      const { activeChampion } = get();
       await client
         .from("game_players")
-        .update({ hero_name: profile?.username || null })
+        .update({ 
+          hero_name: activeChampion?.name || profile?.username || null,
+          class_type: activeChampion?.class || null,
+        })
         .eq("game_id", gameId)
         .eq("user_id", user.id);
 
@@ -263,11 +271,11 @@ export const createLobbySlice: StateCreator<
         isOnline: true,
       });
 
-      // Update game status
+      // Update game status to deck_building (skipping class_select since champions already have classes)
       const { error } = await client
         .from("games")
         .update({
-          status: "class_select",
+          status: "deck_building",
           started_at: new Date().toISOString(),
         })
         .eq("id", currentGameId)
@@ -390,11 +398,14 @@ export const createLobbySlice: StateCreator<
 
   // Initialize the online game with all player data from Supabase
   initializeOnlineGame: async () => {
-    const { currentGameId, user } = get();
+    const { currentGameId, user, activeChampion } = get();
     if (!isSupabaseConfigured() || !currentGameId || !user) return;
 
     const client = getSupabase();
     const allCards = getAllCards();
+    
+    // Include champion's owned cards in the lookup pool
+    const championCards = activeChampion?.ownedCards || [];
 
     try {
       // Fetch player data
@@ -432,13 +443,33 @@ export const createLobbySlice: StateCreator<
       const gamePlayers = players.map((gp, index) => {
         const classType = gp.class_type as ClassType;
         const heroName = gp.hero_name || `Hero ${index + 1}`;
+        const isLocalPlayer = gp.user_id === user.id;
 
         // Convert deck card IDs to Card objects
+        // For local player, use champion's owned cards; for others, use base cards
         const deckCardIds = (gp.deck as string[]) || [];
         const deck: Card[] = deckCardIds
           .map((cardId) => {
-            const baseCard = allCards.find((c: Card) => c.id === cardId);
-            if (!baseCard) return null;
+            // First try to find in champion's owned cards (for local player)
+            if (isLocalPlayer) {
+              const championCard = championCards.find((c: Card) => c.id === cardId);
+              if (championCard) {
+                return {
+                  ...championCard,
+                  id: `${cardId}-${index}-${generateId()}`,
+                };
+              }
+            }
+            
+            // Fall back to base cards (strip the unique suffix to find base card)
+            // Card IDs from champions look like "warrior-1-starter-abc123"
+            // Base card IDs look like "warrior-1"
+            const baseCardId = cardId.replace(/-starter-.*$/, '').replace(/-earned-.*$/, '');
+            const baseCard = allCards.find((c: Card) => c.id === baseCardId);
+            if (!baseCard) {
+              console.warn(`Card not found: ${cardId} (base: ${baseCardId})`);
+              return null;
+            }
             return {
               ...baseCard,
               id: `${cardId}-${index}-${generateId()}`,

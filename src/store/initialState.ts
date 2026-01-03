@@ -2,6 +2,7 @@ import type { GameState } from "../types";
 
 export const initialState: GameState = {
   currentScreen: "title",
+  returnScreen: null,
   userData: {
     gold: 0,
     ownedCards: [],

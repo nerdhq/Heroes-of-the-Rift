@@ -23,6 +23,7 @@ export function OnlineDeckBuilderScreen() {
   const setScreen = useGameStore((state) => state.setScreen);
   const setLobbyPlayers = useGameStore((state) => state.setLobbyPlayers);
   const initializeOnlineGame = useGameStore((state) => state.initializeOnlineGame);
+  const activeChampion = useGameStore((state) => state.activeChampion);
 
   // Find my player data
   const myPlayer = useMemo(
@@ -34,11 +35,16 @@ export function OnlineDeckBuilderScreen() {
   const myHeroName = myPlayer?.hero_name || "Hero";
   const classConfig = myClass ? CLASS_CONFIGS[myClass] : null;
 
-  // Get cards available for my class
+  // Get cards available from the champion's owned cards
   const availableCards = useMemo(() => {
+    // Use the champion's owned cards if available, otherwise fall back to class cards
+    if (activeChampion && activeChampion.ownedCards.length > 0) {
+      return activeChampion.ownedCards;
+    }
+    // Fallback to class cards if no champion or no owned cards
     if (!myClass) return [];
     return getCardsByClass(myClass);
-  }, [myClass]);
+  }, [activeChampion, myClass]);
 
   // Load my existing deck selection if any
   useEffect(() => {

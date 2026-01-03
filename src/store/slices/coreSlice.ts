@@ -5,6 +5,8 @@ import { createLogEntry } from "../utils";
 export const createCoreSlice: SliceCreator<CoreActions> = (set, get) => ({
   setScreen: (screen) => set({ currentScreen: screen }),
 
+  setReturnScreen: (screen) => set({ returnScreen: screen }),
+
   addLog: (message, type) => {
     const { turn, phase, log } = get();
     set({ log: [...log, createLogEntry(turn, phase, message, type)] });

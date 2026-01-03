@@ -19,7 +19,7 @@ export function LoginScreen() {
     const success = await signInAnonymously(username);
 
     if (success) {
-      setScreen("lobby");
+      setScreen("onlineChampionSelect");
     }
     setIsLoading(false);
   };

@@ -31,6 +31,7 @@ export type SliceCreator<T> = StateCreator<GameStore, [], [], T>;
 
 export interface CoreState {
   currentScreen: ScreenType;
+  returnScreen: ScreenType | null; // Screen to return to after certain actions
   phase: GamePhase;
   turn: number;
   level: number;
@@ -143,6 +144,7 @@ export interface ProgressionState {
 
 export interface CoreActions {
   setScreen: (screen: ScreenType) => void;
+  setReturnScreen: (screen: ScreenType | null) => void;
   addLog: (message: string, type: LogEntry["type"]) => void;
   resetGame: () => void;
   nextPhase: () => void;

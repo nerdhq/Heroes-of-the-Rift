@@ -34,7 +34,7 @@ export function TitleScreen() {
 
   const handlePlayOnline = () => {
     if (isAuthenticated) {
-      setScreen("lobby");
+      setScreen("onlineChampionSelect");
     } else {
       setScreen("login");
     }

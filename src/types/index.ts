@@ -71,6 +71,7 @@ export type ScreenType =
   | "login"
   | "lobby"
   | "waitingRoom"
+  | "onlineChampionSelect"
   | "championSelect"
   | "championCreate"
   | "statAllocation"
@@ -397,6 +398,7 @@ export interface PlayerAccount {
 export interface GameState {
   // Screen management
   currentScreen: ScreenType;
+  returnScreen: ScreenType | null; // Screen to return to after certain actions
 
   // User data (persisted)
   userData: UserData;

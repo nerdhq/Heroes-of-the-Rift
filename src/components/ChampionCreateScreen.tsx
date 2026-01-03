@@ -34,6 +34,8 @@ const getClassGradient = (classType: ClassType): string => {
 
 export function ChampionCreateScreen() {
   const setScreen = useGameStore((state) => state.setScreen);
+  const returnScreen = useGameStore((state) => state.returnScreen);
+  const setReturnScreen = useGameStore((state) => state.setReturnScreen);
   const createChampion = useGameStore((state) => state.createChampion);
 
   const [name, setName] = useState("");
@@ -59,7 +61,11 @@ export function ChampionCreateScreen() {
     }
 
     createChampion(name.trim(), selectedClass);
-    setScreen("championSelect");
+    
+    // Return to the appropriate screen based on where we came from
+    const targetScreen = returnScreen || "championSelect";
+    setReturnScreen(null); // Clear the return screen
+    setScreen(targetScreen);
   };
 
   const selectedConfig = selectedClass ? CLASS_CONFIGS[selectedClass] : null;
@@ -69,11 +75,15 @@ export function ChampionCreateScreen() {
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <button
-          onClick={() => setScreen("championSelect")}
+          onClick={() => {
+            const targetScreen = returnScreen || "championSelect";
+            setReturnScreen(null);
+            setScreen(targetScreen);
+          }}
           className="flex items-center gap-2 text-stone-400 hover:text-amber-400 transition-colors mb-8"
         >
           <ArrowLeft className="w-5 h-5" />
-          Back to Champions
+          {returnScreen === "onlineChampionSelect" ? "Back to Champion Selection" : "Back to Champions"}
         </button>
 
         <div className="text-center mb-8">

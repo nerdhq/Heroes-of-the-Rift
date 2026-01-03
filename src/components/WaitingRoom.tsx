@@ -56,7 +56,7 @@ export function WaitingRoom() {
     if (startOnlineGame) {
       const success = await startOnlineGame();
       if (success) {
-        setScreen("classSelect");
+        setScreen("deckBuilder");
       }
     }
   };
