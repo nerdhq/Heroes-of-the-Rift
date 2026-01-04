@@ -1,20 +1,24 @@
-import { FastForward, HelpCircle, LogOut } from "lucide-react";
+import { FastForward, HelpCircle, LogOut, ScrollText } from "lucide-react";
 import type { GameSpeed } from "../../types";
 
 interface TopControlsProps {
   gameSpeed: GameSpeed;
   skipAnimations: boolean;
+  showBattleLog: boolean;
   onToggleSpeedSettings: () => void;
   onShowHelp: () => void;
   onShowQuitConfirm: () => void;
+  onToggleBattleLog: () => void;
 }
 
 export function TopControls({
   gameSpeed,
   skipAnimations,
+  showBattleLog,
   onToggleSpeedSettings,
   onShowHelp,
   onShowQuitConfirm,
+  onToggleBattleLog,
 }: TopControlsProps) {
   return (
     <div className="absolute top-3 right-3 z-10 flex gap-2">
@@ -38,6 +42,19 @@ export function TopControls({
         title="Game Guide"
       >
         <HelpCircle className="w-5 h-5" />
+      </button>
+
+      {/* Battle Log Toggle Button */}
+      <button
+        onClick={onToggleBattleLog}
+        className={`bg-stone-800 hover:bg-stone-700 p-2 rounded-full border transition-colors ${
+          showBattleLog
+            ? "text-amber-400 border-amber-600"
+            : "text-stone-400 border-stone-600"
+        }`}
+        title={showBattleLog ? "Hide Battle Log" : "Show Battle Log"}
+      >
+        <ScrollText className="w-5 h-5" />
       </button>
 
       {/* Quit Button */}

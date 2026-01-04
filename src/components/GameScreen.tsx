@@ -20,6 +20,7 @@ export function GameScreen() {
   const [showHelp, setShowHelp] = useState(false);
   const [showQuitConfirm, setShowQuitConfirm] = useState(false);
   const [showSpeedSettings, setShowSpeedSettings] = useState(false);
+  const [showBattleLog, setShowBattleLog] = useState(true);
 
   // Game state from store
   const phase = useGameStore((state) => state.phase);
@@ -204,9 +205,11 @@ export function GameScreen() {
       <TopControls
         gameSpeed={gameSpeed}
         skipAnimations={skipAnimations}
+        showBattleLog={showBattleLog}
         onToggleSpeedSettings={() => setShowSpeedSettings(!showSpeedSettings)}
         onShowHelp={() => setShowHelp(true)}
         onShowQuitConfirm={() => setShowQuitConfirm(true)}
+        onToggleBattleLog={() => setShowBattleLog(!showBattleLog)}
       />
 
       {/* Speed Settings Dropdown */}
@@ -264,7 +267,7 @@ export function GameScreen() {
           <EnvironmentDisplay environment={environment} />
 
           {/* Monster Area */}
-          <div className="flex-1 flex items-start justify-center min-h-0 overflow-hidden pt-4">
+          <div className="flex-1 flex items-start justify-center min-h-[200px] overflow-hidden pt-4">
             <div
               className={`grid gap-4 w-full ${
                 monsters.length > 1
@@ -345,10 +348,14 @@ export function GameScreen() {
             onSetPlayerSelection={setPlayerSelection}
             onSetPlayerReady={setPlayerReady}
           />
-        </div>
 
-        {/* Right Panel - Log */}
-        <BattleLog log={log} />
+          {/* Battle Log - below player's hand */}
+          {showBattleLog && (
+            <div className="mt-3 max-h-32 overflow-hidden flex-shrink-0">
+              <BattleLog log={log} />
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Dice Roll Overlay */}

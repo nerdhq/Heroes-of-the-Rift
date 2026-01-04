@@ -15,11 +15,11 @@ export function BattleLog({ log }: BattleLogProps) {
   }, [log]);
 
   return (
-    <div className="col-span-3 flex flex-col min-h-0 mt-10">
-      <h2 className="text-lg font-bold text-amber-400 mb-2">Battle Log</h2>
+    <div className="flex flex-col h-full">
+      <h2 className="text-sm font-bold text-amber-400 mb-1">Battle Log</h2>
       <div
         ref={logContainerRef}
-        className="flex-1 bg-stone-800/50 rounded-xl p-3 border border-stone-700 overflow-y-auto min-h-0"
+        className="flex-1 bg-stone-800/50 rounded-lg p-2 border border-stone-700 overflow-y-auto"
       >
         <div className="flex flex-col gap-1">
           {log.slice(-25).map((entry) => (

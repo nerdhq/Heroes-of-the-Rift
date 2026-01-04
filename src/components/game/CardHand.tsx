@@ -120,13 +120,6 @@ export function CardHand({
     }
   };
 
-  // Handle unready (cancel)
-  const handleUnready = () => {
-    if (localPlayer) {
-      onSetPlayerReady(localPlayer.id, false);
-    }
-  };
-
   // Handle enhance mode toggle for both modes
   const handleEnhanceToggle = () => {
     if (isSimultaneousMode && localPlayer) {
@@ -231,7 +224,7 @@ export function CardHand({
   const totalPlayers = playerSelections.length;
 
   return (
-    <div className="bg-stone-800/50 rounded-xl p-4 border border-stone-700 mt-3 flex-shrink-0 max-h-[50vh] overflow-hidden">
+    <div className="bg-stone-800/50 rounded-xl p-4 border border-stone-700 mt-3 flex-shrink-0 max-h-[35vh] overflow-y-auto">
       {/* Header with ready status for online mode */}
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-lg font-bold text-amber-100">
@@ -362,18 +355,6 @@ export function CardHand({
                 </button>
               ))}
           </div>
-        </div>
-      )}
-
-      {/* Cancel button for online mode when ready */}
-      {isSimultaneousMode && isLocalPlayerReady && (
-        <div className="mt-3 text-center">
-          <button
-            onClick={handleUnready}
-            className="bg-gradient-to-r from-stone-700 to-stone-600 hover:from-stone-600 hover:to-stone-500 text-stone-100 font-bold py-3 px-8 rounded-lg transition-all transform hover:scale-105 shadow-lg"
-          >
-            Cancel ✕
-          </button>
         </div>
       )}
 
