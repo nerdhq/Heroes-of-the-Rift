@@ -38,7 +38,6 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
       phase: "DRAW",
       selectedCardId: null,
       selectedTargetId: null,
-      drawnCards: [],
       log: [],
       environment: null,
       savedParty,
@@ -103,10 +102,8 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
       ],
     });
 
-    // Sync new round state to Supabase before drawing cards
-    if (get().isOnline) {
-      get().syncGameStateToSupabase();
-    }
+    // Sync new round state before drawing cards
+    get().syncAfterAction();
 
     // Use simultaneous draw for online mode, sequential for offline
     if (get().isOnline) {
@@ -117,7 +114,7 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
   },
 
   nextRound: () => {
-    const { round, maxRounds, players, isOnline } = get();
+    const { round, maxRounds, players } = get();
 
     if (round >= maxRounds) {
       set({ currentScreen: "victory" });
@@ -153,10 +150,8 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
       currentScreen: "roundComplete",
     });
 
-    // Sync round transition before starting new round
-    if (isOnline) {
-      get().syncGameStateToSupabase();
-    }
+    // Sync round transition
+    get().syncAfterAction();
   },
 
   drawCards: () => {
@@ -204,7 +199,6 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
 
     set({
       players: updatedPlayers,
-      drawnCards: hand,
       phase: "SELECT",
       log: [
         ...get().log,
@@ -217,10 +211,8 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
       ],
     });
 
-    // Sync to Supabase if online
-    if (get().isOnline) {
-      get().syncGameStateToSupabase();
-    }
+    // Sync to other players if online
+    get().syncAfterAction();
   },
 
   selectCard: (cardId) => {
@@ -244,9 +236,10 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
   },
 
   needsTargetSelection: () => {
-    const { selectedCardId, drawnCards } = get();
+    const { selectedCardId, players, currentPlayerIndex } = get();
     if (!selectedCardId) return false;
-    const card = drawnCards.find((c) => c.id === selectedCardId);
+    const player = players[currentPlayerIndex];
+    const card = player?.hand.find((c) => c.id === selectedCardId);
     if (!card) return false;
 
     return card.effects.some(
@@ -255,9 +248,10 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
   },
 
   getTargetType: () => {
-    const { selectedCardId, drawnCards } = get();
+    const { selectedCardId, players, currentPlayerIndex } = get();
     if (!selectedCardId) return null;
-    const card = drawnCards.find((c) => c.id === selectedCardId);
+    const player = players[currentPlayerIndex];
+    const card = player?.hand.find((c) => c.id === selectedCardId);
     if (!card) return null;
 
     for (const effect of card.effects) {
@@ -268,10 +262,9 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
   },
 
   rollAggro: () => {
-    const { players, currentPlayerIndex, selectedCardId, drawnCards, turn } =
-      get();
+    const { players, currentPlayerIndex, selectedCardId, turn } = get();
     const player = players[currentPlayerIndex];
-    const selectedCard = drawnCards.find((c) => c.id === selectedCardId);
+    const selectedCard = player?.hand.find((c) => c.id === selectedCardId);
 
     if (!selectedCard) return;
 
@@ -305,33 +298,19 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
   },
 
   playCard: async () => {
-    const {
-      players,
-      monsters,
-      currentPlayerIndex,
-      selectedCardId,
-      selectedTargetId,
-      drawnCards,
-      turn,
-      enhanceMode,
-    } = get();
+    const { players, currentPlayerIndex, selectedCardId, selectedTargetId, turn, enhanceMode } = get();
     const player = players[currentPlayerIndex];
-    const config = CLASS_CONFIGS[player.class];
 
     const delay = (ms: number) =>
       new Promise((resolve) => setTimeout(resolve, get().getDelay(ms)));
 
+    // Handle stunned player
     if (player.isStunned) {
       get().addActionMessage(`${player.name} is stunned!`, "debuff");
       set({
         log: [
           ...get().log,
-          createLogEntry(
-            turn,
-            "PLAYER_ACTION",
-            `${player.name} is stunned and cannot act!`,
-            "debuff"
-          ),
+          createLogEntry(turn, "PLAYER_ACTION", `${player.name} is stunned and cannot act!`, "debuff"),
         ],
         enhanceMode: false,
       });
@@ -340,51 +319,105 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
       return;
     }
 
-    const selectedCard = drawnCards.find((c) => c.id === selectedCardId);
+    const selectedCard = player.hand.find((c) => c.id === selectedCardId);
     if (!selectedCard) return;
 
     const isEnhanced = enhanceMode && player.resource >= player.maxResource;
-    let updatedPlayers = [...players];
+    const enhanceText = isEnhanced ? " (ENHANCED!)" : "";
 
+    // Show action message
+    set({ phase: "PLAYER_ACTION", enhanceMode: false });
+    get().addActionMessage(`${player.name} plays ${selectedCard.name}!${enhanceText}`, "action");
+    set({
+      log: [
+        ...get().log,
+        createLogEntry(turn, "PLAYER_ACTION", `${player.name} plays ${selectedCard.name}!${enhanceText}`, "action"),
+      ],
+    });
+    await delay(1200);
+
+    // Apply card effects using shared function
+    const result = get().applyCardEffects(currentPlayerIndex, selectedCardId!, selectedTargetId, isEnhanced);
+
+    // Show damage numbers
+    for (const dn of result.damageNumbers) {
+      get().addDamageNumber(dn.targetId, dn.value, dn.type);
+    }
+
+    // Award XP
+    for (const [championId, xp] of result.xpEarned) {
+      get().addXP(championId, xp);
+    }
+
+    // Update state
+    set({
+      players: result.players,
+      monsters: result.monsters,
+      selectedCardId: null,
+      selectedTargetId: null,
+    });
+
+    // Show log messages with delays
+    for (const logEntry of result.logs) {
+      const msgType = logEntry.type === "damage" ? "damage" : logEntry.type === "heal" ? "heal" : "action";
+      get().addActionMessage(logEntry.message, msgType as ActionMessage["type"]);
+      set({ log: [...get().log, logEntry] });
+      await delay(1000);
+    }
+
+    // Sync to other players if online
+    get().syncAfterAction();
+
+    // Check for victory
+    if (result.monsters.every((m) => !m.isAlive)) {
+      get().nextRound();
+      return;
+    }
+
+    get().nextPhase();
+  },
+
+  // Core effect application - extracts common logic used by both playCard and resolveAllActions
+  applyCardEffects: (playerIndex, cardId, targetId, isEnhanced) => {
+    const { players, monsters, turn, environment } = get();
+
+    const player = players[playerIndex];
+    const selectedCard = player.hand.find((c) => c.id === cardId);
+
+    if (!selectedCard) {
+      return {
+        players,
+        monsters,
+        logs: [],
+        damageNumbers: [],
+        xpEarned: new Map(),
+      };
+    }
+
+    const config = CLASS_CONFIGS[player.class];
+    let updatedPlayers = [...players];
+    let updatedMonsters = [...monsters];
+    const logs: LogEntry[] = [];
+    const damageNumbers: Array<{ targetId: string; value: number; type: "damage" | "heal" }> = [];
+    const allXpEarned = new Map<string, number>();
+
+    // Consume resource if enhanced
     if (isEnhanced) {
-      updatedPlayers[currentPlayerIndex] = {
-        ...player,
+      updatedPlayers[playerIndex] = {
+        ...updatedPlayers[playerIndex],
         resource: 0,
       };
     }
 
-    const enhanceText = isEnhanced ? " (ENHANCED!)" : "";
-    set({
-      phase: "PLAYER_ACTION",
-      enhanceMode: false,
-      players: updatedPlayers,
-    });
-    get().addActionMessage(
-      `${player.name} plays ${selectedCard.name}!${enhanceText}`,
-      "action"
-    );
-    set({
-      log: [
-        ...get().log,
-        createLogEntry(
-          turn,
-          "PLAYER_ACTION",
-          `${player.name} plays ${selectedCard.name}!${enhanceText}`,
-          "action"
-        ),
-      ],
-    });
-    await delay(1200);
-    let updatedMonsters = [...monsters];
-    const logs: LogEntry[] = [];
-
     let totalDamageDealt = 0;
     let totalHealing = 0;
 
+    // Apply each effect from the card
     for (const effect of selectedCard.effects) {
       const monsterHpBefore = new Map(updatedMonsters.map((m) => [m.id, m.hp]));
       const playerHpBefore = new Map(updatedPlayers.map((p) => [p.id, p.hp]));
 
+      // Apply enhancement bonuses
       let enhancedEffect = effect;
       if (isEnhanced && effect.value) {
         const bonus =
@@ -406,147 +439,104 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
         updatedPlayers,
         updatedMonsters,
         turn,
-        selectedTargetId,
-        get().environment
+        targetId,
+        environment
       );
       updatedPlayers = result.players;
       updatedMonsters = result.monsters;
       logs.push(...result.logs);
 
-      // Distribute XP to champions if monsters were killed
+      // Collect XP earned
       for (const [championId, xp] of result.xpEarned) {
-        get().addXP(championId, xp);
+        allXpEarned.set(championId, (allXpEarned.get(championId) || 0) + xp);
       }
 
-      if (isEnhanced) {
-        updatedPlayers[currentPlayerIndex] = {
-          ...updatedPlayers[currentPlayerIndex],
-          resource: 0,
-        };
-      }
-
+      // Track damage for floating numbers
       for (const monster of updatedMonsters) {
         const hpBefore = monsterHpBefore.get(monster.id) || monster.hp;
         const damage = hpBefore - monster.hp;
         if (damage > 0) {
           totalDamageDealt += damage;
-          get().addDamageNumber(monster.id, damage, "damage");
+          damageNumbers.push({ targetId: monster.id, value: damage, type: "damage" });
         }
       }
 
+      // Track healing for floating numbers
       for (const p of updatedPlayers) {
         const hpBefore = playerHpBefore.get(p.id) || p.hp;
         const healing = p.hp - hpBefore;
         if (healing > 0) {
           totalHealing += healing;
-          get().addDamageNumber(p.id, healing, "heal");
+          damageNumbers.push({ targetId: p.id, value: healing, type: "heal" });
         }
       }
     }
 
-    const currentPlayer = updatedPlayers[currentPlayerIndex];
+    // Calculate resource gain based on class
+    const currentPlayer = updatedPlayers[playerIndex];
     let resourceGain = 0;
     switch (currentPlayer.class) {
       case "warrior":
-        if (totalDamageDealt > 0)
-          resourceGain = Math.min(2, Math.ceil(totalDamageDealt / 10));
+        if (totalDamageDealt > 0) resourceGain = Math.min(2, Math.ceil(totalDamageDealt / 10));
         break;
       case "rogue":
         resourceGain = 1;
         break;
       case "paladin":
-        if (totalHealing > 0) resourceGain = 2;
-        break;
       case "priest":
         if (totalHealing > 0) resourceGain = 2;
         break;
       case "bard":
-        if (
-          selectedCard.effects.some((e) =>
-            ["strength", "shield", "block"].includes(e.type)
-          )
-        ) {
+        if (selectedCard.effects.some((e) => ["strength", "shield", "block"].includes(e.type))) {
           resourceGain = 1;
         }
         break;
       case "archer":
         resourceGain = 1;
         break;
-      default:
-        break;
     }
 
     if (resourceGain > 0 && !isEnhanced) {
-      updatedPlayers[currentPlayerIndex] = {
-        ...updatedPlayers[currentPlayerIndex],
+      updatedPlayers[playerIndex] = {
+        ...updatedPlayers[playerIndex],
         resource: Math.min(
-          updatedPlayers[currentPlayerIndex].resource + resourceGain,
-          updatedPlayers[currentPlayerIndex].maxResource
+          updatedPlayers[playerIndex].resource + resourceGain,
+          updatedPlayers[playerIndex].maxResource
         ),
       };
     }
 
-    const playedCard = drawnCards.find((c) => c.id === selectedCardId)!;
-    const otherCard = drawnCards.find((c) => c.id !== selectedCardId);
+    // Move played card to discard, other card back to deck
+    const playedCard = player.hand.find((c) => c.id === cardId)!;
+    const otherCard = player.hand.find((c) => c.id !== cardId);
 
-    updatedPlayers[currentPlayerIndex] = {
-      ...updatedPlayers[currentPlayerIndex],
+    updatedPlayers[playerIndex] = {
+      ...updatedPlayers[playerIndex],
       hand: [],
-      discard: [...updatedPlayers[currentPlayerIndex].discard, playedCard],
+      discard: [...updatedPlayers[playerIndex].discard, playedCard],
       deck: otherCard
-        ? [...updatedPlayers[currentPlayerIndex].deck, otherCard]
-        : updatedPlayers[currentPlayerIndex].deck,
+        ? [...updatedPlayers[playerIndex].deck, otherCard]
+        : updatedPlayers[playerIndex].deck,
     };
 
-    set({
+    return {
       players: updatedPlayers,
       monsters: updatedMonsters,
-      selectedCardId: null,
-      selectedTargetId: null,
-      drawnCards: [],
-    });
-
-    for (const logEntry of logs) {
-      const msgType =
-        logEntry.type === "damage"
-          ? "damage"
-          : logEntry.type === "heal"
-          ? "heal"
-          : "action";
-      get().addActionMessage(
-        logEntry.message,
-        msgType as ActionMessage["type"]
-      );
-      set({ log: [...get().log, logEntry] });
-      await delay(1000);
-    }
-
-    // Sync to Supabase before phase transition
-    if (get().isOnline) {
-      get().syncGameStateToSupabase();
-    }
-
-    if (updatedMonsters.every((m) => !m.isAlive)) {
-      get().nextRound();
-      return;
-    }
-
-    get().nextPhase();
+      logs,
+      damageNumbers,
+      xpEarned: allXpEarned,
+    };
   },
 
   monsterAct: async () => {
-    const { players, monsters, turn, isOnline } = get();
+    const { players, monsters, turn } = get();
     const updatedPlayers = [...players];
 
     const delay = (ms: number) =>
       new Promise((resolve) => setTimeout(resolve, get().getDelay(ms)));
 
-    // Helper to sync state for real-time updates (debounced to reduce race conditions)
-    const syncNow = () => {
-      if (isOnline) {
-        get().debouncedSyncGameState();
-      }
-    };
+    // Helper to sync state for real-time updates
+    const syncNow = () => get().syncAfterAction();
 
     for (const monster of monsters) {
       if (!monster.isAlive) continue;
@@ -794,15 +784,13 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
       await delay(500);
     }
 
-    set({ 
+    set({
       players: updatedPlayers,
       selectedTargetId: null, // Clear any target highlight after monster attacks
     });
 
-    // Sync to Supabase after monster actions
-    if (get().isOnline) {
-      get().syncGameStateToSupabase();
-    }
+    // Sync to other players if online
+    get().syncAfterAction();
 
     if (updatedPlayers.every((p) => !p.isAlive)) {
       set({ currentScreen: "defeat" });
@@ -1085,7 +1073,7 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
   },
 
   useSpecialAbility: async () => {
-    const { players, monsters, currentPlayerIndex, turn, drawnCards } = get();
+    const { players, monsters, currentPlayerIndex, turn } = get();
     const player = players[currentPlayerIndex];
     const config = CLASS_CONFIGS[player.class];
 
@@ -1180,14 +1168,14 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
     const currentPlayer = finalPlayers[currentPlayerIndex];
     finalPlayers[currentPlayerIndex] = {
       ...currentPlayer,
-      deck: [...currentPlayer.deck, ...drawnCards],
+      deck: [...currentPlayer.deck, ...currentPlayer.hand],
+      hand: [],
     };
 
     set({
       players: finalPlayers,
       monsters: finalMonsters,
       selectedCardId: null,
-      drawnCards: [],
     });
 
     if (finalMonsters.every((m) => !m.isAlive)) {
@@ -1199,10 +1187,9 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
   },
 
   startDiceRoll: () => {
-    const { players, currentPlayerIndex, selectedCardId, drawnCards, turn } =
-      get();
+    const { players, currentPlayerIndex, selectedCardId, turn } = get();
     const player = players[currentPlayerIndex];
-    const selectedCard = drawnCards.find((c) => c.id === selectedCardId);
+    const selectedCard = player.hand.find((c) => c.id === selectedCardId);
 
     if (!selectedCard) return;
 
@@ -1337,10 +1324,8 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
       ],
     });
 
-    // Sync to Supabase if online
-    if (get().isOnline) {
-      get().syncGameStateToSupabase();
-    }
+    // Sync to other players if online
+    get().syncAfterAction();
   },
 
   // Set card/target selection for a specific player
@@ -1353,10 +1338,8 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
     );
     set({ playerSelections: updatedSelections });
 
-    // Sync to Supabase if online
-    if (get().isOnline) {
-      get().syncGameStateToSupabase();
-    }
+    // Sync to other players if online
+    get().syncAfterAction();
   },
 
   // Mark a player as ready
@@ -1367,10 +1350,8 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
     );
     set({ playerSelections: updatedSelections });
 
-    // Sync to Supabase if online
-    if (isOnline) {
-      get().syncGameStateToSupabase();
-    }
+    // Sync to other players if online
+    get().syncAfterAction();
 
     // Check if all players are ready - only host triggers resolve
     const allReady = updatedSelections.every((sel) => sel.isReady);
@@ -1403,34 +1384,22 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
 
   // Execute all player actions simultaneously
   resolveAllActions: async () => {
-    const { players, monsters, playerSelections, turn, environment, isOnline } = get();
+    const { players, playerSelections, turn } = get();
 
     set({ phase: "AGGRO" });
 
     const delay = (ms: number) =>
       new Promise((resolve) => setTimeout(resolve, get().getDelay(ms)));
 
-    // Helper to sync state for real-time updates to other players (debounced for intermediate syncs)
-    const syncNow = () => {
-      if (isOnline) {
-        get().debouncedSyncGameState();
-      }
-    };
-
-    // Direct sync for critical state changes (final state after all actions)
-    const syncDirect = () => {
-      if (isOnline) {
-        get().syncGameStateToSupabase();
-      }
-    };
+    // Helper to sync state for real-time updates
+    const syncNow = () => get().syncAfterAction();
 
     let updatedPlayers = [...players];
-    let updatedMonsters = [...monsters];
     const logs: LogEntry[] = [];
 
     // Phase 1: Roll aggro dice for all players
     get().addActionMessage("Rolling aggro dice...", "roll");
-    syncNow(); // Sync so other players see the message immediately
+    syncNow();
     await delay(500);
 
     for (const selection of playerSelections) {
@@ -1448,16 +1417,12 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
         animation: { ...state.animation, diceRolling: true, diceRoll: null },
       }));
 
-      // Quick dice animation
       for (let i = 0; i < 8; i++) {
         const fakeRoll = Math.floor(Math.random() * 20) + 1;
-        set((state) => ({
-          animation: { ...state.animation, diceRoll: fakeRoll },
-        }));
+        set((state) => ({ animation: { ...state.animation, diceRoll: fakeRoll } }));
         await delay(80);
       }
 
-      // Final roll
       const diceRoll = rollD20();
       const cardAggro = selectedCard.aggro;
       const newBaseAggro = player.baseAggro + cardAggro;
@@ -1473,212 +1438,86 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
         diceAggro: diceRoll,
       };
 
-      // Update state and sync after each dice roll
       set({ players: updatedPlayers });
-      get().addActionMessage(
-        `${player.name} rolls ${diceRoll} (+${cardAggro} card) = ${totalAggro} aggro`,
-        "roll"
-      );
-      logs.push(
-        createLogEntry(
-          turn,
-          "AGGRO",
-          `${player.name} rolls D20: ${diceRoll} + ${newBaseAggro} base = ${totalAggro} aggro`,
-          "roll"
-        )
-      );
-      syncNow(); // Sync after each player's roll
-
+      get().addActionMessage(`${player.name} rolls ${diceRoll} (+${cardAggro} card) = ${totalAggro} aggro`, "roll");
+      logs.push(createLogEntry(turn, "AGGRO", `${player.name} rolls D20: ${diceRoll} + ${newBaseAggro} base = ${totalAggro} aggro`, "roll"));
+      syncNow();
       await delay(600);
     }
 
-    // Clear dice animation
-    set((state) => ({
-      animation: { ...state.animation, diceRoll: null, diceRolling: false },
-    }));
-
+    set((state) => ({ animation: { ...state.animation, diceRoll: null, diceRolling: false } }));
     await delay(500);
 
-    // Phase 2: Process each player's action
+    // Phase 2: Process each player's action using shared applyCardEffects
     set({ phase: "RESOLVE" });
     syncNow();
 
     for (const selection of playerSelections) {
-      const playerIndex = updatedPlayers.findIndex((p) => p.id === selection.playerId);
+      const currentPlayers = get().players;
+      const playerIndex = currentPlayers.findIndex((p) => p.id === selection.playerId);
       if (playerIndex === -1) continue;
 
-      const player = updatedPlayers[playerIndex];
-      if (!player.isAlive || player.isStunned) {
-        if (player.isStunned) {
-          get().addActionMessage(`${player.name} is stunned!`, "debuff");
-          logs.push(
-            createLogEntry(turn, "RESOLVE", `${player.name} is stunned and cannot act!`, "debuff")
-          );
-        }
+      const player = currentPlayers[playerIndex];
+      if (!player.isAlive) continue;
+
+      if (player.isStunned) {
+        get().addActionMessage(`${player.name} is stunned!`, "debuff");
+        logs.push(createLogEntry(turn, "RESOLVE", `${player.name} is stunned and cannot act!`, "debuff"));
         continue;
       }
 
       const selectedCard = player.hand.find((c) => c.id === selection.cardId);
       if (!selectedCard) continue;
 
-      const config = CLASS_CONFIGS[player.class];
       const isEnhanced = selection.enhanceMode && player.resource >= player.maxResource;
-
-      // Consume resource if enhanced
-      if (isEnhanced) {
-        updatedPlayers[playerIndex] = {
-          ...updatedPlayers[playerIndex],
-          resource: 0,
-        };
-      }
-
       const enhanceText = isEnhanced ? " (ENHANCED!)" : "";
+
       get().addActionMessage(`${player.name} plays ${selectedCard.name}!${enhanceText}`, "action");
-      logs.push(
-        createLogEntry(turn, "RESOLVE", `${player.name} plays ${selectedCard.name}!${enhanceText}`, "action")
-      );
-      syncNow(); // Sync card play message immediately
+      logs.push(createLogEntry(turn, "RESOLVE", `${player.name} plays ${selectedCard.name}!${enhanceText}`, "action"));
+      syncNow();
       await delay(800);
 
-      let totalDamageDealt = 0;
-      let totalHealing = 0;
+      // Use shared effect application function
+      const result = get().applyCardEffects(playerIndex, selection.cardId!, selection.targetId, isEnhanced);
 
-      // Apply card effects
-      for (const effect of selectedCard.effects) {
-        const monsterHpBefore = new Map(updatedMonsters.map((m) => [m.id, m.hp]));
-        const playerHpBefore = new Map(updatedPlayers.map((p) => [p.id, p.hp]));
-
-        let enhancedEffect = effect;
-        if (isEnhanced && effect.value) {
-          const bonus =
-            effect.type === "damage"
-              ? config.enhanceBonus.damageBonus
-              : effect.type === "heal"
-              ? config.enhanceBonus.healBonus
-              : effect.type === "shield"
-              ? config.enhanceBonus.shieldBonus
-              : 0;
-          if (bonus > 0) {
-            enhancedEffect = { ...effect, value: effect.value + bonus };
-          }
-        }
-
-        const result = applyEffect(
-          enhancedEffect,
-          player,
-          updatedPlayers,
-          updatedMonsters,
-          turn,
-          selection.targetId,
-          environment
-        );
-        updatedPlayers = result.players;
-        updatedMonsters = result.monsters;
-        logs.push(...result.logs);
-
-        // Distribute XP to champions if monsters were killed
-        for (const [championId, xp] of result.xpEarned) {
-          get().addXP(championId, xp);
-        }
-
-        // Track damage/healing for damage numbers
-        for (const monster of updatedMonsters) {
-          const hpBefore = monsterHpBefore.get(monster.id) || monster.hp;
-          const damage = hpBefore - monster.hp;
-          if (damage > 0) {
-            totalDamageDealt += damage;
-            get().addDamageNumber(monster.id, damage, "damage");
-          }
-        }
-
-        for (const p of updatedPlayers) {
-          const hpBefore = playerHpBefore.get(p.id) || p.hp;
-          const healing = p.hp - hpBefore;
-          if (healing > 0) {
-            totalHealing += healing;
-            get().addDamageNumber(p.id, healing, "heal");
-          }
-        }
+      // Show damage numbers
+      for (const dn of result.damageNumbers) {
+        get().addDamageNumber(dn.targetId, dn.value, dn.type);
       }
 
-      // Resource gain based on class
-      const currentPlayer = updatedPlayers[playerIndex];
-      let resourceGain = 0;
-      switch (currentPlayer.class) {
-        case "warrior":
-          if (totalDamageDealt > 0) resourceGain = Math.min(2, Math.ceil(totalDamageDealt / 10));
-          break;
-        case "rogue":
-          resourceGain = 1;
-          break;
-        case "paladin":
-        case "priest":
-          if (totalHealing > 0) resourceGain = 2;
-          break;
-        case "bard":
-          if (selectedCard.effects.some((e) => ["strength", "shield", "block"].includes(e.type))) {
-            resourceGain = 1;
-          }
-          break;
-        case "archer":
-          resourceGain = 1;
-          break;
+      // Award XP
+      for (const [championId, xp] of result.xpEarned) {
+        get().addXP(championId, xp);
       }
 
-      if (resourceGain > 0 && !isEnhanced) {
-        updatedPlayers[playerIndex] = {
-          ...updatedPlayers[playerIndex],
-          resource: Math.min(
-            updatedPlayers[playerIndex].resource + resourceGain,
-            updatedPlayers[playerIndex].maxResource
-          ),
-        };
-      }
-
-      // Move played card to discard, other card back to deck
-      const playedCard = player.hand.find((c) => c.id === selection.cardId)!;
-      const otherCard = player.hand.find((c) => c.id !== selection.cardId);
-
-      updatedPlayers[playerIndex] = {
-        ...updatedPlayers[playerIndex],
-        hand: [],
-        discard: [...updatedPlayers[playerIndex].discard, playedCard],
-        deck: otherCard
-          ? [...updatedPlayers[playerIndex].deck, otherCard]
-          : updatedPlayers[playerIndex].deck,
-      };
-
-      // Sync player/monster state after each action resolves
-      set({
-        players: updatedPlayers,
-        monsters: updatedMonsters,
-      });
+      // Update store with results (so next player sees updated state)
+      set({ players: result.players, monsters: result.monsters });
+      logs.push(...result.logs);
       syncNow();
-
       await delay(500);
     }
 
-    // Update final state
+    // Final state update
     set({
-      players: updatedPlayers,
-      monsters: updatedMonsters,
       playerSelections: [],
       log: [...get().log, ...logs],
     });
-    syncDirect(); // Use direct sync for final state (critical update)
+    syncNow();
 
     // Check for victory/defeat
-    if (updatedMonsters.every((m) => !m.isAlive)) {
+    const finalMonsters = get().monsters;
+    const finalPlayers = get().players;
+
+    if (finalMonsters.every((m) => !m.isAlive)) {
       get().nextRound();
       return;
     }
 
-    if (updatedPlayers.every((p) => !p.isAlive)) {
+    if (finalPlayers.every((p) => !p.isAlive)) {
       set({ currentScreen: "defeat" });
       return;
     }
 
-    // Move to monster action phase
     set({ phase: "MONSTER_ACTION" });
     get().monsterAct();
   },

@@ -29,7 +29,6 @@ export function GameScreen() {
   const turn = useGameStore((state) => state.turn);
   const round = useGameStore((state) => state.round);
   const maxRounds = useGameStore((state) => state.maxRounds);
-  const drawnCards = useGameStore((state) => state.drawnCards);
   const selectedCardId = useGameStore((state) => state.selectedCardId);
   const selectedTargetId = useGameStore((state) => state.selectedTargetId);
   const log = useGameStore((state) => state.log);
@@ -157,9 +156,9 @@ export function GameScreen() {
   const handleAutoPlayCard = (cardId: string) => {
     // First select the card
     selectCard(cardId);
-    
+
     // Get the selected card to check if it needs targeting
-    const card = drawnCards.find((c) => c.id === cardId);
+    const card = localPlayer?.hand.find((c) => c.id === cardId);
     if (!card) return;
     
     // Check if this card needs a target
@@ -274,24 +273,44 @@ export function GameScreen() {
               }`}
             >
               {monsters.map((monster) => {
+                // For online mode, check if local player has selected a card that needs targeting
+                const onlineCardNeedsMonsterTarget = (() => {
+                  if (!isOnline || !localPlayerSelection?.cardId) return false;
+                  const card = localPlayer?.hand.find((c) => c.id === localPlayerSelection.cardId);
+                  return card?.effects.some((e) => e.target === "monster") ?? false;
+                })();
+
                 // Monster is selectable when a card requiring monster target is selected
-                const isMonsterSelectable = 
-                  phase === "SELECT" && 
-                  !!selectedCardId && 
-                  needsTarget && 
-                  targetType === "monster" && 
-                  monster.isAlive && 
-                  isLocalPlayerTurn;
+                const isMonsterSelectable =
+                  phase === "SELECT" &&
+                  monster.isAlive &&
+                  (
+                    // Offline mode: card selected and needs monster target
+                    (!isOnline && !!selectedCardId && needsTarget && targetType === "monster" && isLocalPlayerTurn) ||
+                    // Online mode: local player has card selected that needs monster target, and not ready
+                    (isOnline && onlineCardNeedsMonsterTarget && !localPlayerSelection?.isReady)
+                  );
+
+                const monsterIsSelected = isOnline
+                  ? localPlayerSelection?.targetId === monster.id
+                  : selectedTargetId === monster.id;
+
                 return (
-                  <MonsterCard 
-                    key={monster.id} 
+                  <MonsterCard
+                    key={monster.id}
                     monster={monster}
                     isSelectable={isMonsterSelectable}
-                    isSelected={selectedTargetId === monster.id}
+                    isSelected={monsterIsSelected}
                     onSelect={(monsterId) => {
-                      // Auto-confirm: select target and immediately start dice roll
-                      useGameStore.setState({ selectedTargetId: monsterId });
-                      startDiceRoll();
+                      if (isOnline && localPlayer && localPlayerSelection?.cardId) {
+                        // Online mode: set target and auto-ready
+                        setPlayerSelection(localPlayer.id, localPlayerSelection.cardId, monsterId, localPlayerSelection.enhanceMode);
+                        setPlayerReady(localPlayer.id, true);
+                      } else {
+                        // Offline mode: select target and start dice roll
+                        useGameStore.setState({ selectedTargetId: monsterId });
+                        startDiceRoll();
+                      }
                     }}
                   />
                 );
@@ -303,7 +322,6 @@ export function GameScreen() {
           <CardHand
             currentPlayer={currentPlayer}
             localPlayer={localPlayer}
-            drawnCards={drawnCards}
             phase={phase}
             selectedCardId={selectedCardId}
             selectedTargetId={selectedTargetId}

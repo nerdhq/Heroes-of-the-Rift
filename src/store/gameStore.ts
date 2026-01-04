@@ -68,7 +68,6 @@ export const useGameStore = create<GameStore>()(
         environment: state.environment,
         selectedCardId: state.selectedCardId,
         selectedTargetId: state.selectedTargetId,
-        drawnCards: state.drawnCards,
         log: state.log,
         selectedClasses: state.selectedClasses,
         heroNames: state.heroNames,

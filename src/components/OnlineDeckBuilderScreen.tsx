@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useGameStore } from "../store/gameStore";
 import { CLASS_CONFIGS } from "../data/classes";
-import { Check, HelpCircle, Users, Loader2, Crown } from "lucide-react";
+import { Check, HelpCircle, Users, Loader2, Crown, Shuffle } from "lucide-react";
 import { HelpModal } from "./HelpModal";
 import { isSupabaseConfigured, getSupabase } from "../lib/supabase";
 import type { Card, ClassType } from "../types";
@@ -180,7 +180,6 @@ export function OnlineDeckBuilderScreen() {
           monsters: monstersWithIntents,
           selected_card_id: null,
           selected_target_id: null,
-          drawn_cards: [],
           log: [],
           version: 1,
         });
@@ -333,11 +332,23 @@ export function OnlineDeckBuilderScreen() {
         {/* Card Selection */}
         {!isDeckConfirmed ? (
           <>
-            {/* Selected count */}
-            <div className="text-center mb-8">
+            {/* Selected count and Random Selection */}
+            <div className="flex items-center justify-center gap-4 mb-8">
               <span className="bg-stone-800 text-amber-400 px-4 py-2 rounded-full font-bold">
                 {selectedCards.length} / 5 Cards Selected
               </span>
+              <button
+                onClick={() => {
+                  // Randomly select 5 cards from available cards
+                  const shuffled = [...availableCards].sort(() => Math.random() - 0.5);
+                  const randomCards = shuffled.slice(0, 5).map((c) => c.id);
+                  setSelectedCards(randomCards);
+                }}
+                className="flex items-center gap-2 bg-gradient-to-r from-purple-700 to-purple-600 hover:from-purple-600 hover:to-purple-500 text-purple-100 font-bold py-2 px-4 rounded-lg transition-all transform hover:scale-105"
+              >
+                <Shuffle className="w-4 h-4" />
+                Random Selection
+              </button>
             </div>
 
             {/* Cards grid */}

@@ -19,7 +19,6 @@ export const initialState: GameState = {
   selectedCardId: null,
   selectedTargetId: null,
   playerSelections: [],
-  drawnCards: [],
   log: [],
   selectedClasses: [],
   heroNames: [],

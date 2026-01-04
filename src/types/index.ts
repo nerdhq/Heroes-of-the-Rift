@@ -421,9 +421,6 @@ export interface GameState {
   // Player selections (for simultaneous action in online mode)
   playerSelections: PlayerSelection[];
 
-  // Cards drawn this turn (legacy - now stored per-player in player.hand)
-  drawnCards: Card[];
-
   // Game log
   log: LogEntry[];
 

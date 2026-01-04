@@ -500,7 +500,6 @@ export const createLobbySlice: StateCreator<
         phase: gameState.phase || "DRAW",
         selectedCardId: gameState.selected_card_id || null,
         selectedTargetId: gameState.selected_target_id || null,
-        drawnCards: gameState.drawn_cards || [],
         log: gameState.log || [],
         isConnected: true,
         lastSyncedVersion: gameState.version || 1,

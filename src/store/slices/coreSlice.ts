@@ -18,14 +18,7 @@ export const createCoreSlice: SliceCreator<CoreActions> = (set, get) => ({
   },
 
   nextPhase: () => {
-    const { phase, players, currentPlayerIndex, isOnline } = get();
-
-    // Helper to sync if online (debounced to reduce race conditions during rapid phase transitions)
-    const syncIfOnline = () => {
-      if (isOnline) {
-        get().debouncedSyncGameState();
-      }
-    };
+    const { phase, players, currentPlayerIndex } = get();
 
     switch (phase) {
       case "DRAW":
@@ -50,23 +43,23 @@ export const createCoreSlice: SliceCreator<CoreActions> = (set, get) => ({
             currentPlayerIndex: nextAlivePlayer,
             phase: "DRAW",
           });
-          syncIfOnline();
+          get().syncAfterAction();
           get().drawCards();
         } else {
           set({ phase: "MONSTER_ACTION" });
-          syncIfOnline();
+          get().syncAfterAction();
           get().monsterAct();
         }
         break;
       }
       case "MONSTER_ACTION":
         set({ phase: "DEBUFF_RESOLUTION" });
-        syncIfOnline();
+        get().syncAfterAction();
         get().resolveDebuffs();
         break;
       case "DEBUFF_RESOLUTION":
         set({ phase: "END_TURN" });
-        syncIfOnline();
+        get().syncAfterAction();
         get().endTurn();
         break;
       case "END_TURN":

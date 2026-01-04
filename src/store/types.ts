@@ -58,7 +58,6 @@ export interface MonstersState {
 export interface CombatState {
   selectedCardId: string | null;
   selectedTargetId: string | null;
-  drawnCards: Card[];
   enhanceMode: boolean;
   playerSelections: Array<{
     playerId: string;
@@ -161,6 +160,15 @@ export interface PlayersActions {
   regenerateResources: () => void;
 }
 
+// Result type for applyCardEffects
+export interface CardEffectResult {
+  players: import("../types").Player[];
+  monsters: import("../types").Monster[];
+  logs: import("../types").LogEntry[];
+  damageNumbers: Array<{ targetId: string; value: number; type: "damage" | "heal" }>;
+  xpEarned: Map<string, number>;
+}
+
 export interface CombatActions {
   startGame: () => void;
   startRound: () => void;
@@ -171,6 +179,13 @@ export interface CombatActions {
   confirmTarget: () => void;
   rollAggro: () => void;
   playCard: () => void;
+  // Core effect application - used by both playCard and resolveAllActions
+  applyCardEffects: (
+    playerIndex: number,
+    cardId: string,
+    targetId: string | null,
+    isEnhanced: boolean
+  ) => CardEffectResult;
   monsterAct: () => void;
   resolveDebuffs: () => void;
   endTurn: () => void;
@@ -256,6 +271,7 @@ export interface MultiplayerActions {
   syncState: () => Promise<void>;
   syncGameStateToSupabase: () => Promise<void>;
   debouncedSyncGameState: () => void;
+  syncAfterAction: () => void;
   subscribeToGameState: () => void;
   unsubscribeFromGameState: () => void;
   submitAction: (actionType: string, actionData: Record<string, unknown>) => Promise<boolean>;

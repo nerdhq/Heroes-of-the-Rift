@@ -28,6 +28,7 @@ export interface MultiplayerActions {
   syncState: () => Promise<void>;
   syncGameStateToSupabase: () => Promise<void>;
   debouncedSyncGameState: () => void;
+  syncAfterAction: () => void; // Convenience wrapper - syncs if online
   subscribeToGameState: () => void;
   unsubscribeFromGameState: () => void;
   submitAction: (actionType: string, actionData: Record<string, unknown>) => Promise<boolean>;
@@ -102,7 +103,6 @@ export const createMultiplayerSlice: StateCreator<
           monsters: gameState.monsters || [],
           selectedCardId: gameState.selected_card_id,
           selectedTargetId: gameState.selected_target_id,
-          drawnCards: gameState.drawn_cards || [],
           log: gameState.log || [],
           lastSyncedVersion: gameState.version,
           isSyncing: false,
@@ -197,7 +197,7 @@ export const createMultiplayerSlice: StateCreator<
 
   // Push current game state to Supabase (called after actions)
   syncGameStateToSupabase: async () => {
-    const { currentGameId, isOnline, players, monsters, phase, currentPlayerIndex, turn, round, maxRounds, environment, selectedCardId, selectedTargetId, drawnCards, playerSelections, log, animation, lastSyncedVersion } = get();
+    const { currentGameId, isOnline, players, monsters, phase, currentPlayerIndex, turn, round, maxRounds, environment, selectedCardId, selectedTargetId, playerSelections, log, animation, lastSyncedVersion } = get();
     if (!isSupabaseConfigured() || !isOnline || !currentGameId) {
       return;
     }
@@ -228,7 +228,6 @@ export const createMultiplayerSlice: StateCreator<
           players, // Sync player state (HP, buffs, hand, etc.)
           selected_card_id: selectedCardId,
           selected_target_id: selectedTargetId,
-          drawn_cards: drawnCards,
           player_selections: playerSelections, // Sync player selections for simultaneous play
           action_messages: recentMessages, // Sync action messages for all players to see
           log,
@@ -260,6 +259,15 @@ export const createMultiplayerSlice: StateCreator<
       syncDebounceTimeout = null;
       get().syncGameStateToSupabase();
     }, SYNC_DEBOUNCE_MS);
+  },
+
+  // Convenience wrapper - syncs state if online (debounced)
+  // Call this at the end of game actions to push changes to other players
+  syncAfterAction: () => {
+    const { isOnline } = get();
+    if (isOnline) {
+      get().debouncedSyncGameState();
+    }
   },
 
   // Subscribe to game state changes
@@ -370,9 +378,6 @@ export const createMultiplayerSlice: StateCreator<
     }
     if (newState.selected_target_id !== undefined) {
       updates.selectedTargetId = newState.selected_target_id as string | null;
-    }
-    if (newState.drawn_cards !== undefined && Array.isArray(newState.drawn_cards)) {
-      updates.drawnCards = newState.drawn_cards as GameStore["drawnCards"];
     }
     // Merge player selections - combine local and remote state to handle concurrent updates
     if (newState.player_selections !== undefined && Array.isArray(newState.player_selections)) {
