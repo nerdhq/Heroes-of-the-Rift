@@ -541,10 +541,10 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
     const delay = (ms: number) =>
       new Promise((resolve) => setTimeout(resolve, get().getDelay(ms)));
 
-    // Helper to sync state for real-time updates
+    // Helper to sync state for real-time updates (debounced to reduce race conditions)
     const syncNow = () => {
       if (isOnline) {
-        get().syncGameStateToSupabase();
+        get().debouncedSyncGameState();
       }
     };
 
@@ -1410,8 +1410,15 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
     const delay = (ms: number) =>
       new Promise((resolve) => setTimeout(resolve, get().getDelay(ms)));
 
-    // Helper to sync state for real-time updates to other players
+    // Helper to sync state for real-time updates to other players (debounced for intermediate syncs)
     const syncNow = () => {
+      if (isOnline) {
+        get().debouncedSyncGameState();
+      }
+    };
+
+    // Direct sync for critical state changes (final state after all actions)
+    const syncDirect = () => {
       if (isOnline) {
         get().syncGameStateToSupabase();
       }
@@ -1658,7 +1665,7 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
       playerSelections: [],
       log: [...get().log, ...logs],
     });
-    syncNow();
+    syncDirect(); // Use direct sync for final state (critical update)
 
     // Check for victory/defeat
     if (updatedMonsters.every((m) => !m.isAlive)) {

@@ -20,10 +20,10 @@ export const createCoreSlice: SliceCreator<CoreActions> = (set, get) => ({
   nextPhase: () => {
     const { phase, players, currentPlayerIndex, isOnline } = get();
 
-    // Helper to sync if online
+    // Helper to sync if online (debounced to reduce race conditions during rapid phase transitions)
     const syncIfOnline = () => {
       if (isOnline) {
-        get().syncGameStateToSupabase();
+        get().debouncedSyncGameState();
       }
     };
 

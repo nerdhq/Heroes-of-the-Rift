@@ -5,6 +5,10 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 
 let gameStateChannel: RealtimeChannel | null = null;
 
+// Debounce timer for coalescing rapid syncs
+let syncDebounceTimeout: ReturnType<typeof setTimeout> | null = null;
+const SYNC_DEBOUNCE_MS = 100;
+
 // ============================================
 // MULTIPLAYER STATE & ACTIONS
 // ============================================
@@ -23,6 +27,7 @@ export interface MultiplayerActions {
   setConnected: (connected: boolean) => void;
   syncState: () => Promise<void>;
   syncGameStateToSupabase: () => Promise<void>;
+  debouncedSyncGameState: () => void;
   subscribeToGameState: () => void;
   unsubscribeFromGameState: () => void;
   submitAction: (actionType: string, actionData: Record<string, unknown>) => Promise<boolean>;
@@ -246,6 +251,17 @@ export const createMultiplayerSlice: StateCreator<
     }
   },
 
+  // Debounced sync - coalesces rapid syncs to reduce race conditions
+  debouncedSyncGameState: () => {
+    if (syncDebounceTimeout) {
+      clearTimeout(syncDebounceTimeout);
+    }
+    syncDebounceTimeout = setTimeout(() => {
+      syncDebounceTimeout = null;
+      get().syncGameStateToSupabase();
+    }, SYNC_DEBOUNCE_MS);
+  },
+
   // Subscribe to game state changes
   subscribeToGameState: () => {
     const { currentGameId } = get();
@@ -326,16 +342,27 @@ export const createMultiplayerSlice: StateCreator<
       updates.monsters = newState.monsters as GameStore["monsters"];
     }
     // Validate players array - ensure it's an array and each player has required properties
+    // Also preserve hands during SELECT phase to avoid race condition overwrites
     if (newState.players !== undefined && Array.isArray(newState.players) && newState.players.length > 0) {
-      const validPlayers = (newState.players as GameStore["players"]).map((p) => ({
-        ...p,
-        // Ensure hand is always an array
-        hand: Array.isArray(p.hand) ? p.hand : [],
-        deck: Array.isArray(p.deck) ? p.deck : [],
-        discard: Array.isArray(p.discard) ? p.discard : [],
-        buffs: Array.isArray(p.buffs) ? p.buffs : [],
-        debuffs: Array.isArray(p.debuffs) ? p.debuffs : [],
-      }));
+      const incomingPhase = (newState.phase as string) || currentState.phase;
+      const validPlayers = (newState.players as GameStore["players"]).map((p, index) => {
+        const existingPlayer = currentState.players[index];
+
+        // Preserve hand if: incoming hand is empty, we're in SELECT phase,
+        // and existing hand has cards (prevents race condition where stale sync overwrites valid cards)
+        const incomingHandEmpty = !Array.isArray(p.hand) || p.hand.length === 0;
+        const existingHandHasCards = existingPlayer?.hand?.length > 0;
+        const shouldPreserveHand = incomingHandEmpty && incomingPhase === "SELECT" && existingHandHasCards;
+
+        return {
+          ...p,
+          hand: shouldPreserveHand ? existingPlayer.hand : (Array.isArray(p.hand) ? p.hand : []),
+          deck: Array.isArray(p.deck) ? p.deck : [],
+          discard: Array.isArray(p.discard) ? p.discard : [],
+          buffs: Array.isArray(p.buffs) ? p.buffs : [],
+          debuffs: Array.isArray(p.debuffs) ? p.debuffs : [],
+        };
+      });
       updates.players = validPlayers;
     }
     if (newState.selected_card_id !== undefined) {
@@ -419,6 +446,20 @@ export const createMultiplayerSlice: StateCreator<
           }
         }, 300);
       }
+    }
+
+    // Auto-resync fallback: if transitioning to SELECT phase with empty hands, request full resync
+    // This catches edge cases where rapid syncs caused the card draw update to be missed
+    const finalPhase = updates.phase || currentState.phase;
+    if (finalPhase === "SELECT" && !currentState.isHost) {
+      setTimeout(() => {
+        const { players, localPlayerIndex, phase: currentPhase } = get();
+        const localPlayer = players[localPlayerIndex];
+        if (currentPhase === "SELECT" && (!localPlayer?.hand || localPlayer.hand.length === 0)) {
+          console.warn("[Sync] Empty hand detected in SELECT phase, requesting full resync");
+          get().syncState();
+        }
+      }, 500);
     }
   },
 

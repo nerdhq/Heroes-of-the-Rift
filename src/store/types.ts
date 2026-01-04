@@ -255,6 +255,7 @@ export interface MultiplayerActions {
   setConnected: (connected: boolean) => void;
   syncState: () => Promise<void>;
   syncGameStateToSupabase: () => Promise<void>;
+  debouncedSyncGameState: () => void;
   subscribeToGameState: () => void;
   unsubscribeFromGameState: () => void;
   submitAction: (actionType: string, actionData: Record<string, unknown>) => Promise<boolean>;
