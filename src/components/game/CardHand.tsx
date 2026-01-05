@@ -224,7 +224,7 @@ export function CardHand({
   const totalPlayers = playerSelections.length;
 
   return (
-    <div className="bg-stone-800/50 rounded-xl p-4 border border-stone-700 mt-3 flex-shrink-0 max-h-[35vh] overflow-y-auto">
+    <div className="bg-stone-800/50 rounded-xl p-3 sm:p-4 border border-stone-700 mt-2 flex-shrink-0 lg:max-h-[35vh] lg:overflow-y-auto">
       {/* Header with ready status for online mode */}
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-lg font-bold text-amber-100">

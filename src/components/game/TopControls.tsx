@@ -21,33 +21,33 @@ export function TopControls({
   onToggleBattleLog,
 }: TopControlsProps) {
   return (
-    <div className="absolute top-3 right-3 z-10 flex gap-2">
+    <div className="absolute top-2 right-2 sm:top-3 sm:right-3 z-10 flex gap-1 sm:gap-2">
       {/* Speed Settings Button */}
       <button
         onClick={onToggleSpeedSettings}
-        className={`bg-stone-800 hover:bg-stone-700 p-2 rounded-full border transition-colors ${
+        className={`bg-stone-800 hover:bg-stone-700 p-1.5 sm:p-2 rounded-full border transition-colors ${
           gameSpeed !== "normal" || skipAnimations
             ? "text-green-400 border-green-600"
             : "text-amber-400 border-stone-600"
         }`}
         title="Speed Settings"
       >
-        <FastForward className="w-5 h-5" />
+        <FastForward className="w-4 h-4 sm:w-5 sm:h-5" />
       </button>
 
-      {/* Help Button */}
+      {/* Help Button - hidden on mobile, accessible via menu */}
       <button
         onClick={onShowHelp}
-        className="bg-stone-800 hover:bg-stone-700 text-amber-400 p-2 rounded-full border border-stone-600 transition-colors"
+        className="hidden sm:block bg-stone-800 hover:bg-stone-700 text-amber-400 p-2 rounded-full border border-stone-600 transition-colors"
         title="Game Guide"
       >
         <HelpCircle className="w-5 h-5" />
       </button>
 
-      {/* Battle Log Toggle Button */}
+      {/* Battle Log Toggle Button - hidden on mobile (has dedicated tab) */}
       <button
         onClick={onToggleBattleLog}
-        className={`bg-stone-800 hover:bg-stone-700 p-2 rounded-full border transition-colors ${
+        className={`hidden lg:block bg-stone-800 hover:bg-stone-700 p-2 rounded-full border transition-colors ${
           showBattleLog
             ? "text-amber-400 border-amber-600"
             : "text-stone-400 border-stone-600"
@@ -60,10 +60,10 @@ export function TopControls({
       {/* Quit Button */}
       <button
         onClick={onShowQuitConfirm}
-        className="bg-stone-800 hover:bg-red-900 text-red-400 p-2 rounded-full border border-stone-600 hover:border-red-600 transition-colors"
+        className="bg-stone-800 hover:bg-red-900 text-red-400 p-1.5 sm:p-2 rounded-full border border-stone-600 hover:border-red-600 transition-colors"
         title="Quit Game"
       >
-        <LogOut className="w-5 h-5" />
+        <LogOut className="w-4 h-4 sm:w-5 sm:h-5" />
       </button>
     </div>
   );

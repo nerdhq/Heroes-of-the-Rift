@@ -12,3 +12,4 @@ export { QuitConfirmModal } from "./QuitConfirmModal";
 export { TopControls } from "./TopControls";
 export { CardHand } from "./CardHand";
 export { EnvironmentDisplay } from "./EnvironmentDisplay";
+export { MobileTabBar } from "./MobileTabBar";

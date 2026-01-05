@@ -56,7 +56,7 @@ export function MonsterCard({ monster, isSelectable = false, isSelected = false,
   return (
     <div
       onClick={handleClick}
-      className={`p-5 rounded-xl border-2 transition-all relative ${
+      className={`p-3 sm:p-5 rounded-xl border-2 transition-all relative ${
         monster.isAlive
           ? isSelected
             ? "border-purple-400 bg-purple-900/40 ring-2 ring-purple-400 shadow-lg shadow-purple-500/30"
@@ -73,7 +73,7 @@ export function MonsterCard({ monster, isSelectable = false, isSelected = false,
         </div>
       )}
       {/* Monster Header */}
-      <div className="text-center mb-3">
+      <div className="text-center mb-1 sm:mb-3">
         {/* Elite Modifier Badge */}
         {monster.eliteModifier && (
           <div
@@ -98,13 +98,17 @@ export function MonsterCard({ monster, isSelectable = false, isSelected = false,
               src={monster.image}
               alt={monster.name}
               className={`object-contain ${
-                monster.name.includes("Dragon") ? "w-40 h-40" : "w-36 h-36"
+                monster.name.includes("Dragon")
+                  ? "w-28 h-28 sm:w-40 sm:h-40"
+                  : "w-24 h-24 sm:w-36 sm:h-36"
               }`}
             />
           ) : (
             <span
               className={
-                monster.name.includes("Dragon") ? "text-6xl" : "text-5xl"
+                monster.name.includes("Dragon")
+                  ? "text-5xl sm:text-6xl"
+                  : "text-4xl sm:text-5xl"
               }
             >
               {monster.icon}
@@ -114,10 +118,10 @@ export function MonsterCard({ monster, isSelectable = false, isSelected = false,
         <h2
           className={`font-bold ${
             monster.name.includes("Dragon")
-              ? "text-2xl text-orange-400"
+              ? "text-lg sm:text-2xl text-orange-400"
               : monster.eliteModifier
-              ? "text-xl"
-              : "text-xl text-red-400"
+              ? "text-base sm:text-xl"
+              : "text-base sm:text-xl text-red-400"
           }`}
           style={
             monster.eliteModifier
@@ -127,13 +131,13 @@ export function MonsterCard({ monster, isSelectable = false, isSelected = false,
         >
           {monster.name}
         </h2>
-        <p className="text-stone-500 text-sm">Level {monster.level}</p>
+        <p className="text-stone-500 text-xs sm:text-sm">Level {monster.level}</p>
       </div>
 
       {/* HP Bar */}
-      <div className="mb-3">
-        <div className="flex items-center justify-center gap-2 text-base mb-1">
-          <Heart className="w-5 h-5 text-red-500" />
+      <div className="mb-1 sm:mb-3">
+        <div className="flex items-center justify-center gap-1 sm:gap-2 text-sm sm:text-base mb-1">
+          <Heart className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" />
           <span className="text-red-400 font-bold">
             {monster.hp} / {monster.maxHp}
           </span>
@@ -168,8 +172,8 @@ export function MonsterCard({ monster, isSelectable = false, isSelected = false,
 
       {/* Intent Preview */}
       {monster.isAlive && monster.intent && (
-        <div className="mt-2 p-2 bg-stone-900/50 rounded-lg border border-stone-600">
-          <div className="flex items-center justify-center gap-2 text-sm">
+        <div className="mt-1 sm:mt-2 p-1.5 sm:p-2 bg-stone-900/50 rounded-lg border border-stone-600">
+          <div className="flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm">
             <span className="animate-intent">
               {monster.intent.damage > 0
                 ? "⚔️"

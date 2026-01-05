@@ -14,6 +14,7 @@ import {
   TopControls,
   CardHand,
   EnvironmentDisplay,
+  MobileTabBar,
 } from "./game";
 
 export function GameScreen() {
@@ -21,6 +22,9 @@ export function GameScreen() {
   const [showQuitConfirm, setShowQuitConfirm] = useState(false);
   const [showSpeedSettings, setShowSpeedSettings] = useState(false);
   const [showBattleLog, setShowBattleLog] = useState(true);
+  const [activeTab, setActiveTab] = useState<"party" | "battle" | "log">(
+    "battle"
+  );
 
   // Game state from store
   const phase = useGameStore((state) => state.phase);
@@ -68,21 +72,27 @@ export function GameScreen() {
   const isOnline = useGameStore((state) => state.isOnline);
   const localPlayerIndex = useGameStore((state) => state.localPlayerIndex);
   const playerSelections = useGameStore((state) => state.playerSelections);
-  const subscribeToGameState = useGameStore((state) => state.subscribeToGameState);
-  const unsubscribeFromGameState = useGameStore((state) => state.unsubscribeFromGameState);
+  const subscribeToGameState = useGameStore(
+    (state) => state.subscribeToGameState
+  );
+  const unsubscribeFromGameState = useGameStore(
+    (state) => state.unsubscribeFromGameState
+  );
   const setPlayerSelection = useGameStore((state) => state.setPlayerSelection);
   const setPlayerReady = useGameStore((state) => state.setPlayerReady);
 
   const currentPlayer = players[currentPlayerIndex];
   const localPlayer = isOnline ? players[localPlayerIndex] : currentPlayer;
-  const isLocalPlayerTurn = !isOnline || localPlayerIndex === currentPlayerIndex;
+  const isLocalPlayerTurn =
+    !isOnline || localPlayerIndex === currentPlayerIndex;
   const needsTarget = needsTargetSelection();
   const targetType = getTargetType();
 
   // Get local player's selection state (for simultaneous play)
-  const localPlayerSelection = isOnline && localPlayer
-    ? playerSelections.find((sel) => sel.playerId === localPlayer.id)
-    : null;
+  const localPlayerSelection =
+    isOnline && localPlayer
+      ? playerSelections.find((sel) => sel.playerId === localPlayer.id)
+      : null;
 
   // Subscribe to game state changes when online
   useEffect(() => {
@@ -161,15 +171,21 @@ export function GameScreen() {
     // Get the selected card to check if it needs targeting
     const card = localPlayer?.hand.find((c) => c.id === cardId);
     if (!card) return;
-    
+
     // Check if this card needs a target
     const cardNeedsTarget = card.effects.some(
-      (e) => e.target === "monster" || e.target === "allMonsters" || e.target === "ally"
+      (e) =>
+        e.target === "monster" ||
+        e.target === "allMonsters" ||
+        e.target === "ally"
     );
     const cardTargetType = card.effects.find(
-      (e) => e.target === "monster" || e.target === "allMonsters" || e.target === "ally"
+      (e) =>
+        e.target === "monster" ||
+        e.target === "allMonsters" ||
+        e.target === "ally"
     )?.target;
-    
+
     if (cardNeedsTarget) {
       const validMonsters = monsters.filter((m) => m.isAlive);
       const validAllies = players.filter((p) => p.isAlive);
@@ -200,7 +216,7 @@ export function GameScreen() {
   };
 
   return (
-    <div className="h-screen bg-gradient-to-b from-stone-900 via-stone-800 to-stone-900 p-3 overflow-hidden relative flex flex-col">
+    <div className="h-screen bg-gradient-to-b from-stone-900 via-stone-800 to-stone-900 p-2 pb-18 lg:pb-3 overflow-hidden relative flex flex-col">
       {/* Top Right Controls */}
       <TopControls
         gameSpeed={gameSpeed}
@@ -234,7 +250,8 @@ export function GameScreen() {
         }}
       />
 
-      <div className="max-w-7xl mx-auto grid grid-cols-12 gap-4 flex-1 w-full min-h-0">
+      {/* Desktop Layout - hidden on mobile */}
+      <div className="hidden lg:grid max-w-7xl mx-auto grid-cols-12 gap-4 flex-1 w-full min-h-0">
         {/* Left Panel - Players */}
         <div className="col-span-3 flex flex-col gap-3 overflow-y-auto overflow-x-hidden pr-1 min-h-0">
           <h2 className="text-lg font-bold text-amber-400">Party</h2>
@@ -279,20 +296,28 @@ export function GameScreen() {
                 // For online mode, check if local player has selected a card that needs targeting
                 const onlineCardNeedsMonsterTarget = (() => {
                   if (!isOnline || !localPlayerSelection?.cardId) return false;
-                  const card = localPlayer?.hand.find((c) => c.id === localPlayerSelection.cardId);
-                  return card?.effects.some((e) => e.target === "monster") ?? false;
+                  const card = localPlayer?.hand.find(
+                    (c) => c.id === localPlayerSelection.cardId
+                  );
+                  return (
+                    card?.effects.some((e) => e.target === "monster") ?? false
+                  );
                 })();
 
                 // Monster is selectable when a card requiring monster target is selected
                 const isMonsterSelectable =
                   phase === "SELECT" &&
                   monster.isAlive &&
-                  (
-                    // Offline mode: card selected and needs monster target
-                    (!isOnline && !!selectedCardId && needsTarget && targetType === "monster" && isLocalPlayerTurn) ||
+                  // Offline mode: card selected and needs monster target
+                  ((!isOnline &&
+                    !!selectedCardId &&
+                    needsTarget &&
+                    targetType === "monster" &&
+                    isLocalPlayerTurn) ||
                     // Online mode: local player has card selected that needs monster target, and not ready
-                    (isOnline && onlineCardNeedsMonsterTarget && !localPlayerSelection?.isReady)
-                  );
+                    (isOnline &&
+                      onlineCardNeedsMonsterTarget &&
+                      !localPlayerSelection?.isReady));
 
                 const monsterIsSelected = isOnline
                   ? localPlayerSelection?.targetId === monster.id
@@ -305,9 +330,18 @@ export function GameScreen() {
                     isSelectable={isMonsterSelectable}
                     isSelected={monsterIsSelected}
                     onSelect={(monsterId) => {
-                      if (isOnline && localPlayer && localPlayerSelection?.cardId) {
+                      if (
+                        isOnline &&
+                        localPlayer &&
+                        localPlayerSelection?.cardId
+                      ) {
                         // Online mode: set target and auto-ready
-                        setPlayerSelection(localPlayer.id, localPlayerSelection.cardId, monsterId, localPlayerSelection.enhanceMode);
+                        setPlayerSelection(
+                          localPlayer.id,
+                          localPlayerSelection.cardId,
+                          monsterId,
+                          localPlayerSelection.enhanceMode
+                        );
                         setPlayerReady(localPlayer.id, true);
                       } else {
                         // Offline mode: select target and start dice roll
@@ -357,6 +391,151 @@ export function GameScreen() {
           )}
         </div>
       </div>
+
+      {/* Mobile Layout - Tabbed interface */}
+      <div className="lg:hidden flex-1 flex flex-col min-h-0 overflow-hidden">
+        {/* Party Tab */}
+        {activeTab === "party" && (
+          <div className="flex-1 overflow-y-auto px-2">
+            <h2 className="text-lg font-bold text-amber-400 py-3 sticky top-0 bg-stone-900/95 z-10">
+              Party
+            </h2>
+            <div className="flex flex-col gap-3 pb-4">
+              {players.map((player, index) => (
+                <PlayerCard
+                  key={player.id}
+                  player={player}
+                  isCurrentPlayer={index === currentPlayerIndex}
+                  isTargeted={
+                    player.id === highestAggroPlayerId &&
+                    player.isAlive &&
+                    monsters.some((m) => m.isAlive)
+                  }
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Battle Tab */}
+        {activeTab === "battle" && (
+          <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
+            <GameHeader
+              round={round}
+              maxRounds={maxRounds}
+              turn={turn}
+              phase={phase}
+              gold={userData.gold}
+            />
+            <EnvironmentDisplay environment={environment} />
+
+            <div className="px-2">
+              <div
+                className={`grid gap-2 py-1 ${
+                  monsters.length > 1
+                    ? "grid-cols-2"
+                    : "grid-cols-1 max-w-xs mx-auto"
+                }`}
+              >
+                {monsters.map((monster) => {
+                  const onlineCardNeedsMonsterTarget = (() => {
+                    if (!isOnline || !localPlayerSelection?.cardId)
+                      return false;
+                    const card = localPlayer?.hand.find(
+                      (c) => c.id === localPlayerSelection.cardId
+                    );
+                    return (
+                      card?.effects.some((e) => e.target === "monster") ?? false
+                    );
+                  })();
+
+                  const isMonsterSelectable =
+                    phase === "SELECT" &&
+                    monster.isAlive &&
+                    ((!isOnline &&
+                      !!selectedCardId &&
+                      needsTarget &&
+                      targetType === "monster" &&
+                      isLocalPlayerTurn) ||
+                      (isOnline &&
+                        onlineCardNeedsMonsterTarget &&
+                        !localPlayerSelection?.isReady));
+
+                  const monsterIsSelected = isOnline
+                    ? localPlayerSelection?.targetId === monster.id
+                    : selectedTargetId === monster.id;
+
+                  return (
+                    <MonsterCard
+                      key={monster.id}
+                      monster={monster}
+                      isSelectable={isMonsterSelectable}
+                      isSelected={monsterIsSelected}
+                      onSelect={(monsterId) => {
+                        if (
+                          isOnline &&
+                          localPlayer &&
+                          localPlayerSelection?.cardId
+                        ) {
+                          setPlayerSelection(
+                            localPlayer.id,
+                            localPlayerSelection.cardId,
+                            monsterId,
+                            localPlayerSelection.enhanceMode
+                          );
+                          setPlayerReady(localPlayer.id, true);
+                        } else {
+                          useGameStore.setState({
+                            selectedTargetId: monsterId,
+                          });
+                          startDiceRoll();
+                        }
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+
+            <CardHand
+              currentPlayer={currentPlayer}
+              localPlayer={localPlayer}
+              phase={phase}
+              selectedCardId={selectedCardId}
+              selectedTargetId={selectedTargetId}
+              enhanceMode={enhanceMode}
+              needsTarget={needsTarget}
+              targetType={targetType}
+              monsters={monsters}
+              players={players}
+              canUseSpecialAbility={canUseSpecialAbility()}
+              canEnhanceCard={canEnhanceCard()}
+              isOnline={isOnline}
+              isLocalPlayerTurn={isLocalPlayerTurn}
+              playerSelections={playerSelections}
+              localPlayerSelection={localPlayerSelection}
+              onSelectCard={isOnline ? selectCard : handleAutoPlayCard}
+              onSelectTarget={selectTarget}
+              onConfirmCard={handleConfirmCard}
+              onConfirmTarget={confirmTarget}
+              onUseSpecialAbility={useSpecialAbility}
+              onToggleEnhanceMode={() => setEnhanceMode(!enhanceMode)}
+              onSetPlayerSelection={setPlayerSelection}
+              onSetPlayerReady={setPlayerReady}
+            />
+          </div>
+        )}
+
+        {/* Log Tab */}
+        {activeTab === "log" && (
+          <div className="flex-1 flex flex-col min-h-0 px-2 py-3">
+            <BattleLog log={log} />
+          </div>
+        )}
+      </div>
+
+      {/* Mobile Tab Bar */}
+      <MobileTabBar activeTab={activeTab} onTabChange={setActiveTab} />
 
       {/* Dice Roll Overlay */}
       <DiceRollOverlay
