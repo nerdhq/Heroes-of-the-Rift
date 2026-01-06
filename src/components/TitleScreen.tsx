@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useGameStore } from "../store/gameStore";
-import { Sword, Shield, Scroll, Users, Wifi, Coins, ShoppingBag, Library, Crown, Star } from "lucide-react";
+import { Sword, Shield, Scroll, Users, Wifi, Coins, ShoppingBag, Library, Crown, Star, Map } from "lucide-react";
 import { isSupabaseConfigured } from "../lib/supabase";
 import { CLASS_CONFIGS } from "../data/classes";
 
@@ -109,16 +109,24 @@ export function TitleScreen() {
             onClick={startChampionGame}
             className="bg-gradient-to-r from-amber-700 to-amber-600 hover:from-amber-600 hover:to-amber-500 text-amber-100 font-bold py-4 px-8 rounded-lg text-xl transition-all transform hover:scale-105 shadow-lg shadow-amber-900/50"
           >
-            Play as {activeChampion.name}
+            Quick Game
           </button>
         ) : (
           <button
             onClick={() => setScreen("championSelect")}
             className="bg-gradient-to-r from-amber-700 to-amber-600 hover:from-amber-600 hover:to-amber-500 text-amber-100 font-bold py-4 px-8 rounded-lg text-xl transition-all transform hover:scale-105 shadow-lg shadow-amber-900/50"
           >
-            Start Game
+            Quick Game
           </button>
         )}
+
+        <button
+          onClick={() => setScreen("campaignSelect")}
+          className="bg-gradient-to-r from-red-700 to-red-600 hover:from-red-600 hover:to-red-500 text-red-100 font-bold py-4 px-8 rounded-lg text-xl transition-all transform hover:scale-105 shadow-lg shadow-red-900/50 flex items-center justify-center gap-3"
+        >
+          <Map className="w-6 h-6" />
+          Campaigns
+        </button>
 
         <button
           onClick={() => setScreen("championSelect")}

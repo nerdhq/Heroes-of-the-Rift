@@ -135,7 +135,12 @@ export const createPlayersSlice: SliceCreator<PlayersActions> = (set, get) => ({
         players: updatedPlayers,
         currentScreen: "game",
       });
-      get().startGame();
+      // Use campaign round start if in campaign mode, otherwise regular game start
+      if (get().campaignProgress) {
+        get().startCampaignRound();
+      } else {
+        get().startGame();
+      }
     }
   },
 

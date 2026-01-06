@@ -18,6 +18,8 @@ import {
   initialMultiplayerState,
   createProgressionSlice,
   initialProgressionState,
+  createCampaignSlice,
+  initialCampaignState,
 } from "./slices";
 
 export const useGameStore = create<GameStore>()(
@@ -28,6 +30,7 @@ export const useGameStore = create<GameStore>()(
       ...initialLobbyState,
       ...initialMultiplayerState,
       ...initialProgressionState,
+      ...initialCampaignState,
       ...createCoreSlice(...a),
       ...createPlayersSlice(...a),
       ...createCombatSlice(...a),
@@ -39,6 +42,7 @@ export const useGameStore = create<GameStore>()(
       ...createLobbySlice(...a),
       ...createMultiplayerSlice(...a),
       ...createProgressionSlice(...a),
+      ...createCampaignSlice(...a),
     }),
     {
       name: "dungeon-crawler-storage",

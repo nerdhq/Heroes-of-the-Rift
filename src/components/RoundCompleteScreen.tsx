@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useGameStore } from "../store/gameStore";
 import { CLASS_CONFIGS } from "../data/classes";
-import { Trophy, Coins, Plus, ArrowRight } from "lucide-react";
+import { Trophy, Coins, Plus, ArrowRight, Skull } from "lucide-react";
 import type { Card, Rarity } from "../types";
 
 export function RoundCompleteScreen() {
@@ -12,6 +12,12 @@ export function RoundCompleteScreen() {
   const selectedClasses = useGameStore((state) => state.selectedClasses);
   const roundGoldEarned = useGameStore((state) => state.roundGoldEarned);
   const continueFromRoundComplete = useGameStore((state) => state.continueFromRoundComplete);
+  const campaignProgress = useGameStore((state) => state.campaignProgress);
+  const activeCampaign = useGameStore((state) => state.activeCampaign);
+  const getCurrentQuest = useGameStore((state) => state.getCurrentQuest);
+
+  const quest = getCurrentQuest();
+  const isCampaignMode = !!campaignProgress;
 
   // State for card selection - one card per player
   const [playerCardSelections, setPlayerCardSelections] = useState<Record<number, string | null>>({});
@@ -82,6 +88,14 @@ export function RoundCompleteScreen() {
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
+          {/* Campaign Info */}
+          {isCampaignMode && activeCampaign && quest && (
+            <div className="mb-4">
+              <span className="text-stone-500 text-sm">{activeCampaign.name}</span>
+              <span className="text-stone-600 mx-2">•</span>
+              <span className="text-stone-400 text-sm">{quest.name}</span>
+            </div>
+          )}
           <div className="flex items-center justify-center gap-3 mb-4">
             <Trophy className="w-12 h-12 text-amber-400" />
             <h1 className="text-4xl font-bold text-amber-100">Round {round - 1} Complete!</h1>
@@ -91,6 +105,14 @@ export function RoundCompleteScreen() {
               ? `Prepare for Round ${round} of ${maxRounds}`
               : "Victory is near!"}
           </p>
+          {/* Boss Round Warning */}
+          {isCampaignMode && round === maxRounds && (
+            <div className="mt-3 flex items-center justify-center gap-2 text-red-400">
+              <Skull className="w-5 h-5" />
+              <span className="font-semibold">Next round: Boss Fight!</span>
+              <Skull className="w-5 h-5" />
+            </div>
+          )}
         </div>
 
         {/* Gold Earned */}

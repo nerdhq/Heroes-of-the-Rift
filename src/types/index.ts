@@ -84,7 +84,13 @@ export type ScreenType =
   | "roundComplete"
   | "postGame"
   | "victory"
-  | "defeat";
+  | "defeat"
+  | "campaignSelect"
+  | "campaignIntro"
+  | "questIntro"
+  | "questComplete"
+  | "campaignVictory"
+  | "campaignDefeat";
 
 // ============================================
 // EFFECT

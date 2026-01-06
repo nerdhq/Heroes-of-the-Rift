@@ -20,6 +20,12 @@ import { VictoryScreen } from "./components/VictoryScreen";
 import { DefeatScreen } from "./components/DefeatScreen";
 import { PostGameScreen } from "./components/PostGameScreen";
 import { OnlineChampionSelect } from "./components/OnlineChampionSelect";
+import { CampaignSelectScreen } from "./components/CampaignSelectScreen";
+import { CampaignIntroScreen } from "./components/CampaignIntroScreen";
+import { QuestIntroScreen } from "./components/QuestIntroScreen";
+import { QuestCompleteScreen } from "./components/QuestCompleteScreen";
+import { CampaignVictoryScreen } from "./components/CampaignVictoryScreen";
+import { CampaignDefeatScreen } from "./components/CampaignDefeatScreen";
 
 function App() {
   const currentScreen = useGameStore((state) => state.currentScreen);
@@ -55,6 +61,12 @@ function App() {
       {currentScreen === "postGame" && <PostGameScreen />}
       {currentScreen === "victory" && <VictoryScreen />}
       {currentScreen === "defeat" && <DefeatScreen />}
+      {currentScreen === "campaignSelect" && <CampaignSelectScreen />}
+      {currentScreen === "campaignIntro" && <CampaignIntroScreen />}
+      {currentScreen === "questIntro" && <QuestIntroScreen />}
+      {currentScreen === "questComplete" && <QuestCompleteScreen />}
+      {currentScreen === "campaignVictory" && <CampaignVictoryScreen />}
+      {currentScreen === "campaignDefeat" && <CampaignDefeatScreen />}
     </>
   );
 }

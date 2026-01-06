@@ -18,9 +18,13 @@ import type {
   CharacterAttributes,
 } from "../types";
 import type { Profile, GamePlayer } from "../lib/database.types";
+import type {
+  CampaignState,
+  CampaignActions,
+} from "../types/campaign";
 
 // Combined store type
-export type GameStore = GameState & AuthState & LobbyState & MultiplayerState & ProgressionState & GameActions;
+export type GameStore = GameState & AuthState & LobbyState & MultiplayerState & ProgressionState & CampaignState & GameActions;
 
 // Slice creator type helper
 export type SliceCreator<T> = StateCreator<GameStore, [], [], T>;
@@ -324,4 +328,5 @@ export interface GameActions
     AuthActions,
     LobbyActions,
     MultiplayerActions,
-    ProgressionActions {}
+    ProgressionActions,
+    CampaignActions {}

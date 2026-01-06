@@ -61,7 +61,12 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
     const firstAlivePlayerIndex = refreshedPlayers.findIndex((p) => p.isAlive);
 
     if (firstAlivePlayerIndex === -1) {
-      set({ currentScreen: "defeat" });
+      // Campaign mode: fail the campaign
+      if (get().campaignProgress) {
+        get().failCampaign();
+      } else {
+        set({ currentScreen: "defeat" });
+      }
       return;
     }
 
@@ -114,8 +119,60 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
   },
 
   nextRound: () => {
-    const { round, maxRounds, players } = get();
+    const { round, maxRounds, players, campaignProgress } = get();
 
+    // Campaign mode: check if this was a boss round (quest complete)
+    if (campaignProgress) {
+      const isBossRound = round >= maxRounds;
+      
+      if (isBossRound) {
+        // Quest complete - call campaign slice handler
+        get().completeQuest();
+        return;
+      }
+      
+      // Not boss round - advance to next round within quest
+      const healedPlayers = players.map((player) => {
+        if (!player.isAlive) return player;
+        const missingHp = player.maxHp - player.hp;
+        const healAmount = Math.floor(missingHp * 0.5);
+        return {
+          ...player,
+          hp: Math.min(player.maxHp, player.hp + healAmount),
+          baseAggro: 0,
+          diceAggro: 0,
+          gold: player.gold + 1,
+          deck: shuffleArray([...player.deck, ...player.discard]),
+          discard: [],
+          hand: [],
+        };
+      });
+
+      const alivePlayerCount = players.filter((p) => p.isAlive).length;
+      get().addUserGold(alivePlayerCount);
+
+      // Update campaign progress
+      const updatedProgress = {
+        ...campaignProgress,
+        currentRound: campaignProgress.currentRound + 1,
+      };
+      localStorage.setItem("campaignProgress", JSON.stringify(updatedProgress));
+
+      set({
+        round: round + 1,
+        turn: get().turn + 1,
+        players: healedPlayers,
+        playerSelections: [],
+        roundGoldEarned: alivePlayerCount,
+        campaignProgress: updatedProgress,
+        currentScreen: "roundComplete",
+      });
+
+      get().syncAfterAction();
+      return;
+    }
+
+    // Non-campaign mode: original logic
     if (round >= maxRounds) {
       set({ currentScreen: "victory" });
       return;
@@ -1012,7 +1069,12 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
       return;
     }
     if (updatedPlayers.every((p) => !p.isAlive)) {
-      set({ currentScreen: "defeat" });
+      // Campaign mode: fail the campaign
+      if (get().campaignProgress) {
+        get().failCampaign();
+      } else {
+        set({ currentScreen: "defeat" });
+      }
       return;
     }
 
@@ -1025,7 +1087,12 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
     const firstAlivePlayerIndex = players.findIndex((p) => p.isAlive);
 
     if (firstAlivePlayerIndex === -1) {
-      set({ currentScreen: "defeat" });
+      // Campaign mode: fail the campaign
+      if (get().campaignProgress) {
+        get().failCampaign();
+      } else {
+        set({ currentScreen: "defeat" });
+      }
       return;
     }
 

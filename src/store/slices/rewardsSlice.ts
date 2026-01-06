@@ -298,7 +298,11 @@ export const createRewardsSlice: SliceCreator<RewardsActions> = (set, get) => ({
       currentScreen: "game",
     });
 
-    // Continue to start the next round
-    get().startRound();
+    // Continue to start the next round - use campaign round if in campaign mode
+    if (get().campaignProgress) {
+      get().startCampaignRound();
+    } else {
+      get().startRound();
+    }
   },
 });
