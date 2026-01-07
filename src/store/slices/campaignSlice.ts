@@ -13,6 +13,7 @@ import {
 } from "../../data/monsters";
 import { ENVIRONMENTS } from "../../data/environments";
 import type { Monster, Environment } from "../../types";
+import { createPlayer } from "../utils";
 
 // ============================================
 // INITIAL CAMPAIGN STATE
@@ -81,10 +82,17 @@ export const createCampaignSlice: StateCreator<
       return;
     }
 
+    const { activeChampion } = get();
+    if (!activeChampion) {
+      console.error("No active champion selected for campaign");
+      return;
+    }
+
     // Determine total rounds for first quest
     const firstQuest = campaign.quests[0];
     const totalRounds = getRandomInt(firstQuest.minRounds, firstQuest.maxRounds) + 1; // +1 for boss round
 
+    // Progress is created without deck - deck will be saved after deck building
     const progress: CampaignProgress = {
       campaignId,
       currentQuestIndex: 0,
@@ -92,6 +100,8 @@ export const createCampaignSlice: StateCreator<
       totalRounds,
       status: "in_progress",
       startedAt: Date.now(),
+      savedChampionId: activeChampion.id,
+      savedDeck: [], // Will be populated after deck building
     };
 
     // Save progress to localStorage
@@ -348,11 +358,52 @@ export const createCampaignSlice: StateCreator<
 
   // Resume a saved campaign
   resumeCampaign: () => {
-    const { activeCampaign, campaignProgress } = get();
+    const { activeCampaign, campaignProgress, playerAccount } = get();
     if (!activeCampaign || !campaignProgress) return;
 
-    // Go to quest intro for the current quest
-    set({ currentScreen: "questIntro" });
+    // Find the saved champion
+    const savedChampion = playerAccount?.champions.find(
+      (c) => c.id === campaignProgress.savedChampionId
+    );
+    
+    if (!savedChampion) {
+      console.error("Saved champion not found for campaign");
+      return;
+    }
+
+    // Set the saved champion as active
+    set({ activeChampion: savedChampion });
+
+    // If we have a saved deck, skip deck building and go directly to quest
+    if (campaignProgress.savedDeck.length > 0) {
+      // Restore the deck from saved card IDs
+      const savedDeck = campaignProgress.savedDeck
+        .map((cardId) => savedChampion.ownedCards.find((c) => c.id === cardId))
+        .filter((c): c is NonNullable<typeof c> => c !== undefined)
+        .map((card) => ({
+          ...card,
+          id: `${card.id}-0-${Date.now()}`, // Generate unique IDs for this game session
+        }));
+
+      // Create player with saved deck
+      const newPlayer = createPlayer(
+        "player-0",
+        savedChampion.name,
+        savedChampion.class,
+        savedDeck,
+        savedChampion
+      );
+
+      set({
+        selectedClasses: [savedChampion.class],
+        heroNames: [savedChampion.name],
+        players: [newPlayer],
+        currentScreen: "questIntro",
+      });
+    } else {
+      // No saved deck yet - go to deck building
+      set({ currentScreen: "questIntro" });
+    }
   },
 
   // Save current campaign progress to localStorage

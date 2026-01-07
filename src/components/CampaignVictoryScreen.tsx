@@ -7,6 +7,8 @@ export function CampaignVictoryScreen() {
   const players = useGameStore((state) => state.players);
   const setScreen = useGameStore((state) => state.setScreen);
   const resetGame = useGameStore((state) => state.resetGame);
+  const activeChampion = useGameStore((state) => state.activeChampion);
+  const addChampionGold = useGameStore((state) => state.addChampionGold);
 
   if (!activeCampaign || !campaignProgress) {
     return (
@@ -24,6 +26,13 @@ export function CampaignVictoryScreen() {
     : 0;
 
   const handleReturnToTitle = () => {
+    // Save gold earned to champion before resetting
+    if (activeChampion) {
+      const player = players.find((p) => p.championId === activeChampion.id);
+      if (player && player.gold > 0) {
+        addChampionGold(activeChampion.id, player.gold);
+      }
+    }
     resetGame();
     setScreen("title");
   };

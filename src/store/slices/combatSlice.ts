@@ -61,6 +61,14 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
     const firstAlivePlayerIndex = refreshedPlayers.findIndex((p) => p.isAlive);
 
     if (firstAlivePlayerIndex === -1) {
+      // Save gold to champion before showing defeat
+      const { activeChampion } = get();
+      if (activeChampion) {
+        const championPlayer = refreshedPlayers.find((p) => p.championId === activeChampion.id);
+        if (championPlayer && championPlayer.gold > 0) {
+          get().addChampionGold(activeChampion.id, championPlayer.gold);
+        }
+      }
       // Campaign mode: fail the campaign
       if (get().campaignProgress) {
         get().failCampaign();
@@ -174,6 +182,14 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
 
     // Non-campaign mode: original logic
     if (round >= maxRounds) {
+      // Save gold to champion before showing victory
+      const { activeChampion, players: currentPlayers } = get();
+      if (activeChampion) {
+        const championPlayer = currentPlayers.find((p) => p.championId === activeChampion.id);
+        if (championPlayer && championPlayer.gold > 0) {
+          get().addChampionGold(activeChampion.id, championPlayer.gold);
+        }
+      }
       set({ currentScreen: "victory" });
       return;
     }
@@ -850,6 +866,14 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
     get().syncAfterAction();
 
     if (updatedPlayers.every((p) => !p.isAlive)) {
+      // Save gold to champion before showing defeat
+      const { activeChampion } = get();
+      if (activeChampion) {
+        const championPlayer = updatedPlayers.find((p) => p.championId === activeChampion.id);
+        if (championPlayer && championPlayer.gold > 0) {
+          get().addChampionGold(activeChampion.id, championPlayer.gold);
+        }
+      }
       set({ currentScreen: "defeat" });
       return;
     }
@@ -1069,6 +1093,14 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
       return;
     }
     if (updatedPlayers.every((p) => !p.isAlive)) {
+      // Save gold to champion before showing defeat
+      const { activeChampion } = get();
+      if (activeChampion) {
+        const championPlayer = updatedPlayers.find((p) => p.championId === activeChampion.id);
+        if (championPlayer && championPlayer.gold > 0) {
+          get().addChampionGold(activeChampion.id, championPlayer.gold);
+        }
+      }
       // Campaign mode: fail the campaign
       if (get().campaignProgress) {
         get().failCampaign();
@@ -1087,6 +1119,14 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
     const firstAlivePlayerIndex = players.findIndex((p) => p.isAlive);
 
     if (firstAlivePlayerIndex === -1) {
+      // Save gold to champion before showing defeat
+      const { activeChampion } = get();
+      if (activeChampion) {
+        const championPlayer = players.find((p) => p.championId === activeChampion.id);
+        if (championPlayer && championPlayer.gold > 0) {
+          get().addChampionGold(activeChampion.id, championPlayer.gold);
+        }
+      }
       // Campaign mode: fail the campaign
       if (get().campaignProgress) {
         get().failCampaign();
@@ -1581,6 +1621,14 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
     }
 
     if (finalPlayers.every((p) => !p.isAlive)) {
+      // Save gold to champion before showing defeat
+      const { activeChampion } = get();
+      if (activeChampion) {
+        const championPlayer = finalPlayers.find((p) => p.championId === activeChampion.id);
+        if (championPlayer && championPlayer.gold > 0) {
+          get().addChampionGold(activeChampion.id, championPlayer.gold);
+        }
+      }
       set({ currentScreen: "defeat" });
       return;
     }

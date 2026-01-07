@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useGameStore } from "../store/gameStore";
-import { Sword, Shield, Scroll, Users, Wifi, Coins, ShoppingBag, Library, Crown, Star, Map } from "lucide-react";
+import { Sword, Shield, Scroll, Users, Wifi, Coins, ShoppingBag, Library, Crown, Star, Map, Play } from "lucide-react";
 import { isSupabaseConfigured } from "../lib/supabase";
 import { CLASS_CONFIGS } from "../data/classes";
 
@@ -25,12 +25,17 @@ export function TitleScreen() {
   const activeChampion = useGameStore((state) => state.activeChampion);
   const loadProgression = useGameStore((state) => state.loadProgression);
   const startChampionGame = useGameStore((state) => state.startChampionGame);
+  const campaignProgress = useGameStore((state) => state.campaignProgress);
+  const activeCampaign = useGameStore((state) => state.activeCampaign);
+  const resumeCampaign = useGameStore((state) => state.resumeCampaign);
+  const loadCampaigns = useGameStore((state) => state.loadCampaigns);
 
-  // Load user data and progression on mount
+  // Load user data, progression, and campaigns on mount
   useEffect(() => {
     loadUserData();
     loadProgression();
-  }, [loadUserData, loadProgression]);
+    loadCampaigns();
+  }, [loadUserData, loadProgression, loadCampaigns]);
 
   const handlePlayOnline = () => {
     if (isAuthenticated) {
@@ -104,6 +109,17 @@ export function TitleScreen() {
 
       {/* Menu buttons */}
       <div className="flex flex-col gap-4 w-80">
+        {/* Continue Campaign button - shown when there's an active campaign */}
+        {campaignProgress && activeCampaign && campaignProgress.status === "in_progress" && (
+          <button
+            onClick={resumeCampaign}
+            className="bg-gradient-to-r from-emerald-700 to-emerald-600 hover:from-emerald-600 hover:to-emerald-500 text-emerald-100 font-bold py-4 px-8 rounded-lg text-xl transition-all transform hover:scale-105 shadow-lg shadow-emerald-900/50 flex items-center justify-center gap-3 border-2 border-emerald-400/50"
+          >
+            <Play className="w-6 h-6" />
+            Continue Campaign
+          </button>
+        )}
+
         {activeChampion ? (
           <button
             onClick={startChampionGame}

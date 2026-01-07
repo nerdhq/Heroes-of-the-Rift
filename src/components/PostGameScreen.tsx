@@ -47,6 +47,7 @@ export function PostGameScreen() {
   const round = useGameStore((state) => state.round);
   const players = useGameStore((state) => state.players);
   const roundGoldEarned = useGameStore((state) => state.roundGoldEarned);
+  const addChampionGold = useGameStore((state) => state.addChampionGold);
 
   // Summary state - in a real app this would come from the game ending logic
   const [summary, setSummary] = useState<GameSummary | null>(null);
@@ -271,7 +272,16 @@ export function PostGameScreen() {
           </button>
         )}
         <button
-          onClick={() => setScreen("title")}
+          onClick={() => {
+            // Save gold earned to champion before returning to title
+            if (activeChampion) {
+              const player = players.find((p) => p.championId === activeChampion.id);
+              if (player && player.gold > 0) {
+                addChampionGold(activeChampion.id, player.gold);
+              }
+            }
+            setScreen("title");
+          }}
           className="bg-gradient-to-r from-amber-700 to-amber-600 hover:from-amber-600 hover:to-amber-500 text-amber-100 font-bold py-3 px-8 rounded-lg text-lg transition-all hover:scale-105"
         >
           Return to Title

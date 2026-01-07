@@ -7,6 +7,12 @@ export function QuestIntroScreen() {
   const getCurrentQuest = useGameStore((state) => state.getCurrentQuest);
   const isFinalQuest = useGameStore((state) => state.isFinalQuest);
   const setScreen = useGameStore((state) => state.setScreen);
+  const startCampaignRound = useGameStore((state) => state.startCampaignRound);
+  const players = useGameStore((state) => state.players);
+
+  // Check if we have a saved deck (resuming campaign) - player should already be set up
+  const hasSavedDeck = campaignProgress?.savedDeck && campaignProgress.savedDeck.length > 0;
+  const hasPlayerSetUp = players.length > 0;
 
   const quest = getCurrentQuest();
 
@@ -115,14 +121,22 @@ export function QuestIntroScreen() {
             Abandon Campaign
           </button>
           <button
-            onClick={() => setScreen("championSelect")}
+            onClick={() => {
+              if (hasSavedDeck && hasPlayerSetUp) {
+                // Resuming with saved deck - start the round directly
+                startCampaignRound();
+              } else {
+                // New campaign or no deck yet - go to champion/deck selection
+                setScreen("championSelect");
+              }
+            }}
             className="px-8 py-3 rounded-lg font-bold text-lg transition-all transform hover:scale-105"
             style={{
               backgroundColor: activeCampaign.themeColor,
               color: "#1c1917",
             }}
           >
-            Select Champions →
+            {hasSavedDeck && hasPlayerSetUp ? "Begin Quest →" : "Select Champions →"}
           </button>
         </div>
       </div>

@@ -162,6 +162,7 @@ function ChampionCard({
 
 export function ChampionSelectScreen() {
   const setScreen = useGameStore((state) => state.setScreen);
+  const setReturnScreen = useGameStore((state) => state.setReturnScreen);
   const playerAccount = useGameStore((state) => state.playerAccount);
   const activeChampion = useGameStore((state) => state.activeChampion);
   const loadProgression = useGameStore((state) => state.loadProgression);
@@ -238,7 +239,10 @@ export function ChampionSelectScreen() {
           {/* Create new button */}
           {canCreateMore && (
             <button
-              onClick={() => setScreen("championCreate")}
+              onClick={() => {
+                setReturnScreen("championSelect");
+                setScreen("championCreate");
+              }}
               className="bg-stone-800/50 border-2 border-dashed border-stone-600 rounded-xl p-8 flex flex-col items-center justify-center gap-3 text-stone-400 hover:border-amber-500 hover:text-amber-400 transition-all"
             >
               <Plus className="w-12 h-12" />

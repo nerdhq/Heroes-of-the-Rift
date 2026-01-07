@@ -62,6 +62,10 @@ export interface CampaignProgress {
   status: "in_progress" | "completed" | "failed";
   startedAt: number;
   completedAt?: number;
+  
+  // Locked-in selections for the campaign
+  savedChampionId: string; // Champion used for this campaign
+  savedDeck: string[]; // Card IDs of the deck selected at campaign start
 }
 
 // ============================================

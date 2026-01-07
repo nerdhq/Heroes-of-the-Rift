@@ -106,6 +106,11 @@ export function GameScreen() {
     };
   }, [isOnline, subscribeToGameState, unsubscribeFromGameState]);
 
+  // Close battle log when a new round starts
+  useEffect(() => {
+    setShowBattleLog(false);
+  }, [round]);
+
   // Clean up old action messages after they've been displayed
   useEffect(() => {
     if (animation.actionMessages.length === 0) return;

@@ -9,6 +9,7 @@ export function RoundCompleteScreen() {
   const round = useGameStore((state) => state.round);
   const maxRounds = useGameStore((state) => state.maxRounds);
   const userData = useGameStore((state) => state.userData);
+  const activeChampion = useGameStore((state) => state.activeChampion);
   const selectedClasses = useGameStore((state) => state.selectedClasses);
   const roundGoldEarned = useGameStore((state) => state.roundGoldEarned);
   const continueFromRoundComplete = useGameStore((state) => state.continueFromRoundComplete);
@@ -50,9 +51,18 @@ export function RoundCompleteScreen() {
     if (!player) return [];
     
     const playerClass = selectedClasses[playerIndex];
-    const ownedClassCards = (userData?.ownedCards ?? []).filter(
-      (card) => card.class === playerClass
-    );
+    
+    // Check if this player is the active champion (first player in solo champion mode)
+    const isChampionPlayer = 
+      playerIndex === 0 && 
+      activeChampion && 
+      selectedClasses.length === 1 && 
+      selectedClasses[0] === activeChampion.class;
+    
+    // Use champion's owned cards if playing as champion, otherwise use legacy userData
+    const ownedClassCards = isChampionPlayer
+      ? activeChampion.ownedCards.filter((card) => card.class === playerClass)
+      : (userData?.ownedCards ?? []).filter((card) => card.class === playerClass);
     
     // Get card names already in player's deck
     const deckCardNames = new Set([

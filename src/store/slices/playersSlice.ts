@@ -135,6 +135,24 @@ export const createPlayersSlice: SliceCreator<PlayersActions> = (set, get) => ({
         players: updatedPlayers,
         currentScreen: "game",
       });
+      
+      // Save deck to campaign progress if in campaign mode and deck not yet saved
+      const { campaignProgress } = get();
+      if (campaignProgress && campaignProgress.savedDeck.length === 0) {
+        // Save the original card IDs (before unique ID generation) to campaign progress
+        const originalCardIds = availableCards
+          .filter((card) => selectedDeckCards.includes(card.id))
+          .map((card) => card.id);
+        
+        const updatedProgress = {
+          ...campaignProgress,
+          savedDeck: originalCardIds,
+        };
+        
+        set({ campaignProgress: updatedProgress });
+        localStorage.setItem("campaignProgress", JSON.stringify(updatedProgress));
+      }
+      
       // Use campaign round start if in campaign mode, otherwise regular game start
       if (get().campaignProgress) {
         get().startCampaignRound();
