@@ -21,7 +21,6 @@ export function GameScreen() {
   const [showHelp, setShowHelp] = useState(false);
   const [showQuitConfirm, setShowQuitConfirm] = useState(false);
   const [showSpeedSettings, setShowSpeedSettings] = useState(false);
-  const [showBattleLog, setShowBattleLog] = useState(true);
   const [activeTab, setActiveTab] = useState<"party" | "battle" | "log">(
     "battle"
   );
@@ -88,6 +87,11 @@ export function GameScreen() {
   const needsTarget = needsTargetSelection();
   const targetType = getTargetType();
 
+  const [battleLogOpenRound, setBattleLogOpenRound] = useState<number | null>(
+    () => round
+  );
+  const showBattleLog = battleLogOpenRound === round;
+
   // Get local player's selection state (for simultaneous play)
   const localPlayerSelection =
     isOnline && localPlayer
@@ -105,11 +109,6 @@ export function GameScreen() {
       }
     };
   }, [isOnline, subscribeToGameState, unsubscribeFromGameState]);
-
-  // Close battle log when a new round starts
-  useEffect(() => {
-    setShowBattleLog(false);
-  }, [round]);
 
   // Clean up old action messages after they've been displayed
   useEffect(() => {
@@ -230,7 +229,9 @@ export function GameScreen() {
         onToggleSpeedSettings={() => setShowSpeedSettings(!showSpeedSettings)}
         onShowHelp={() => setShowHelp(true)}
         onShowQuitConfirm={() => setShowQuitConfirm(true)}
-        onToggleBattleLog={() => setShowBattleLog(!showBattleLog)}
+        onToggleBattleLog={() =>
+          setBattleLogOpenRound(showBattleLog ? null : round)
+        }
       />
 
       {/* Speed Settings Dropdown */}
