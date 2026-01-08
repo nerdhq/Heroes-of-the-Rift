@@ -8,7 +8,6 @@ export function RoundCompleteScreen() {
   const players = useGameStore((state) => state.players);
   const round = useGameStore((state) => state.round);
   const maxRounds = useGameStore((state) => state.maxRounds);
-  const userData = useGameStore((state) => state.userData);
   const activeChampion = useGameStore((state) => state.activeChampion);
   const selectedClasses = useGameStore((state) => state.selectedClasses);
   const roundGoldEarned = useGameStore((state) => state.roundGoldEarned);
@@ -59,10 +58,10 @@ export function RoundCompleteScreen() {
       selectedClasses.length === 1 && 
       selectedClasses[0] === activeChampion.class;
     
-    // Use champion's owned cards if playing as champion, otherwise use legacy userData
+    // Use champion's owned cards if playing as champion
     const ownedClassCards = isChampionPlayer
-      ? activeChampion.ownedCards.filter((card) => card.class === playerClass)
-      : (userData?.ownedCards ?? []).filter((card) => card.class === playerClass);
+      ? activeChampion.ownedCards.filter((card: Card) => card.class === playerClass)
+      : [];
     
     // Get card names already in player's deck
     const deckCardNames = new Set([
@@ -132,7 +131,7 @@ export function RoundCompleteScreen() {
             <span className="text-3xl font-bold text-yellow-300">+{roundGoldEarned} Gold Earned</span>
           </div>
           <p className="text-yellow-200/70">
-            Total Gold: {userData?.gold ?? 0}
+            {activeChampion?.name}'s Gold: {alivePlayers[0]?.gold ?? 0}
           </p>
         </div>
 

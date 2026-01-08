@@ -57,6 +57,7 @@ export function TitleScreen() {
           <Shield className="w-12 h-12 text-amber-500" />
         </div>
         <p className="text-stone-400 text-xl">A Co-op Card Dungeon Crawler</p>
+        <p className="text-stone-600 text-sm mt-2">Up to 5 Heroes • Turn-based Combat • Deck Building</p>
       </div>
 
       {/* Active Champion Display */}
@@ -205,10 +206,6 @@ export function TitleScreen() {
         </button>
       </div>
 
-      {/* Footer */}
-      <div className="absolute bottom-8 text-stone-600 text-sm">
-        <p>Up to 5 Heroes • Turn-based Combat • Deck Building</p>
-      </div>
     </div>
   );
 }

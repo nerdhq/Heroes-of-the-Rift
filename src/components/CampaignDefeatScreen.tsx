@@ -10,7 +10,7 @@ export function CampaignDefeatScreen() {
   const startCampaign = useGameStore((state) => state.startCampaign);
   const players = useGameStore((state) => state.players);
   const activeChampion = useGameStore((state) => state.activeChampion);
-  const addChampionGold = useGameStore((state) => state.addChampionGold);
+  const setChampionGold = useGameStore((state) => state.setChampionGold);
 
   const quest = getCurrentQuest();
 
@@ -25,11 +25,11 @@ export function CampaignDefeatScreen() {
   const questNumber = campaignProgress.currentQuestIndex + 1;
 
   const handleReturnToTitle = () => {
-    // Save gold earned to champion before resetting
+    // Save gold to champion before resetting
     if (activeChampion) {
       const player = players.find((p) => p.championId === activeChampion.id);
-      if (player && player.gold > 0) {
-        addChampionGold(activeChampion.id, player.gold);
+      if (player) {
+        setChampionGold(activeChampion.id, player.gold);
       }
     }
     resetGame();

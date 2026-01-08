@@ -309,6 +309,7 @@ export interface ProgressionActions {
 
   // Economy (per-champion)
   addChampionGold: (championId: string, amount: number) => void | Promise<void>;
+  setChampionGold: (championId: string, newGold: number) => void | Promise<void>;
   spendChampionGold: (championId: string, amount: number) => boolean | Promise<boolean>;
   addCardToChampion: (championId: string, card: Card) => void | Promise<void>;
 

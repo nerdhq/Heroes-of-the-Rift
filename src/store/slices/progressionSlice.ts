@@ -662,6 +662,54 @@ export const createProgressionSlice: SliceCreator<ProgressionActions> = (
     }
   },
 
+  setChampionGold: async (championId: string, newGold: number) => {
+    const { playerAccount, user } = get();
+    if (!playerAccount) return;
+
+    const champion = playerAccount.champions.find((c) => c.id === championId);
+    if (!champion) return;
+
+    // Calculate gold earned for stats tracking
+    const goldEarned = Math.max(0, newGold - champion.gold);
+    const newStats = goldEarned > 0 ? {
+      ...champion.stats,
+      totalGoldEarned: champion.stats.totalGoldEarned + goldEarned,
+    } : champion.stats;
+
+    // If authenticated, update in Supabase
+    if (user) {
+      try {
+        await getSupabase()
+          .from("champions")
+          .update({ gold: newGold, stats: newStats })
+          .eq("id", championId)
+          .eq("user_id", user.id);
+      } catch (error) {
+        console.error("Failed to set gold in Supabase:", error);
+      }
+    }
+
+    const updatedChampion: Champion = {
+      ...champion,
+      gold: newGold,
+      stats: newStats,
+    };
+
+    const updatedChampions = playerAccount.champions.map((c) =>
+      c.id === championId ? updatedChampion : c
+    );
+
+    const isActive = get().activeChampion?.id === championId;
+    set({
+      playerAccount: { ...playerAccount, champions: updatedChampions },
+      activeChampion: isActive ? updatedChampion : get().activeChampion,
+    });
+
+    if (!user) {
+      get().saveProgression();
+    }
+  },
+
   spendChampionGold: async (championId: string, amount: number): Promise<boolean> => {
     const { playerAccount, user } = get();
     if (!playerAccount) return false;

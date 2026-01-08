@@ -10,7 +10,7 @@ export function QuestCompleteScreen() {
   const setScreen = useGameStore((state) => state.setScreen);
   const resetGame = useGameStore((state) => state.resetGame);
   const activeChampion = useGameStore((state) => state.activeChampion);
-  const addChampionGold = useGameStore((state) => state.addChampionGold);
+  const setChampionGold = useGameStore((state) => state.setChampionGold);
 
   const quest = getCurrentQuest();
 
@@ -118,11 +118,11 @@ export function QuestCompleteScreen() {
         <div className="flex justify-center gap-4">
           <button
             onClick={() => {
-              // Save gold earned to champion before resetting
+              // Save gold to champion before resetting
               if (activeChampion) {
                 const player = players.find((p) => p.championId === activeChampion.id);
-                if (player && player.gold > 0) {
-                  addChampionGold(activeChampion.id, player.gold);
+                if (player) {
+                  setChampionGold(activeChampion.id, player.gold);
                 }
               }
               resetGame();
