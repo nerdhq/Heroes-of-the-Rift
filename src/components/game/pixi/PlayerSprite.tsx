@@ -3,20 +3,54 @@ import { useTick } from "@pixi/react";
 import { TextStyle } from "pixi.js";
 import type { Ticker } from "pixi.js";
 import { CLASS_CONFIGS } from "../../../data/classes";
-import type { Player } from "../../../types";
+import type { Player, StatusEffect } from "../../../types";
+import { AnimatedCharacter, type LPCAnimationType } from "./AnimatedCharacter";
+import { getSprite, hasSprite, LPC_FRAME_HEIGHT } from "../../../assets/sprites/classes";
+import { useGameStore } from "../../../store/gameStore";
 
 // Text styles
 const nameStyle = new TextStyle({
   fontFamily: "Arial, sans-serif",
-  fontSize: 10,
+  fontSize: 11,
   fontWeight: "bold",
   fill: 0xffffff,
+  stroke: { color: 0x000000, width: 3 },
+});
+
+const classStyle = new TextStyle({
+  fontFamily: "Arial, sans-serif",
+  fontSize: 8,
+  fill: 0xaaaaaa,
   stroke: { color: 0x000000, width: 2 },
 });
 
 const hpStyle = new TextStyle({
   fontFamily: "Arial, sans-serif",
   fontSize: 9,
+  fontWeight: "bold",
+  fill: 0xffffff,
+  stroke: { color: 0x000000, width: 2 },
+});
+
+const shieldStyle = new TextStyle({
+  fontFamily: "Arial, sans-serif",
+  fontSize: 8,
+  fontWeight: "bold",
+  fill: 0x60a5fa,
+  stroke: { color: 0x000000, width: 2 },
+});
+
+const effectLabelStyle = new TextStyle({
+  fontFamily: "Arial, sans-serif",
+  fontSize: 7,
+  fontWeight: "bold",
+  fill: 0xffffff,
+  stroke: { color: 0x000000, width: 2 },
+});
+
+const durationStyle = new TextStyle({
+  fontFamily: "Arial, sans-serif",
+  fontSize: 6,
   fontWeight: "bold",
   fill: 0xffffff,
   stroke: { color: 0x000000, width: 1 },
@@ -36,6 +70,46 @@ function hexToNumber(hex: string): number {
   return parseInt(hex.replace("#", ""), 16);
 }
 
+// Get effect display info
+function getEffectInfo(effect: StatusEffect, isBuff: boolean): {
+  color: number;
+  symbol: string;
+  label: string;
+  bgColor: number;
+} {
+  switch (effect.type) {
+    case "poison":
+      return { color: 0x22c55e, symbol: "☠", label: "PSN", bgColor: 0x14532d };
+    case "burn":
+      return { color: 0xf97316, symbol: "🔥", label: "BRN", bgColor: 0x7c2d12 };
+    case "ice":
+      return { color: 0x38bdf8, symbol: "❄", label: "ICE", bgColor: 0x0c4a6e };
+    case "stun":
+      return { color: 0xfbbf24, symbol: "⚡", label: "STN", bgColor: 0x78350f };
+    case "stealth":
+      return { color: 0x8b5cf6, symbol: "👁", label: "STL", bgColor: 0x4c1d95 };
+    case "taunt":
+      return { color: 0xf97316, symbol: "🛡", label: "TNT", bgColor: 0x7c2d12 };
+    case "strength":
+      return { color: 0xef4444, symbol: "⚔", label: "STR", bgColor: 0x7f1d1d };
+    case "shield":
+      return { color: 0x3b82f6, symbol: "🛡", label: "SHL", bgColor: 0x1e3a5f };
+    case "weakness":
+      return { color: 0xa855f7, symbol: "↓", label: "WKN", bgColor: 0x581c87 };
+    case "heal":
+      return { color: 0x22c55e, symbol: "♥", label: "HoT", bgColor: 0x14532d };
+    case "block":
+      return { color: 0x6b7280, symbol: "⬢", label: "BLK", bgColor: 0x374151 };
+    default:
+      return {
+        color: isBuff ? 0x22c55e : 0xef4444,
+        symbol: isBuff ? "+" : "-",
+        label: effect.type.substring(0, 3).toUpperCase(),
+        bgColor: isBuff ? 0x14532d : 0x7f1d1d
+      };
+  }
+}
+
 export function PlayerSprite({
   player,
   x,
@@ -46,32 +120,82 @@ export function PlayerSprite({
 }: PlayerSpriteProps) {
   const config = CLASS_CONFIGS[player.class];
 
+  // Check if this class has a sprite
+  const spriteUrl = getSprite(player.class);
+  const useAnimatedSprite = hasSprite(player.class);
+
+  // Listen for attack animations from the store
+  const attackingEntityId = useGameStore((state) => state.animation.attackingEntityId);
+  const attackAnimation = useGameStore((state) => state.animation.attackAnimation);
+
   // Animation state
   const [offsetY, setOffsetY] = useState(0);
   const [scale, setScale] = useState(1);
-  const animationRef = useRef({ time: Math.random() * Math.PI * 2, prevHp: player.hp });
+  const [characterAnimation, setCharacterAnimation] = useState<LPCAnimationType>("idle");
+  const [tint, setTint] = useState(0xffffff);
+  const animationRef = useRef({
+    time: Math.random() * Math.PI * 2,
+    prevHp: player.hp,
+    isAnimating: false
+  });
 
-  // Idle breathing animation
+  // Handle attack animation triggered from store
+  useEffect(() => {
+    if (attackingEntityId === player.id && attackAnimation && useAnimatedSprite) {
+      animationRef.current.isAnimating = true;
+      setCharacterAnimation(attackAnimation);
+    }
+  }, [attackingEntityId, attackAnimation, player.id, useAnimatedSprite]);
+
+  // Reset to idle when attack animation is cleared
+  useEffect(() => {
+    if (!attackingEntityId && animationRef.current.isAnimating) {
+      animationRef.current.isAnimating = false;
+      setCharacterAnimation("idle");
+    }
+  }, [attackingEntityId]);
+
+  // Idle breathing animation - subtle y offset for all sprites
   useTick(useCallback((ticker: Ticker) => {
     animationRef.current.time += ticker.deltaTime * 0.04;
+    // Subtle breathing effect for idle
     setOffsetY(Math.sin(animationRef.current.time) * 2);
   }, []));
 
-  // Damage flash effect
+  // Damage flash effect and hurt animation
   useEffect(() => {
     if (player.hp < animationRef.current.prevHp) {
-      // Got hit - flash and shake
       setScale(0.85);
-      const timer = setTimeout(() => setScale(1), 150);
+      setTint(0xff6666);
+
+      if (useAnimatedSprite && !animationRef.current.isAnimating) {
+        animationRef.current.isAnimating = true;
+        setCharacterAnimation("hurt");
+      }
+
+      const timer = setTimeout(() => {
+        setScale(1);
+        setTint(0xffffff);
+        if (useAnimatedSprite) {
+          setCharacterAnimation("idle");
+          animationRef.current.isAnimating = false;
+        }
+      }, 400);
+
       animationRef.current.prevHp = player.hp;
       return () => clearTimeout(timer);
     }
     animationRef.current.prevHp = player.hp;
-  }, [player.hp]);
+  }, [player.hp, useAnimatedSprite]);
+
+  const handleAnimationComplete = useCallback(() => {
+    setCharacterAnimation("idle");
+    animationRef.current.isAnimating = false;
+  }, []);
 
   // Dimensions
-  const barWidth = 60;
-  const barHeight = 6;
+  const barWidth = 70;
+  const barHeight = 8;
   const bodySize = 35;
   const healthPercent = Math.max(0, player.hp / player.maxHp);
   const resourcePercent = player.maxResource > 0 ? player.resource / player.maxResource : 0;
@@ -83,16 +207,31 @@ export function PlayerSprite({
   // Calculate final scale
   const finalScale = scale * scaleFactor;
 
+  // Base Y positions for UI elements
+  const spriteTopY = useAnimatedSprite ? -LPC_FRAME_HEIGHT + 8 : -bodySize / 2 - 25;
+  const barBaseY = spriteTopY - 12;
+
+  // Combine buffs and debuffs with labels
+  const allEffects = [
+    ...player.buffs.map(e => ({ effect: e, isBuff: true })),
+    ...player.debuffs.map(e => ({ effect: e, isBuff: false }))
+  ];
+
   return (
     <pixiContainer x={x} y={y + offsetY} scale={finalScale} alpha={player.isAlive ? 1 : 0.3}>
-      {/* Current player indicator */}
+      {/* Current player indicator - pulsing golden ring */}
       {isCurrentPlayer && player.isAlive && (
         <pixiGraphics
           draw={(g) => {
             g.clear();
-            // Glowing border around current player
-            g.circle(0, 0, bodySize / 2 + 20);
-            g.stroke({ color: 0xfbbf24, width: 3, alpha: 0.8 });
+            const indicatorY = useAnimatedSprite ? -LPC_FRAME_HEIGHT / 2 + 8 : 0;
+            const indicatorRadius = useAnimatedSprite ? 38 : bodySize / 2 + 22;
+            // Outer glow
+            g.circle(0, indicatorY, indicatorRadius + 2);
+            g.stroke({ color: 0xfbbf24, width: 4, alpha: 0.4 });
+            // Inner ring
+            g.circle(0, indicatorY, indicatorRadius);
+            g.stroke({ color: 0xfbbf24, width: 3, alpha: 0.9 });
           }}
         />
       )}
@@ -102,115 +241,161 @@ export function PlayerSprite({
         <pixiGraphics
           draw={(g) => {
             g.clear();
-            // Red crosshair/target indicator above player
-            const targetY = -bodySize / 2 - 60;
-            g.circle(0, targetY, 10);
+            const targetY = barBaseY - 25;
+            // Target icon background
+            g.circle(0, targetY, 12);
+            g.fill({ color: 0x7f1d1d, alpha: 0.8 });
             g.stroke({ color: 0xef4444, width: 2 });
-            g.moveTo(-15, targetY);
-            g.lineTo(-5, targetY);
-            g.moveTo(5, targetY);
-            g.lineTo(15, targetY);
-            g.moveTo(0, targetY - 15);
-            g.lineTo(0, targetY - 5);
-            g.moveTo(0, targetY + 5);
-            g.lineTo(0, targetY + 15);
+            // Crosshair lines
+            g.moveTo(-8, targetY);
+            g.lineTo(8, targetY);
+            g.moveTo(0, targetY - 8);
+            g.lineTo(0, targetY + 8);
             g.stroke({ color: 0xef4444, width: 2 });
           }}
         />
       )}
 
-      {/* Player Body */}
-      <pixiGraphics
-        draw={(g) => {
-          g.clear();
-
-          // Shadow
-          g.ellipse(0, bodySize / 2 + 5, bodySize / 2, bodySize / 8);
-          g.fill({ color: 0x000000, alpha: 0.2 });
-
-          // Body (rounded rectangle for humanoid look)
-          g.roundRect(-bodySize / 2, -bodySize / 2, bodySize, bodySize + 10, 8);
-          g.fill({ color: 0x374151 }); // Dark gray body
-          g.stroke({ color: bodyColor, width: 3 });
-
-          // Head
-          g.circle(0, -bodySize / 2 - 10, 14);
-          g.fill({ color: 0xfcd34d }); // Skin tone
-          g.stroke({ color: 0x000000, width: 1 });
-
-          // Eyes
-          g.circle(-4, -bodySize / 2 - 12, 2);
-          g.circle(4, -bodySize / 2 - 12, 2);
-          g.fill({ color: 0x000000 });
-
-          // Class emblem on body
-          g.circle(0, -bodySize / 6, 8);
-          g.fill({ color: bodyColor });
-
-          // Shield glow if has shield
-          if (player.shield > 0) {
-            g.circle(0, 0, bodySize / 2 + 5);
-            g.stroke({ color: 0x3b82f6, width: 2, alpha: 0.6 });
-          }
-
-          // Stealth effect
-          if (player.isStealth) {
-            g.rect(-bodySize / 2 - 5, -bodySize / 2 - 30, bodySize + 10, bodySize + 45);
-            g.fill({ color: 0x8b5cf6, alpha: 0.2 });
-          }
-
-          // Taunt indicator
-          if (player.hasTaunt) {
-            g.circle(0, 0, bodySize / 2 + 8);
-            g.stroke({ color: 0xf97316, width: 3, alpha: 0.7 });
-          }
-        }}
-      />
+      {/* Player Body - Animated Sprite or Graphics Fallback */}
+      {useAnimatedSprite && spriteUrl ? (
+        <>
+          {/* Shadow under animated sprite */}
+          <pixiGraphics
+            draw={(g) => {
+              g.clear();
+              g.ellipse(0, 8, 22, 7);
+              g.fill({ color: 0x000000, alpha: 0.4 });
+            }}
+          />
+          {/* Animated character sprite */}
+          <AnimatedCharacter
+            spriteUrl={spriteUrl}
+            animation={characterAnimation}
+            direction="down"
+            animationSpeed={characterAnimation === "idle" ? 0.08 : 0.2}
+            loop={characterAnimation === "idle" || characterAnimation === "walk"}
+            onAnimationComplete={handleAnimationComplete}
+            y={8}
+            scale={1.0}
+            alpha={player.isAlive ? 1 : 0.5}
+            tint={tint}
+          />
+          {/* Status effects overlay */}
+          <pixiGraphics
+            draw={(g) => {
+              g.clear();
+              if (player.shield > 0) {
+                g.circle(0, -LPC_FRAME_HEIGHT / 2 + 8, 34);
+                g.stroke({ color: 0x3b82f6, width: 3, alpha: 0.7 });
+              }
+              if (player.isStealth) {
+                g.rect(-32, -LPC_FRAME_HEIGHT + 8, 64, LPC_FRAME_HEIGHT);
+                g.fill({ color: 0x8b5cf6, alpha: 0.25 });
+              }
+              if (player.hasTaunt) {
+                g.circle(0, -LPC_FRAME_HEIGHT / 2 + 8, 38);
+                g.stroke({ color: 0xf97316, width: 4, alpha: 0.8 });
+              }
+            }}
+          />
+        </>
+      ) : (
+        <pixiGraphics
+          draw={(g) => {
+            g.clear();
+            g.ellipse(0, bodySize / 2 + 5, bodySize / 2, bodySize / 8);
+            g.fill({ color: 0x000000, alpha: 0.2 });
+            g.roundRect(-bodySize / 2, -bodySize / 2, bodySize, bodySize + 10, 8);
+            g.fill({ color: 0x374151 });
+            g.stroke({ color: bodyColor, width: 3 });
+            g.circle(0, -bodySize / 2 - 10, 14);
+            g.fill({ color: 0xfcd34d });
+            g.stroke({ color: 0x000000, width: 1 });
+            g.circle(-4, -bodySize / 2 - 12, 2);
+            g.circle(4, -bodySize / 2 - 12, 2);
+            g.fill({ color: 0x000000 });
+            g.circle(0, -bodySize / 6, 8);
+            g.fill({ color: bodyColor });
+            if (player.shield > 0) {
+              g.circle(0, 0, bodySize / 2 + 5);
+              g.stroke({ color: 0x3b82f6, width: 2, alpha: 0.6 });
+            }
+            if (player.isStealth) {
+              g.rect(-bodySize / 2 - 5, -bodySize / 2 - 30, bodySize + 10, bodySize + 45);
+              g.fill({ color: 0x8b5cf6, alpha: 0.2 });
+            }
+            if (player.hasTaunt) {
+              g.circle(0, 0, bodySize / 2 + 8);
+              g.stroke({ color: 0xf97316, width: 3, alpha: 0.7 });
+            }
+          }}
+        />
+      )}
 
       {/* Health Bar Background */}
       <pixiGraphics
         x={-barWidth / 2}
-        y={-bodySize / 2 - 40}
+        y={barBaseY}
         draw={(g) => {
           g.clear();
-          g.roundRect(0, 0, barWidth, barHeight, 2);
+          g.roundRect(0, 0, barWidth, barHeight, 3);
           g.fill({ color: 0x1a1a1a });
-          g.stroke({ color: 0x333333, width: 1 });
+          g.stroke({ color: 0x444444, width: 1 });
         }}
       />
 
       {/* Health Bar Fill */}
       <pixiGraphics
         x={-barWidth / 2 + 1}
-        y={-bodySize / 2 - 39}
+        y={barBaseY + 1}
         draw={(g) => {
           g.clear();
           if (healthPercent > 0) {
-            g.roundRect(0, 0, (barWidth - 2) * healthPercent, barHeight - 2, 1);
-            g.fill({ color: healthPercent > 0.5 ? 0xef4444 : healthPercent > 0.25 ? 0xeab308 : 0xdc2626 });
+            const healthColor = healthPercent > 0.5 ? 0xef4444 : healthPercent > 0.25 ? 0xeab308 : 0xdc2626;
+            g.roundRect(0, 0, (barWidth - 2) * healthPercent, barHeight - 2, 2);
+            g.fill({ color: healthColor });
           }
         }}
       />
+
+      {/* Shield overlay on health bar */}
+      {player.shield > 0 && (
+        <pixiGraphics
+          x={-barWidth / 2 + 1 + (barWidth - 2) * healthPercent}
+          y={barBaseY + 1}
+          draw={(g) => {
+            g.clear();
+            const shieldWidth = Math.min(
+              (player.shield / player.maxHp) * (barWidth - 2),
+              (barWidth - 2) - (barWidth - 2) * healthPercent
+            );
+            if (shieldWidth > 0) {
+              g.roundRect(0, 0, shieldWidth, barHeight - 2, 2);
+              g.fill({ color: 0x3b82f6, alpha: 0.8 });
+            }
+          }}
+        />
+      )}
 
       {/* Resource Bar (if applicable) */}
       {player.maxResource > 0 && (
         <>
           <pixiGraphics
             x={-barWidth / 2}
-            y={-bodySize / 2 - 48}
+            y={barBaseY - 6}
             draw={(g) => {
               g.clear();
-              g.roundRect(0, 0, barWidth, barHeight - 2, 2);
+              g.roundRect(0, 0, barWidth, 4, 2);
               g.fill({ color: 0x1a1a1a });
             }}
           />
           <pixiGraphics
             x={-barWidth / 2 + 1}
-            y={-bodySize / 2 - 47}
+            y={barBaseY - 5}
             draw={(g) => {
               g.clear();
               if (resourcePercent > 0) {
-                g.roundRect(0, 0, (barWidth - 2) * resourcePercent, barHeight - 4, 1);
+                g.roundRect(0, 0, (barWidth - 2) * resourcePercent, 2, 1);
                 g.fill({ color: classColor });
               }
             }}
@@ -218,83 +403,115 @@ export function PlayerSprite({
         </>
       )}
 
-      {/* Shield value indicator */}
+      {/* HP Text */}
+      <pixiText
+        text={`${player.hp}/${player.maxHp}`}
+        style={hpStyle}
+        anchor={{ x: 0.5, y: 0.5 }}
+        x={0}
+        y={barBaseY + barHeight / 2}
+      />
+
+      {/* Shield amount text */}
       {player.shield > 0 && (
-        <pixiGraphics
-          x={barWidth / 2 + 3}
-          y={-bodySize / 2 - 40}
-          draw={(g) => {
-            g.clear();
-            g.roundRect(0, 0, 16, barHeight, 2);
-            g.fill({ color: 0x3b82f6 });
-          }}
+        <pixiText
+          text={`+${player.shield}`}
+          style={shieldStyle}
+          anchor={{ x: 0, y: 0.5 }}
+          x={barWidth / 2 + 4}
+          y={barBaseY + barHeight / 2}
         />
       )}
 
-      {/* Status effect indicators */}
-      {(player.buffs.length > 0 || player.debuffs.length > 0) && (
-        <pixiGraphics
-          x={0}
-          y={bodySize / 2 + 20}
-          draw={(g) => {
-            g.clear();
-            const allEffects = [...player.buffs, ...player.debuffs];
-            allEffects.forEach((effect, i) => {
-              const isBuff = player.buffs.includes(effect);
-              const effectColor =
-                effect.type === "poison" ? 0x22c55e :
-                effect.type === "burn" ? 0xf97316 :
-                effect.type === "ice" ? 0x38bdf8 :
-                effect.type === "stun" ? 0xfbbf24 :
-                effect.type === "stealth" ? 0x8b5cf6 :
-                effect.type === "taunt" ? 0xf97316 :
-                effect.type === "strength" ? 0xef4444 :
-                effect.type === "shield" ? 0x3b82f6 :
-                isBuff ? 0x22c55e : 0xef4444;
-
-              g.circle(i * 10 - (allEffects.length - 1) * 5, 0, 4);
-              g.fill({ color: effectColor });
-            });
-          }}
-        />
-      )}
-
-      {/* Stunned indicator */}
-      {player.isStunned && (
-        <pixiGraphics
-          x={0}
-          y={-bodySize / 2 - 55}
-          draw={(g) => {
-            g.clear();
-            // Stars around head
-            for (let i = 0; i < 3; i++) {
-              const angle = (i / 3) * Math.PI * 2 + Date.now() * 0.002;
-              const starX = Math.cos(angle) * 15;
-              const starY = Math.sin(angle) * 8;
-              g.circle(starX, starY, 3);
-              g.fill({ color: 0xfbbf24 });
-            }
-          }}
-        />
-      )}
-
-      {/* Player Name - above everything */}
+      {/* Player Name */}
       <pixiText
         text={player.name}
         style={nameStyle}
         anchor={{ x: 0.5, y: 1 }}
         x={0}
-        y={-bodySize / 2 - 52}
+        y={barBaseY - (player.maxResource > 0 ? 10 : 4)}
       />
 
-      {/* HP Text - below health bar */}
+      {/* Class label */}
       <pixiText
-        text={`${player.hp}/${player.maxHp}`}
-        style={hpStyle}
+        text={config?.name || player.class}
+        style={classStyle}
         anchor={{ x: 0.5, y: 0 }}
         x={0}
-        y={-bodySize / 2 - 32}
+        y={barBaseY + barHeight + 2}
       />
+
+      {/* Status Effects - Enhanced display with icons and duration */}
+      {allEffects.length > 0 && (
+        <pixiContainer y={useAnimatedSprite ? 20 : bodySize / 2 + 22}>
+          {allEffects.map(({ effect, isBuff }, i) => {
+            const info = getEffectInfo(effect, isBuff);
+            const effectX = i * 18 - (allEffects.length - 1) * 9;
+
+            return (
+              <pixiContainer key={`${effect.type}-${i}`} x={effectX} y={0}>
+                {/* Effect background */}
+                <pixiGraphics
+                  draw={(g) => {
+                    g.clear();
+                    g.roundRect(-8, -8, 16, 16, 3);
+                    g.fill({ color: info.bgColor, alpha: 0.9 });
+                    g.stroke({ color: info.color, width: 1.5 });
+                  }}
+                />
+                {/* Effect label */}
+                <pixiText
+                  text={info.label}
+                  style={effectLabelStyle}
+                  anchor={{ x: 0.5, y: 0.5 }}
+                  x={0}
+                  y={-1}
+                />
+                {/* Duration indicator */}
+                {effect.duration > 0 && (
+                  <>
+                    <pixiGraphics
+                      draw={(g) => {
+                        g.clear();
+                        g.circle(6, -6, 5);
+                        g.fill({ color: 0x000000, alpha: 0.8 });
+                        g.stroke({ color: info.color, width: 1 });
+                      }}
+                    />
+                    <pixiText
+                      text={`${effect.duration}`}
+                      style={durationStyle}
+                      anchor={{ x: 0.5, y: 0.5 }}
+                      x={6}
+                      y={-6}
+                    />
+                  </>
+                )}
+              </pixiContainer>
+            );
+          })}
+        </pixiContainer>
+      )}
+
+      {/* Stunned indicator - animated stars */}
+      {player.isStunned && (
+        <pixiGraphics
+          x={0}
+          y={barBaseY - 20}
+          draw={(g) => {
+            g.clear();
+            for (let i = 0; i < 3; i++) {
+              const angle = (i / 3) * Math.PI * 2 + Date.now() * 0.003;
+              const starX = Math.cos(angle) * 18;
+              const starY = Math.sin(angle) * 10;
+              // Star shape
+              g.circle(starX, starY, 4);
+              g.fill({ color: 0xfbbf24 });
+              g.stroke({ color: 0xffffff, width: 1 });
+            }
+          }}
+        />
+      )}
     </pixiContainer>
   );
 }

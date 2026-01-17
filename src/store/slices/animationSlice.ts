@@ -53,4 +53,24 @@ export const createAnimationSlice: SliceCreator<AnimationActions> = (set) => ({
       }));
     }, 1500);
   },
+
+  triggerAttackAnimation: (entityId, animation) => {
+    set((state) => ({
+      animation: {
+        ...state.animation,
+        attackingEntityId: entityId,
+        attackAnimation: animation,
+      },
+    }));
+  },
+
+  clearAttackAnimation: () => {
+    set((state) => ({
+      animation: {
+        ...state.animation,
+        attackingEntityId: null,
+        attackAnimation: null,
+      },
+    }));
+  },
 });

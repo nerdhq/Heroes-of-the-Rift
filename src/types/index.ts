@@ -271,6 +271,9 @@ export interface AnimationState {
     type: "damage" | "heal" | "shield";
     targetId: string;
   }[];
+  // Attack animation state
+  attackingEntityId: string | null;
+  attackAnimation: "slash" | "cast" | "shoot" | "thrust" | null;
 }
 
 // ============================================

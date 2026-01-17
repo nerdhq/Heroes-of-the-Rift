@@ -269,12 +269,15 @@ export function GameScreen() {
             phase={phase}
             gold={userData.gold}
           />
-          <EnvironmentDisplay environment={environment} />
         </div>
 
         {/* PixiJS Battle Canvas - Main battle area */}
         <div className="flex-1 min-h-0 w-full relative">
           <BattleStage className="absolute inset-0 w-full h-full" />
+          {/* Environment overlay in top-left corner */}
+          <div className="absolute top-2 left-2 z-10">
+            <EnvironmentDisplay environment={environment} />
+          </div>
         </div>
 
         {/* Card Hand - Bottom */}
@@ -351,12 +354,15 @@ export function GameScreen() {
                 phase={phase}
                 gold={userData.gold}
               />
-              <EnvironmentDisplay environment={environment} />
             </div>
 
             {/* PixiJS Battle Canvas */}
             <div className="flex-1 min-h-0 w-full relative">
               <BattleStage className="absolute inset-0 w-full h-full" />
+              {/* Environment overlay in top-left corner */}
+              <div className="absolute top-2 left-2 z-10">
+                <EnvironmentDisplay environment={environment} />
+              </div>
             </div>
 
             {/* Card Hand */}

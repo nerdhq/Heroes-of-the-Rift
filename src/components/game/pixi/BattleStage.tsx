@@ -1,10 +1,10 @@
 import { useRef, useState, useLayoutEffect } from "react";
 import { Application, extend } from "@pixi/react";
-import { Container, Graphics, Text } from "pixi.js";
+import { Container, Graphics, Text, Sprite } from "pixi.js";
 import { BattleScene } from "./BattleScene";
 
 // Extend PixiJS components for JSX use
-extend({ Container, Graphics, Text });
+extend({ Container, Graphics, Text, Sprite });
 
 interface BattleStageProps {
   className?: string;

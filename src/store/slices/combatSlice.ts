@@ -398,6 +398,33 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
     const isEnhanced = enhanceMode && player.resource >= player.maxResource;
     const enhanceText = isEnhanced ? " (ENHANCED!)" : "";
 
+    // Determine attack animation type based on card effects and class
+    let attackAnimation: "slash" | "cast" | "shoot" | "thrust" = "slash";
+    const hasDamage = selectedCard.effects.some((e) => e.type === "damage");
+    const hasHeal = selectedCard.effects.some((e) => e.type === "heal");
+    const hasDebuff = selectedCard.effects.some((e) =>
+      ["poison", "burn", "ice", "stun", "weakness"].includes(e.type)
+    );
+
+    // Mages and Priests cast spells, Archers shoot
+    if (player.class === "mage" || player.class === "priest" || player.class === "bard") {
+      attackAnimation = "cast";
+    } else if (player.class === "archer") {
+      attackAnimation = "shoot";
+    } else if (player.class === "paladin" || player.class === "warrior") {
+      // Paladin heals are casts, attacks are slashes
+      if (hasHeal && !hasDamage) {
+        attackAnimation = "cast";
+      } else {
+        attackAnimation = "slash";
+      }
+    } else if (player.class === "rogue") {
+      attackAnimation = "thrust";
+    } else if (hasDebuff && !hasDamage) {
+      // Debuff-only cards use cast animation
+      attackAnimation = "cast";
+    }
+
     // Show action message
     set({ phase: "PLAYER_ACTION", enhanceMode: false });
     get().addActionMessage(`${player.name} plays ${selectedCard.name}!${enhanceText}`, "action");
@@ -408,7 +435,12 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
       ],
     });
 
-    await delay(800);
+    // Trigger attack animation
+    get().triggerAttackAnimation(player.id, attackAnimation);
+    await delay(600);
+
+    // Clear attack animation
+    get().clearAttackAnimation();
 
     // Apply card effects using shared function
     const result = get().applyCardEffects(currentPlayerIndex, selectedCardId!, selectedTargetId, isEnhanced);
@@ -663,8 +695,14 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
             ),
           ],
         });
+
+        // Trigger monster attack animation (slash for melee damage, cast for other effects)
+        const monsterAttackAnim: "slash" | "cast" = ability.damage > 0 ? "slash" : "cast";
+        get().triggerAttackAnimation(monster.id, monsterAttackAnim);
         syncNow();
-        await delay(1500);
+        await delay(600);
+        get().clearAttackAnimation();
+        await delay(900);
 
         const alivePlayers = updatedPlayers.filter((p) => p.isAlive);
         if (alivePlayers.length === 0) continue;
