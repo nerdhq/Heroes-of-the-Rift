@@ -8,20 +8,23 @@ import { AnimatedCharacter, type LPCAnimationType } from "./AnimatedCharacter";
 import { getSprite, hasSprite, LPC_FRAME_HEIGHT } from "../../../assets/sprites/classes";
 import { useGameStore } from "../../../store/gameStore";
 
-// Text styles
+// Higher resolution for crisp text when scaled
+const TEXT_RESOLUTION = 2;
+
+// Text styles with high resolution for sharpness
 const nameStyle = new TextStyle({
   fontFamily: "Arial, sans-serif",
   fontSize: 11,
   fontWeight: "bold",
   fill: 0xffffff,
-  stroke: { color: 0x000000, width: 3 },
+  stroke: { color: 0x000000, width: 2 },
 });
 
 const classStyle = new TextStyle({
   fontFamily: "Arial, sans-serif",
   fontSize: 8,
   fill: 0xaaaaaa,
-  stroke: { color: 0x000000, width: 2 },
+  stroke: { color: 0x000000, width: 1 },
 });
 
 const hpStyle = new TextStyle({
@@ -29,7 +32,7 @@ const hpStyle = new TextStyle({
   fontSize: 9,
   fontWeight: "bold",
   fill: 0xffffff,
-  stroke: { color: 0x000000, width: 2 },
+  stroke: { color: 0x000000, width: 1 },
 });
 
 const shieldStyle = new TextStyle({
@@ -37,23 +40,20 @@ const shieldStyle = new TextStyle({
   fontSize: 8,
   fontWeight: "bold",
   fill: 0x60a5fa,
-  stroke: { color: 0x000000, width: 2 },
+  stroke: { color: 0x000000, width: 1 },
 });
 
-const effectLabelStyle = new TextStyle({
+const targetStyle = new TextStyle({
+  fontFamily: "Arial, sans-serif",
+  fontSize: 8,
+  fontWeight: "bold",
+  fill: 0xffffff,
+});
+
+const effectTextStyle = new TextStyle({
   fontFamily: "Arial, sans-serif",
   fontSize: 7,
-  fontWeight: "bold",
   fill: 0xffffff,
-  stroke: { color: 0x000000, width: 2 },
-});
-
-const durationStyle = new TextStyle({
-  fontFamily: "Arial, sans-serif",
-  fontSize: 6,
-  fontWeight: "bold",
-  fill: 0xffffff,
-  stroke: { color: 0x000000, width: 1 },
 });
 
 interface PlayerSpriteProps {
@@ -70,41 +70,41 @@ function hexToNumber(hex: string): number {
   return parseInt(hex.replace("#", ""), 16);
 }
 
-// Get effect display info
+// Get effect display info with emoji icons like old UI
 function getEffectInfo(effect: StatusEffect, isBuff: boolean): {
   color: number;
-  symbol: string;
-  label: string;
+  emoji: string;
+  name: string;
   bgColor: number;
 } {
   switch (effect.type) {
     case "poison":
-      return { color: 0x22c55e, symbol: "☠", label: "PSN", bgColor: 0x14532d };
+      return { color: 0x22c55e, emoji: "☠️", name: "poison", bgColor: 0x14532d };
     case "burn":
-      return { color: 0xf97316, symbol: "🔥", label: "BRN", bgColor: 0x7c2d12 };
+      return { color: 0xf97316, emoji: "🔥", name: "burn", bgColor: 0x7c2d12 };
     case "ice":
-      return { color: 0x38bdf8, symbol: "❄", label: "ICE", bgColor: 0x0c4a6e };
+      return { color: 0x38bdf8, emoji: "❄️", name: "frozen", bgColor: 0x0c4a6e };
     case "stun":
-      return { color: 0xfbbf24, symbol: "⚡", label: "STN", bgColor: 0x78350f };
+      return { color: 0xfbbf24, emoji: "⚡", name: "stun", bgColor: 0x78350f };
     case "stealth":
-      return { color: 0x8b5cf6, symbol: "👁", label: "STL", bgColor: 0x4c1d95 };
+      return { color: 0x8b5cf6, emoji: "👁️", name: "stealth", bgColor: 0x4c1d95 };
     case "taunt":
-      return { color: 0xf97316, symbol: "🛡", label: "TNT", bgColor: 0x7c2d12 };
+      return { color: 0xf97316, emoji: "🛡️", name: "taunt", bgColor: 0x7c2d12 };
     case "strength":
-      return { color: 0xef4444, symbol: "⚔", label: "STR", bgColor: 0x7f1d1d };
+      return { color: 0xef4444, emoji: "⚔️", name: "strength", bgColor: 0x7f1d1d };
     case "shield":
-      return { color: 0x3b82f6, symbol: "🛡", label: "SHL", bgColor: 0x1e3a5f };
+      return { color: 0x3b82f6, emoji: "🛡️", name: "shield", bgColor: 0x1e3a5f };
     case "weakness":
-      return { color: 0xa855f7, symbol: "↓", label: "WKN", bgColor: 0x581c87 };
+      return { color: 0xef4444, emoji: "💔", name: "weakness", bgColor: 0x7f1d1d };
     case "heal":
-      return { color: 0x22c55e, symbol: "♥", label: "HoT", bgColor: 0x14532d };
+      return { color: 0x22c55e, emoji: "💚", name: "regen", bgColor: 0x14532d };
     case "block":
-      return { color: 0x6b7280, symbol: "⬢", label: "BLK", bgColor: 0x374151 };
+      return { color: 0x6b7280, emoji: "🔒", name: "block", bgColor: 0x374151 };
     default:
       return {
         color: isBuff ? 0x22c55e : 0xef4444,
-        symbol: isBuff ? "+" : "-",
-        label: effect.type.substring(0, 3).toUpperCase(),
+        emoji: isBuff ? "✨" : "💔",
+        name: effect.type,
         bgColor: isBuff ? 0x14532d : 0x7f1d1d
       };
   }
@@ -114,10 +114,11 @@ export function PlayerSprite({
   player,
   x,
   y,
-  isCurrentPlayer = false,
+  isCurrentPlayer: _isCurrentPlayer = false,
   isTargeted = false,
   scaleFactor = 2.0
 }: PlayerSpriteProps) {
+  // Note: _isCurrentPlayer is available for future use (yellow ring was removed per user request)
   const config = CLASS_CONFIGS[player.class];
 
   // Check if this class has a sprite
@@ -219,40 +220,15 @@ export function PlayerSprite({
 
   return (
     <pixiContainer x={x} y={y + offsetY} scale={finalScale} alpha={player.isAlive ? 1 : 0.3}>
-      {/* Current player indicator - pulsing golden ring */}
-      {isCurrentPlayer && player.isAlive && (
-        <pixiGraphics
-          draw={(g) => {
-            g.clear();
-            const indicatorY = useAnimatedSprite ? -LPC_FRAME_HEIGHT / 2 + 8 : 0;
-            const indicatorRadius = useAnimatedSprite ? 38 : bodySize / 2 + 22;
-            // Outer glow
-            g.circle(0, indicatorY, indicatorRadius + 2);
-            g.stroke({ color: 0xfbbf24, width: 4, alpha: 0.4 });
-            // Inner ring
-            g.circle(0, indicatorY, indicatorRadius);
-            g.stroke({ color: 0xfbbf24, width: 3, alpha: 0.9 });
-          }}
-        />
-      )}
-
-      {/* Targeted indicator (highest aggro) */}
+      {/* Targeted indicator (highest aggro) - bullseye icon in top right */}
       {isTargeted && player.isAlive && (
-        <pixiGraphics
-          draw={(g) => {
-            g.clear();
-            const targetY = barBaseY - 25;
-            // Target icon background
-            g.circle(0, targetY, 12);
-            g.fill({ color: 0x7f1d1d, alpha: 0.8 });
-            g.stroke({ color: 0xef4444, width: 2 });
-            // Crosshair lines
-            g.moveTo(-8, targetY);
-            g.lineTo(8, targetY);
-            g.moveTo(0, targetY - 8);
-            g.lineTo(0, targetY + 8);
-            g.stroke({ color: 0xef4444, width: 2 });
-          }}
+        <pixiText
+          text="🎯"
+          style={targetStyle}
+          resolution={TEXT_RESOLUTION}
+          anchor={{ x: 0.5, y: 0.5 }}
+          x={25}
+          y={barBaseY - 16}
         />
       )}
 
@@ -403,10 +379,11 @@ export function PlayerSprite({
         </>
       )}
 
-      {/* HP Text */}
+      {/* HP Text with heart icon */}
       <pixiText
-        text={`${player.hp}/${player.maxHp}`}
+        text={`❤️ ${player.hp}/${player.maxHp}`}
         style={hpStyle}
+        resolution={TEXT_RESOLUTION}
         anchor={{ x: 0.5, y: 0.5 }}
         x={0}
         y={barBaseY + barHeight / 2}
@@ -417,6 +394,7 @@ export function PlayerSprite({
         <pixiText
           text={`+${player.shield}`}
           style={shieldStyle}
+          resolution={TEXT_RESOLUTION}
           anchor={{ x: 0, y: 0.5 }}
           x={barWidth / 2 + 4}
           y={barBaseY + barHeight / 2}
@@ -427,6 +405,7 @@ export function PlayerSprite({
       <pixiText
         text={player.name}
         style={nameStyle}
+        resolution={TEXT_RESOLUTION}
         anchor={{ x: 0.5, y: 1 }}
         x={0}
         y={barBaseY - (player.maxResource > 0 ? 10 : 4)}
@@ -436,57 +415,40 @@ export function PlayerSprite({
       <pixiText
         text={config?.name || player.class}
         style={classStyle}
+        resolution={TEXT_RESOLUTION}
         anchor={{ x: 0.5, y: 0 }}
         x={0}
         y={barBaseY + barHeight + 2}
       />
 
-      {/* Status Effects - Enhanced display with icons and duration */}
+      {/* Status Effects - Pill badges like old UI: "💔 weakness (1)" */}
       {allEffects.length > 0 && (
         <pixiContainer y={useAnimatedSprite ? 20 : bodySize / 2 + 22}>
           {allEffects.map(({ effect, isBuff }, i) => {
             const info = getEffectInfo(effect, isBuff);
-            const effectX = i * 18 - (allEffects.length - 1) * 9;
+            const badgeWidth = 55;
+            const effectY = i * 14;
 
             return (
-              <pixiContainer key={`${effect.type}-${i}`} x={effectX} y={0}>
-                {/* Effect background */}
+              <pixiContainer key={`${effect.type}-${i}`} x={0} y={effectY}>
+                {/* Pill background */}
                 <pixiGraphics
                   draw={(g) => {
                     g.clear();
-                    g.roundRect(-8, -8, 16, 16, 3);
+                    g.roundRect(-badgeWidth / 2, -6, badgeWidth, 12, 6);
                     g.fill({ color: info.bgColor, alpha: 0.9 });
-                    g.stroke({ color: info.color, width: 1.5 });
+                    g.stroke({ color: info.color, width: 1 });
                   }}
                 />
-                {/* Effect label */}
+                {/* Effect text: "💔 weakness (1)" */}
                 <pixiText
-                  text={info.label}
-                  style={effectLabelStyle}
+                  text={`${info.emoji} ${info.name}${effect.duration > 0 ? ` (${effect.duration})` : ""}`}
+                  style={effectTextStyle}
+                  resolution={TEXT_RESOLUTION}
                   anchor={{ x: 0.5, y: 0.5 }}
                   x={0}
-                  y={-1}
+                  y={0}
                 />
-                {/* Duration indicator */}
-                {effect.duration > 0 && (
-                  <>
-                    <pixiGraphics
-                      draw={(g) => {
-                        g.clear();
-                        g.circle(6, -6, 5);
-                        g.fill({ color: 0x000000, alpha: 0.8 });
-                        g.stroke({ color: info.color, width: 1 });
-                      }}
-                    />
-                    <pixiText
-                      text={`${effect.duration}`}
-                      style={durationStyle}
-                      anchor={{ x: 0.5, y: 0.5 }}
-                      x={6}
-                      y={-6}
-                    />
-                  </>
-                )}
               </pixiContainer>
             );
           })}

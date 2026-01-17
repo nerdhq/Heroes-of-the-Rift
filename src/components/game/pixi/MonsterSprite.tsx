@@ -23,13 +23,16 @@ const LPC_FRAME_COUNTS = {
   CAST: 7,
 };
 
-// Text styles
+// Higher resolution for crisp text when scaled
+const TEXT_RESOLUTION = 2;
+
+// Text styles with reduced stroke for sharpness
 const nameStyle = new TextStyle({
   fontFamily: "Arial, sans-serif",
   fontSize: 12,
   fontWeight: "bold",
   fill: 0xffffff,
-  stroke: { color: 0x000000, width: 3 },
+  stroke: { color: 0x000000, width: 2 },
 });
 
 const hpStyle = new TextStyle({
@@ -37,7 +40,7 @@ const hpStyle = new TextStyle({
   fontSize: 10,
   fontWeight: "bold",
   fill: 0xffffff,
-  stroke: { color: 0x000000, width: 2 },
+  stroke: { color: 0x000000, width: 1 },
 });
 
 const intentStyle = new TextStyle({
@@ -45,20 +48,12 @@ const intentStyle = new TextStyle({
   fontSize: 10,
   fontWeight: "bold",
   fill: 0xffffff,
-  stroke: { color: 0x000000, width: 2 },
+  stroke: { color: 0x000000, width: 1 },
 });
 
 const effectLabelStyle = new TextStyle({
   fontFamily: "Arial, sans-serif",
-  fontSize: 7,
-  fontWeight: "bold",
-  fill: 0xffffff,
-  stroke: { color: 0x000000, width: 2 },
-});
-
-const durationStyle = new TextStyle({
-  fontFamily: "Arial, sans-serif",
-  fontSize: 6,
+  fontSize: 8,
   fontWeight: "bold",
   fill: 0xffffff,
   stroke: { color: 0x000000, width: 1 },
@@ -74,27 +69,29 @@ interface MonsterSpriteProps {
   scaleFactor?: number;
 }
 
-// Get effect display info
+// Get effect display info with emoji and full name
 function getEffectInfo(effect: StatusEffect): {
   color: number;
-  label: string;
+  emoji: string;
+  name: string;
   bgColor: number;
 } {
   switch (effect.type) {
     case "poison":
-      return { color: 0x22c55e, label: "PSN", bgColor: 0x14532d };
+      return { color: 0x22c55e, emoji: "🧪", name: "poison", bgColor: 0x14532d };
     case "burn":
-      return { color: 0xf97316, label: "BRN", bgColor: 0x7c2d12 };
+      return { color: 0xf97316, emoji: "🔥", name: "burn", bgColor: 0x7c2d12 };
     case "ice":
-      return { color: 0x38bdf8, label: "ICE", bgColor: 0x0c4a6e };
+      return { color: 0x38bdf8, emoji: "❄️", name: "freeze", bgColor: 0x0c4a6e };
     case "stun":
-      return { color: 0xfbbf24, label: "STN", bgColor: 0x78350f };
+      return { color: 0xfbbf24, emoji: "⚡", name: "stun", bgColor: 0x78350f };
     case "weakness":
-      return { color: 0xa855f7, label: "WKN", bgColor: 0x581c87 };
+      return { color: 0xa855f7, emoji: "💔", name: "weakness", bgColor: 0x581c87 };
     default:
       return {
         color: 0xef4444,
-        label: effect.type.substring(0, 3).toUpperCase(),
+        emoji: "❓",
+        name: effect.type,
         bgColor: 0x7f1d1d
       };
   }
@@ -436,6 +433,7 @@ export function MonsterSprite({
       <pixiText
         text={monster.name}
         style={nameStyle}
+        resolution={TEXT_RESOLUTION}
         anchor={{ x: 0.5, y: 0.5 }}
         x={0}
         y={nameY}
@@ -483,8 +481,9 @@ export function MonsterSprite({
 
       {/* HP Text */}
       <pixiText
-        text={`${monster.hp}/${monster.maxHp}`}
+        text={`❤️ ${monster.hp}/${monster.maxHp}`}
         style={hpStyle}
+        resolution={TEXT_RESOLUTION}
         anchor={{ x: 0.5, y: 0.5 }}
         x={0}
         y={barY + barHeight / 2}
@@ -505,6 +504,7 @@ export function MonsterSprite({
           <pixiText
             text={monster.intent.damage > 0 ? `⚔ ${monster.intent.damage}` : "..."}
             style={intentStyle}
+            resolution={TEXT_RESOLUTION}
             anchor={{ x: 0.5, y: 0.5 }}
             x={0}
             y={0}
@@ -512,49 +512,33 @@ export function MonsterSprite({
         </pixiContainer>
       )}
 
-      {/* Debuff indicators */}
+      {/* Debuff indicators - pill badges */}
       {monster.debuffs.length > 0 && (
         <pixiContainer y={debuffY}>
           {monster.debuffs.map((debuff, i) => {
             const info = getEffectInfo(debuff);
-            const effectX = i * 20 - (monster.debuffs.length - 1) * 10;
+            const effectY = i * 14;
+            const text = `${info.emoji} ${info.name}${debuff.duration > 0 ? ` (${debuff.duration})` : ""}`;
+            const pillWidth = text.length * 5 + 12;
 
             return (
-              <pixiContainer key={`${debuff.type}-${i}`} x={effectX} y={0}>
+              <pixiContainer key={`${debuff.type}-${i}`} x={0} y={effectY}>
                 <pixiGraphics
                   draw={(g) => {
                     g.clear();
-                    g.roundRect(-9, -9, 18, 18, 3);
+                    g.roundRect(-pillWidth / 2, -6, pillWidth, 12, 6);
                     g.fill({ color: info.bgColor, alpha: 0.9 });
-                    g.stroke({ color: info.color, width: 1.5 });
+                    g.stroke({ color: info.color, width: 1 });
                   }}
                 />
                 <pixiText
-                  text={info.label}
+                  text={text}
                   style={effectLabelStyle}
+                  resolution={TEXT_RESOLUTION}
                   anchor={{ x: 0.5, y: 0.5 }}
                   x={0}
-                  y={-1}
+                  y={0}
                 />
-                {debuff.duration > 0 && (
-                  <>
-                    <pixiGraphics
-                      draw={(g) => {
-                        g.clear();
-                        g.circle(7, -7, 6);
-                        g.fill({ color: 0x000000, alpha: 0.8 });
-                        g.stroke({ color: info.color, width: 1 });
-                      }}
-                    />
-                    <pixiText
-                      text={`${debuff.duration}`}
-                      style={durationStyle}
-                      anchor={{ x: 0.5, y: 0.5 }}
-                      x={7}
-                      y={-7}
-                    />
-                  </>
-                )}
               </pixiContainer>
             );
           })}
