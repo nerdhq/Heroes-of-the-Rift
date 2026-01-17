@@ -5,13 +5,18 @@ interface ActionMessagesProps {
 }
 
 export function ActionMessages({ messages }: ActionMessagesProps) {
-  if (messages.length === 0) {
+  // Filter out damage and heal messages - those are shown as floating numbers
+  const filteredMessages = messages.filter(
+    (msg) => msg.type !== "damage" && msg.type !== "heal"
+  );
+
+  if (filteredMessages.length === 0) {
     return null;
   }
 
   return (
     <div className="fixed top-1/3 left-1/2 -translate-x-1/2 z-40 pointer-events-none flex flex-col items-center gap-2">
-      {messages.slice(-6).map((msg, index, arr) => {
+      {filteredMessages.slice(-4).map((msg, index, arr) => {
         const position = arr.length - 1 - index;
         const fadeClass =
           position >= 4

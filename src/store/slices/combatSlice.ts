@@ -407,7 +407,8 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
         createLogEntry(turn, "PLAYER_ACTION", `${player.name} plays ${selectedCard.name}!${enhanceText}`, "action"),
       ],
     });
-    await delay(1200);
+
+    await delay(800);
 
     // Apply card effects using shared function
     const result = get().applyCardEffects(currentPlayerIndex, selectedCardId!, selectedTargetId, isEnhanced);
@@ -1312,7 +1313,7 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
         animation: { ...state.animation, diceRoll: fakeRoll },
       }));
       rollCount++;
-      if (rollCount >= 15) {
+      if (rollCount >= 5) {
         clearInterval(rollInterval);
 
         const finalRoll = rollD20();
@@ -1350,9 +1351,9 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
             animation: { ...state.animation, diceRoll: null },
           }));
           get().playCard();
-        }, 1000);
+        }, 300);
       }
-    }, 100);
+    }, 50);
   },
 
   // ============================================

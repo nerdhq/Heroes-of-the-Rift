@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "Bash(npm run build:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "WebFetch(domain:www.youtube.com)",
+      "WebFetch(domain:pixijs.io)",
+      "WebFetch(domain:react.pixijs.io)",
+      "WebFetch(domain:liberatedpixelcup.github.io)"
     ]
   }
 }
