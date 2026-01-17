@@ -1,24 +1,28 @@
-import { FastForward, HelpCircle, LogOut, ScrollText } from "lucide-react";
+import { FastForward, HelpCircle, LogOut, ScrollText, Volume2, VolumeX } from "lucide-react";
 import type { GameSpeed } from "../../types";
 
 interface TopControlsProps {
   gameSpeed: GameSpeed;
   skipAnimations: boolean;
   showBattleLog: boolean;
+  isMuted?: boolean;
   onToggleSpeedSettings: () => void;
   onShowHelp: () => void;
   onShowQuitConfirm: () => void;
   onToggleBattleLog: () => void;
+  onToggleMute?: () => void;
 }
 
 export function TopControls({
   gameSpeed,
   skipAnimations,
   showBattleLog,
+  isMuted = false,
   onToggleSpeedSettings,
   onShowHelp,
   onShowQuitConfirm,
   onToggleBattleLog,
+  onToggleMute,
 }: TopControlsProps) {
   return (
     <div className="absolute top-2 right-2 sm:top-3 sm:right-3 z-10 flex gap-1 sm:gap-2">
@@ -34,6 +38,25 @@ export function TopControls({
       >
         <FastForward className="w-4 h-4 sm:w-5 sm:h-5" />
       </button>
+
+      {/* Music Mute Button */}
+      {onToggleMute && (
+        <button
+          onClick={onToggleMute}
+          className={`bg-stone-800 hover:bg-stone-700 p-1.5 sm:p-2 rounded-full border transition-colors ${
+            isMuted
+              ? "text-stone-500 border-stone-600"
+              : "text-amber-400 border-stone-600"
+          }`}
+          title={isMuted ? "Unmute Music" : "Mute Music"}
+        >
+          {isMuted ? (
+            <VolumeX className="w-4 h-4 sm:w-5 sm:h-5" />
+          ) : (
+            <Volume2 className="w-4 h-4 sm:w-5 sm:h-5" />
+          )}
+        </button>
+      )}
 
       {/* Help Button - hidden on mobile, accessible via menu */}
       <button

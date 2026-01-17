@@ -1,51 +1,16 @@
-// Monster image imports
-// import goblin from "./goblin.png";
+// Monster sprite imports (LPC spritesheets for animated monsters)
+import goblin from './goblin.png';
 import imp from './imp.png';
-// import slime from "./slime.png";
-// import banshee from "./banshee.png";
-// import gargoyle from "./gargoyle.png";
-// import mimic from "./mimic.png";
-// import necromancer from "./necromancer.png";
-// import werewolf from "./werewolf.png";
-// import troll from "./troll.png";
-// import vampire from "./vampire.png";
-// import hydra from "./hydra.png";
-// import demon from "./demon.png";
-// import cerberus from "./cerberus.png";
-// import darkknight from "./darkknight.png";
-// import orcwarlord from "./orcwarlord.png";
-// import lichking from "./lichking.png";
-// import demonlord from "./demonlord.png";
-// import ancientdragon from "./ancientdragon.png";
-// import elemental from "./elemental.png";
+import wraith from './wraith.png';
+import skeleton from './skeleton.png';
 
-// For monsters without images, we'll use a placeholder or similar monster
-// skeleton -> use necromancer style
-// wraith -> use banshee style
-// elemental -> use slime style
-
+// Map monster types to their sprite images
+// Add more imports above and entries below as sprites are created
 export const MONSTER_IMAGES: Record<string, string> = {
-  // goblin,
+  goblin,
   imp,
-  // skeleton: necromancer, // placeholder
-  // slime,
-  // wraith: banshee, // placeholder
-  // banshee,
-  // gargoyle,
-  // mimic,
-  // necromancer,
-  // werewolf,
-  // troll,
-  // vampire,
-  // elemental,
-  // hydra,
-  // demon,
-  // cerberus,
-  // darkknight,
-  // orcwarlord,
-  // lichking,
-  // demonlord,
-  // ancientdragon,
+  wraith,
+  skeleton,
 };
 
 export default MONSTER_IMAGES;

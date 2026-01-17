@@ -16,6 +16,7 @@ import {
   MobileTabBar,
 } from "./game";
 import { BattleStage } from "./game/pixi/BattleStage";
+import { useMusic } from "../hooks/useMusic";
 
 export function GameScreen() {
   const [showHelp, setShowHelp] = useState(false);
@@ -24,6 +25,9 @@ export function GameScreen() {
   const [activeTab, setActiveTab] = useState<"party" | "battle" | "log">(
     "battle"
   );
+
+  // Background music
+  const { isMuted, toggleMute } = useMusic("forest", { volume: 0.25, loop: true });
 
   // Game state from store
   const phase = useGameStore((state) => state.phase);
@@ -227,12 +231,14 @@ export function GameScreen() {
           gameSpeed={gameSpeed}
           skipAnimations={skipAnimations}
           showBattleLog={showBattleLog}
+          isMuted={isMuted}
           onToggleSpeedSettings={() => setShowSpeedSettings(!showSpeedSettings)}
           onShowHelp={() => setShowHelp(true)}
           onShowQuitConfirm={() => setShowQuitConfirm(true)}
           onToggleBattleLog={() =>
             setBattleLogOpenRound(showBattleLog ? null : round)
           }
+          onToggleMute={toggleMute}
         />
       </div>
 
