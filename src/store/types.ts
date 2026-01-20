@@ -213,7 +213,7 @@ export interface RewardsActions {
 
 export interface AnimationActions {
   setAnimation: (animation: Partial<GameStore["animation"]>) => void;
-  addActionMessage: (text: string, type: ActionMessage["type"]) => void;
+  addActionMessage: (text: string, type: ActionMessage["type"], sourceId?: string) => void;
   clearActionMessages: () => void;
   addDamageNumber: (
     targetId: string,

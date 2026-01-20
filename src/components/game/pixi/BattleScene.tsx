@@ -6,7 +6,13 @@ import { DamageNumber, type DamageNumberData } from "./DamageNumber";
 import { ScreenShake } from "./ScreenShake";
 import { MonsterSprite } from "./MonsterSprite";
 import { PlayerSprite } from "./PlayerSprite";
-import type { EnvironmentType } from "../../../types";
+import { DiceRoll3D } from "./DiceRoll3D";
+import { AttackEffect, type AttackType } from "./AttackEffect";
+import { CardPlayEffect } from "./CardPlayEffect";
+import { StatusEffectParticles } from "./StatusEffectParticles";
+import { RoundTransition } from "./RoundTransition";
+import { ActionCard } from "./ActionCard";
+import type { EnvironmentType, EffectType, ClassType, ActionMessage } from "../../../types";
 
 interface BattleSceneProps {
   width: number;
@@ -77,6 +83,25 @@ const ENVIRONMENT_THEMES: Record<EnvironmentType, {
   },
 };
 
+// Attack effect data
+interface AttackEffectData {
+  id: string;
+  startX: number;
+  startY: number;
+  endX: number;
+  endY: number;
+  type: AttackType;
+}
+
+// Card play effect data
+interface CardPlayEffectData {
+  id: string;
+  x: number;
+  y: number;
+  classType: ClassType;
+  rarity: "common" | "uncommon" | "rare" | "legendary";
+}
+
 export function BattleScene({ width, height }: BattleSceneProps) {
   // Game state from Zustand
   const animation = useGameStore((state) => state.animation);
@@ -90,6 +115,7 @@ export function BattleScene({ width, height }: BattleSceneProps) {
   const needsTargetSelection = useGameStore((state) => state.needsTargetSelection);
   const getTargetType = useGameStore((state) => state.getTargetType);
   const startDiceRoll = useGameStore((state) => state.startDiceRoll);
+  const round = useGameStore((state) => state.round);
 
   // Particle animation time
   const [particleTime, setParticleTime] = useState(0);
@@ -100,8 +126,26 @@ export function BattleScene({ width, height }: BattleSceneProps) {
   // Screen shake state
   const [isShaking, setIsShaking] = useState(false);
 
+  // Attack effects state
+  const [attackEffects, setAttackEffects] = useState<AttackEffectData[]>([]);
+
+  // Card play effects state
+  const [cardPlayEffects, setCardPlayEffects] = useState<CardPlayEffectData[]>([]);
+
+  // Round transition state
+  const [showRoundTransition, setShowRoundTransition] = useState(false);
+  const [transitionRound, setTransitionRound] = useState(1);
+  const prevRoundRef = useRef(round);
+
   // Track which damage numbers we've already processed
   const lastProcessedCountRef = useRef(0);
+
+  // Track previous attacking entity to detect new attacks
+  const prevAttackingEntityRef = useRef<string | null>(null);
+
+  // Action messages state - track displayed messages
+  const [displayedActionMessages, setDisplayedActionMessages] = useState<ActionMessage[]>([]);
+  const lastActionMessageCountRef = useRef(0);
 
   // Calculate highest aggro player for targeting indicator
   const highestAggroPlayerId = useMemo(() => {
@@ -176,7 +220,50 @@ export function BattleScene({ width, height }: BattleSceneProps) {
     setDamageNumbers((prev) => prev.filter((dn) => dn.id !== id));
   }, []);
 
+  // Process action messages from animation state
+  useTick(useCallback(() => {
+    // Filter out damage and heal types (those are shown as floating numbers)
+    const filteredMessages = animation.actionMessages.filter(
+      (msg) => msg.type !== "damage" && msg.type !== "heal"
+    );
+
+    if (filteredMessages.length > lastActionMessageCountRef.current) {
+      const newMessages = filteredMessages.slice(lastActionMessageCountRef.current);
+      lastActionMessageCountRef.current = filteredMessages.length;
+
+      // Add new messages to displayed list
+      setDisplayedActionMessages(prev => [...prev, ...newMessages]);
+    }
+  }, [animation.actionMessages]));
+
+  // Reset action message counter when cleared
+  useEffect(() => {
+    if (animation.actionMessages.length === 0) {
+      lastActionMessageCountRef.current = 0;
+    }
+  }, [animation.actionMessages.length]);
+
+  // Remove finished action messages
+  const handleActionMessageComplete = useCallback((id: string) => {
+    setDisplayedActionMessages(prev => prev.filter(msg => msg.id !== id));
+  }, []);
+
+  // Detect round changes for transition effect
+  useEffect(() => {
+    if (round !== prevRoundRef.current && round > 1) {
+      setTransitionRound(round);
+      setShowRoundTransition(true);
+      prevRoundRef.current = round;
+    }
+  }, [round]);
+
+  // Handle round transition complete
+  const handleRoundTransitionComplete = useCallback(() => {
+    setShowRoundTransition(false);
+  }, []);
+
   // Calculate positions for monsters (RIGHT side of canvas)
+  // NOTE: These must be defined BEFORE the useEffect that uses them
   const getMonsterPosition = useCallback((index: number, total: number) => {
     const safeWidth = Math.max(width, 400);
     const safeHeight = Math.max(height, 300);
@@ -207,6 +294,168 @@ export function BattleScene({ width, height }: BattleSceneProps) {
       y: Math.max(120, startY) + spacing * index
     };
   }, [width, height]);
+
+  // Get position for action message based on source entity
+  const getActionMessagePosition = useCallback((sourceId?: string) => {
+    const safeWidth = Math.max(width, 400);
+    const safeHeight = Math.max(height, 300);
+
+    if (!sourceId) {
+      // No source - center of screen
+      return { x: safeWidth / 2, y: safeHeight * 0.3 };
+    }
+
+    // Check if source is a player
+    const playerIndex = players.findIndex(p => p.id === sourceId);
+    if (playerIndex >= 0) {
+      const pos = getPlayerPosition(playerIndex, players.length);
+      // Offset to the right of player so it doesn't cover them
+      return { x: pos.x + 120, y: pos.y - 40 };
+    }
+
+    // Check if source is a monster
+    const monsterIndex = monsters.findIndex(m => m.id === sourceId);
+    if (monsterIndex >= 0) {
+      const pos = getMonsterPosition(monsterIndex, monsters.length);
+      // Offset to the left of monster so it doesn't cover them
+      return { x: pos.x - 120, y: pos.y - 40 };
+    }
+
+    // Fallback to center
+    return { x: safeWidth / 2, y: safeHeight * 0.3 };
+  }, [players, monsters, getPlayerPosition, getMonsterPosition, width, height]);
+
+  // Detect new attacks and create attack effects
+  useEffect(() => {
+    const { attackingEntityId, attackAnimation } = animation;
+
+    // Only trigger for valid attack animations
+    const isValidAttackAnimation = attackAnimation === "slash" || attackAnimation === "thrust" ||
+                                   attackAnimation === "shoot" || attackAnimation === "cast";
+
+    if (attackingEntityId && isValidAttackAnimation && attackingEntityId !== prevAttackingEntityRef.current) {
+      prevAttackingEntityRef.current = attackingEntityId;
+
+      // Find attacker position
+      const attackerIsPlayer = players.some(p => p.id === attackingEntityId);
+      const attackerIsMonster = monsters.some(m => m.id === attackingEntityId);
+
+      let startPos = { x: width / 2, y: height / 2 };
+      let endPos = { x: width / 2, y: height / 2 };
+      let hasValidTarget = false;
+      let isSelfTargetOnly = false;
+
+      // Check if this is a self-target only action (like self-heal or buff)
+      if (attackerIsPlayer) {
+        const currentPlayer = players[currentPlayerIndex];
+        if (currentPlayer) {
+          const selectedCard = currentPlayer.hand.find(c => c.id === selectedCardId);
+          if (selectedCard) {
+            // Check if all effects target self or allies only (no monster targets)
+            const hasMonsterTarget = selectedCard.effects.some(e =>
+              e.target === "monster" || e.target === "allMonsters" ||
+              (e.type === "damage" && e.target !== "self" && e.target !== "ally" && e.target !== "allAllies")
+            );
+            isSelfTargetOnly = !hasMonsterTarget;
+          }
+        }
+      }
+
+      if (attackerIsPlayer && !isSelfTargetOnly) {
+        const playerIndex = players.findIndex(p => p.id === attackingEntityId);
+        if (playerIndex >= 0) {
+          startPos = getPlayerPosition(playerIndex, players.length);
+
+          // Target first alive monster or selected target
+          const targetMonster = selectedTargetId
+            ? monsters.find(m => m.id === selectedTargetId)
+            : monsters.find(m => m.isAlive);
+
+          if (targetMonster) {
+            const monsterIndex = monsters.findIndex(m => m.id === targetMonster.id);
+            endPos = getMonsterPosition(monsterIndex, monsters.length);
+            hasValidTarget = true;
+          }
+        }
+      } else if (attackerIsMonster) {
+        const monsterIndex = monsters.findIndex(m => m.id === attackingEntityId);
+        if (monsterIndex >= 0) {
+          startPos = getMonsterPosition(monsterIndex, monsters.length);
+
+          // Target highest aggro player
+          const targetPlayer = players.find(p => p.id === highestAggroPlayerId && p.isAlive);
+          if (targetPlayer) {
+            const playerIndex = players.findIndex(p => p.id === targetPlayer.id);
+            endPos = getPlayerPosition(playerIndex, players.length);
+            hasValidTarget = true;
+          }
+        }
+      }
+
+      // Only create attack effect if there's a valid target (skip self-buffs/heals)
+      if (hasValidTarget) {
+        // Map animation type to attack effect type
+        let effectType: AttackType = "slash";
+        if (attackAnimation === "cast") effectType = "cast";
+        else if (attackAnimation === "shoot") effectType = "shoot";
+        else if (attackAnimation === "thrust") effectType = "thrust";
+
+        // Check for element effects (fire, ice, poison) from the current player's selected card
+        const currentPlayer = players[currentPlayerIndex];
+        if (currentPlayer && attackerIsPlayer) {
+          const selectedCard = currentPlayer.hand.find(c => c.id === selectedCardId);
+          if (selectedCard) {
+            const hasFireEffect = selectedCard.effects.some(e => e.type === "burn");
+            const hasIceEffect = selectedCard.effects.some(e => e.type === "ice");
+            const hasPoisonEffect = selectedCard.effects.some(e => e.type === "poison");
+
+            if (hasFireEffect) effectType = "fire";
+            else if (hasIceEffect) effectType = "ice";
+            else if (hasPoisonEffect) effectType = "poison";
+          }
+        }
+
+        const newEffect: AttackEffectData = {
+          id: `attack-${Date.now()}-${Math.random()}`,
+          startX: startPos.x,
+          startY: startPos.y,
+          endX: endPos.x,
+          endY: endPos.y,
+          type: effectType,
+        };
+
+        setAttackEffects(prev => [...prev, newEffect]);
+      }
+
+      // Trigger card play effect at attacker position (for all card plays, not just attacks)
+      if (attackerIsPlayer && currentPlayerIndex >= 0) {
+        const player = players[currentPlayerIndex];
+        const card = player?.hand.find(c => c.id === selectedCardId);
+        if (card) {
+          const cardEffect: CardPlayEffectData = {
+            id: `card-${Date.now()}-${Math.random()}`,
+            x: startPos.x,
+            y: startPos.y,
+            classType: player.class,
+            rarity: card.rarity,
+          };
+          setCardPlayEffects(prev => [...prev, cardEffect]);
+        }
+      }
+    } else if (!attackingEntityId) {
+      prevAttackingEntityRef.current = null;
+    }
+  }, [animation.attackingEntityId, animation.attackAnimation, players, monsters, selectedTargetId, selectedCardId, currentPlayerIndex, highestAggroPlayerId, width, height, getPlayerPosition, getMonsterPosition]);
+
+  // Remove completed attack effects
+  const handleAttackEffectComplete = useCallback((id: string) => {
+    setAttackEffects(prev => prev.filter(e => e.id !== id));
+  }, []);
+
+  // Remove completed card play effects
+  const handleCardPlayEffectComplete = useCallback((id: string) => {
+    setCardPlayEffects(prev => prev.filter(e => e.id !== id));
+  }, []);
 
   // Get position for damage number based on target
   const getDamageNumberPosition = useCallback((targetId: string) => {
@@ -340,7 +589,122 @@ export function BattleScene({ width, height }: BattleSceneProps) {
             />
           );
         })}
+
+        {/* Card Play Effects */}
+        {cardPlayEffects.map((effect) => (
+          <CardPlayEffect
+            key={effect.id}
+            x={effect.x}
+            y={effect.y}
+            classType={effect.classType}
+            rarity={effect.rarity}
+            isActive={true}
+            onComplete={() => handleCardPlayEffectComplete(effect.id)}
+          />
+        ))}
+
+        {/* Attack Effects (projectiles, slashes, etc.) */}
+        {attackEffects.map((effect) => (
+          <AttackEffect
+            key={effect.id}
+            startX={effect.startX}
+            startY={effect.startY}
+            endX={effect.endX}
+            endY={effect.endY}
+            type={effect.type}
+            isActive={true}
+            onComplete={() => handleAttackEffectComplete(effect.id)}
+          />
+        ))}
+
+        {/* Status Effect Particles on Players */}
+        {players.map((player, index) => {
+          const pos = getPlayerPosition(index, players.length);
+          const activeEffects = [
+            ...player.debuffs.map(d => d.type),
+            ...player.buffs.map(b => b.type),
+            ...(player.isStealth ? ["stealth" as EffectType] : []),
+            ...(player.hasTaunt ? ["taunt" as EffectType] : []),
+            ...(player.isStunned ? ["stun" as EffectType] : []),
+          ];
+
+          return activeEffects.length > 0 ? (
+            <StatusEffectParticles
+              key={`status-${player.id}`}
+              x={pos.x}
+              y={pos.y}
+              effects={activeEffects}
+              isActive={player.isAlive}
+            />
+          ) : null;
+        })}
+
+        {/* Status Effect Particles on Monsters */}
+        {monsters.map((monster, index) => {
+          const pos = getMonsterPosition(index, monsters.length);
+          const activeEffects = [
+            ...monster.debuffs.map(d => d.type),
+            ...monster.buffs.map(b => b.type),
+          ];
+
+          return activeEffects.length > 0 ? (
+            <StatusEffectParticles
+              key={`status-${monster.id}`}
+              x={pos.x}
+              y={pos.y}
+              effects={activeEffects}
+              isActive={monster.isAlive}
+            />
+          ) : null;
+        })}
+
+        {/* Action Cards - positioned near characters */}
+        {displayedActionMessages.map((msg) => {
+          const pos = getActionMessagePosition(msg.sourceId);
+          return (
+            <ActionCard
+              key={msg.id}
+              message={msg}
+              x={pos.x}
+              y={pos.y}
+              onComplete={handleActionMessageComplete}
+            />
+          );
+        })}
+
+        {/* Dice Roll 3D Effect */}
+        {(animation.diceRolling || animation.diceRoll !== null) && (
+          <DiceRoll3D
+            x={width / 2}
+            y={height / 2 - 50}
+            isRolling={animation.diceRolling}
+            finalValue={animation.diceRoll}
+          />
+        )}
+
+        {/* Round Transition Effect */}
+        <RoundTransition
+          width={width}
+          height={height}
+          roundNumber={transitionRound}
+          roundName={getRoundName(transitionRound)}
+          isActive={showRoundTransition}
+          onComplete={handleRoundTransitionComplete}
+        />
       </pixiContainer>
     </ScreenShake>
   );
+}
+
+// Helper function to get round name
+function getRoundName(round: number): string {
+  const names: Record<number, string> = {
+    1: "The Dark Passage",
+    2: "The Haunted Halls",
+    3: "The Chamber of Horrors",
+    4: "The Lich King's Crypt",
+    5: "The Demon Gate",
+    6: "The Dragon's Lair",
+  };
+  return names[round] || `Round ${round}`;
 }

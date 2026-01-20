@@ -4,8 +4,6 @@ import { HelpModal } from "./HelpModal";
 import {
   PlayerCard,
   BattleLog,
-  DiceRollOverlay,
-  ActionMessages,
   FloatingDamageNumbers,
   GameHeader,
   SpeedSettings,
@@ -413,16 +411,6 @@ export function GameScreen() {
 
       {/* Mobile Tab Bar */}
       <MobileTabBar activeTab={activeTab} onTabChange={setActiveTab} />
-
-      {/* Dice Roll Overlay */}
-      <DiceRollOverlay
-        diceRolling={animation.diceRolling}
-        diceRoll={animation.diceRoll}
-        currentPlayer={currentPlayer}
-      />
-
-      {/* Action Messages - shows who attacked who */}
-      <ActionMessages messages={animation.actionMessages} />
 
       {/* Floating Damage Numbers - React fallback (Pixi also renders them) */}
       <FloatingDamageNumbers damageNumbers={animation.damageNumbers} />

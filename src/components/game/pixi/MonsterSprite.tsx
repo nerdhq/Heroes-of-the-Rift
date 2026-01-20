@@ -23,6 +23,17 @@ const LPC_FRAME_COUNTS = {
   CAST: 7,
 };
 
+// Spritesheet type detection
+type SpritesheetType = "lpc" | "horizontal_strip" | "simple" | "static";
+
+interface SpritesheetInfo {
+  type: SpritesheetType;
+  frameWidth: number;
+  frameHeight: number;
+  frameCount: number;
+  rows: number;
+}
+
 // Higher resolution for crisp text when scaled
 const TEXT_RESOLUTION = 2;
 
@@ -114,7 +125,7 @@ export function MonsterSprite({
   const [baseTexture, setBaseTexture] = useState<Texture | null>(null);
   const [frameTexture, setFrameTexture] = useState<Texture | null>(null);
   const [imageLoaded, setImageLoaded] = useState(false);
-  const [isSpritesheet, setIsSpritesheet] = useState(false);
+  const [spritesheetInfo, setSpritesheetInfo] = useState<SpritesheetInfo | null>(null);
 
   // Animation state
   const [offsetY, setOffsetY] = useState(0);
@@ -133,14 +144,14 @@ export function MonsterSprite({
 
   // Handle attack animation triggered from store
   useEffect(() => {
-    if (attackingEntityId === monster.id && attackAnimation && isSpritesheet) {
+    if (attackingEntityId === monster.id && attackAnimation && spritesheetInfo?.type === "lpc") {
       const animType = attackAnimation === "slash" || attackAnimation === "thrust" ? "slash" : "cast";
       animationRef.current.isAttacking = true;
       animationRef.current.currentFrame = 0;
       animationRef.current.elapsed = 0;
       setCurrentAnimationType(animType);
     }
-  }, [attackingEntityId, attackAnimation, monster.id, isSpritesheet]);
+  }, [attackingEntityId, attackAnimation, monster.id, spritesheetInfo]);
 
   // Reset to idle when attack animation is cleared
   useEffect(() => {
@@ -151,6 +162,79 @@ export function MonsterSprite({
       setCurrentAnimationType("idle");
     }
   }, [attackingEntityId]);
+
+  // Detect spritesheet type from dimensions
+  const detectSpritesheetType = useCallback((width: number, height: number): SpritesheetInfo => {
+    // Check for full LPC spritesheet (has enough rows for all animations)
+    const lpcCols = Math.floor(width / LPC_FRAME_WIDTH);
+    const lpcRows = Math.floor(height / LPC_FRAME_HEIGHT);
+
+    // Full LPC needs at least row 9 (WALK_LEFT) accessible
+    if (lpcCols >= 6 && lpcRows >= 10) {
+      return {
+        type: "lpc",
+        frameWidth: LPC_FRAME_WIDTH,
+        frameHeight: LPC_FRAME_HEIGHT,
+        frameCount: lpcCols,
+        rows: lpcRows,
+      };
+    }
+
+    // Simple grid spritesheet (multiple rows/cols of 64x64 frames, but not full LPC)
+    if (lpcCols >= 2 && lpcRows >= 2) {
+      return {
+        type: "simple",
+        frameWidth: LPC_FRAME_WIDTH,
+        frameHeight: LPC_FRAME_HEIGHT,
+        frameCount: lpcCols,
+        rows: lpcRows,
+      };
+    }
+
+    // Horizontal strip (single row of frames) - detect by aspect ratio
+    // If width is significantly larger than height, it's likely a horizontal strip
+    if (width > height * 1.5) {
+      // Try to detect frame count - prioritize 4 frames (most common for idle animations)
+      // then try other common counts
+      const candidates = [4, 6, 3, 8, 2]; // Ordered by likelihood for game sprites
+
+      for (const count of candidates) {
+        const frameWidth = width / count;
+        const remainder = width % count;
+
+        // Frame should be at least 20px wide
+        // Allow small remainder (sprites aren't always perfectly aligned)
+        if (frameWidth >= 20 && remainder <= 4) {
+          return {
+            type: "horizontal_strip",
+            frameWidth: Math.floor(frameWidth),
+            frameHeight: height,
+            frameCount: count,
+            rows: 1,
+          };
+        }
+      }
+
+      // Fallback: just divide by 2 or use as static
+      const frameCount = width > height * 2 ? 2 : 1;
+      return {
+        type: frameCount > 1 ? "horizontal_strip" : "static",
+        frameWidth: Math.floor(width / frameCount),
+        frameHeight: height,
+        frameCount,
+        rows: 1,
+      };
+    }
+
+    // Static image (single frame)
+    return {
+      type: "static",
+      frameWidth: width,
+      frameHeight: height,
+      frameCount: 1,
+      rows: 1,
+    };
+  }, []);
 
   // Load monster image
   useEffect(() => {
@@ -164,12 +248,13 @@ export function MonsterSprite({
             const sourceWidth = tex.source?.width || 0;
             const sourceHeight = tex.source?.height || 0;
 
-            // Check if this is an LPC spritesheet (multiple frames)
-            const isLPC = sourceWidth >= LPC_FRAME_WIDTH * 6 && sourceHeight >= LPC_FRAME_HEIGHT * 4;
-            setIsSpritesheet(isLPC);
+            // Detect spritesheet type
+            const info = detectSpritesheetType(sourceWidth, sourceHeight);
+            setSpritesheetInfo(info);
 
-            if (isLPC) {
-              // Always use walk row frame 0 for initial idle pose
+            // Extract first frame based on spritesheet type
+            if (info.type === "lpc") {
+              // Use walk row frame 0 for initial idle pose
               const animRow = LPC_ROWS.WALK_LEFT;
               const frameX = 0;
               const frameY = animRow * LPC_FRAME_HEIGHT;
@@ -180,9 +265,32 @@ export function MonsterSprite({
                   frame: new Rectangle(frameX, frameY, LPC_FRAME_WIDTH, LPC_FRAME_HEIGHT),
                 });
                 setFrameTexture(initialFrame);
+              } else {
+                // Fallback to first frame if walk row not available
+                setFrameTexture(new Texture({
+                  source: tex.source,
+                  frame: new Rectangle(0, 0, LPC_FRAME_WIDTH, LPC_FRAME_HEIGHT),
+                }));
               }
+            } else if (info.type === "horizontal_strip") {
+              // Extract first frame from strip with 2px inset to avoid separator lines
+              const slotWidth = sourceWidth / info.frameCount;
+              const inset = 2; // Skip potential separators
+              const frameWidth = Math.floor(slotWidth) - inset * 2;
+              const initialFrame = new Texture({
+                source: tex.source,
+                frame: new Rectangle(inset, 0, frameWidth, info.frameHeight),
+              });
+              setFrameTexture(initialFrame);
+            } else if (info.type === "simple") {
+              // Extract first frame from grid
+              const initialFrame = new Texture({
+                source: tex.source,
+                frame: new Rectangle(0, 0, info.frameWidth, info.frameHeight),
+              });
+              setFrameTexture(initialFrame);
             } else {
-              // Use the whole texture for static images
+              // Static image - use the whole texture
               setFrameTexture(tex);
             }
 
@@ -196,7 +304,7 @@ export function MonsterSprite({
         });
       return () => { cancelled = true; };
     }
-  }, [monster.image]);
+  }, [monster.image, detectSpritesheetType]);
 
   // Handle click
   const handleClick = useCallback((e: FederatedPointerEvent) => {
@@ -220,8 +328,8 @@ export function MonsterSprite({
       setSelectionPulse(Math.sin(ref.time * 3) * 0.1 + 0.95);
     }
 
-    // Animate spritesheet if loaded
-    if (isSpritesheet && baseTexture && imageLoaded) {
+    // Animate spritesheet if loaded (only for LPC type)
+    if (spritesheetInfo?.type === "lpc" && baseTexture && imageLoaded) {
       // Determine row and frame count based on current animation type
       let animRow: number;
       let frameCount: number;
@@ -242,6 +350,9 @@ export function MonsterSprite({
         animSpeed = 0.08;
       }
 
+      const sourceWidth = baseTexture.source?.width || 0;
+      const sourceHeight = baseTexture.source?.height || 0;
+
       if (frameCount > 1) {
         // Animate through frames
         ref.elapsed += ticker.deltaTime * animSpeed;
@@ -252,9 +363,6 @@ export function MonsterSprite({
 
           const frameX = ref.currentFrame * LPC_FRAME_WIDTH;
           const frameY = animRow * LPC_FRAME_HEIGHT;
-
-          const sourceWidth = baseTexture.source?.width || 0;
-          const sourceHeight = baseTexture.source?.height || 0;
 
           if (frameX + LPC_FRAME_WIDTH <= sourceWidth && frameY + LPC_FRAME_HEIGHT <= sourceHeight) {
             const newFrame = new Texture({
@@ -270,8 +378,6 @@ export function MonsterSprite({
           ref.currentFrame = 0;
           const frameX = 0;
           const frameY = animRow * LPC_FRAME_HEIGHT;
-          const sourceWidth = baseTexture.source?.width || 0;
-          const sourceHeight = baseTexture.source?.height || 0;
 
           if (frameX + LPC_FRAME_WIDTH <= sourceWidth && frameY + LPC_FRAME_HEIGHT <= sourceHeight) {
             const newFrame = new Texture({
@@ -283,7 +389,29 @@ export function MonsterSprite({
         }
       }
     }
-  }, [isSelectable, isSpritesheet, baseTexture, imageLoaded, currentAnimationType]));
+
+    // Simple idle animation for horizontal strips (cycle through frames slowly)
+    if (spritesheetInfo?.type === "horizontal_strip" && baseTexture && imageLoaded && spritesheetInfo.frameCount > 1) {
+      ref.elapsed += ticker.deltaTime * 0.05; // Slow animation
+      if (ref.elapsed >= 1) {
+        ref.elapsed = 0;
+        ref.currentFrame = (ref.currentFrame + 1) % spritesheetInfo.frameCount;
+
+        // Calculate frame position with 2px inset to avoid separator lines
+        const sourceWidth = baseTexture.source?.width || 0;
+        const slotWidth = sourceWidth / spritesheetInfo.frameCount;
+        const inset = 2;
+        const frameX = Math.floor(ref.currentFrame * slotWidth) + inset;
+        const frameWidth = Math.floor(slotWidth) - inset * 2;
+
+        const newFrame = new Texture({
+          source: baseTexture.source,
+          frame: new Rectangle(frameX, 0, frameWidth, spritesheetInfo.frameHeight),
+        });
+        setFrameTexture(newFrame);
+      }
+    }
+  }, [isSelectable, spritesheetInfo, baseTexture, imageLoaded, currentAnimationType]));
 
   // Damage flash effect
   useEffect(() => {
@@ -301,8 +429,14 @@ export function MonsterSprite({
   const barHeight = 10;
   const healthPercent = Math.max(0, monster.hp / monster.maxHp);
 
-  // Sprite display size
-  const spriteSize = isSpritesheet ? LPC_FRAME_HEIGHT * 1.2 : (imageLoaded ? 80 : 50);
+  // Sprite display size based on spritesheet type
+  const isLpcSprite = spritesheetInfo?.type === "lpc";
+  const isAnimatedSprite = spritesheetInfo && spritesheetInfo.type !== "static";
+  const spriteSize = isLpcSprite
+    ? LPC_FRAME_HEIGHT * 1.2
+    : spritesheetInfo
+      ? Math.max(spritesheetInfo.frameHeight, 64)
+      : (imageLoaded ? 80 : 50);
   const isLarge = monster.name.includes("Dragon") || monster.name.includes("Boss") || monster.name.includes("Lord");
   const bodySize = isLarge ? 70 : 50;
 
@@ -367,11 +501,11 @@ export function MonsterSprite({
           {/* Monster sprite */}
           <pixiSprite
             texture={frameTexture}
-            anchor={{ x: 0.5, y: isSpritesheet ? 1 : 0.5 }}
-            y={isSpritesheet ? effectiveSpriteSize / 2 : 0}
-            scale={isSpritesheet ? 1.2 : 1}
-            width={isSpritesheet ? undefined : spriteSize}
-            height={isSpritesheet ? undefined : spriteSize}
+            anchor={{ x: 0.5, y: isLpcSprite ? 1 : 0.5 }}
+            y={isLpcSprite ? effectiveSpriteSize / 2 : 0}
+            scale={isLpcSprite ? 1.2 : (isAnimatedSprite ? 1 : 1)}
+            width={isLpcSprite ? undefined : (isAnimatedSprite ? undefined : spriteSize)}
+            height={isLpcSprite ? undefined : (isAnimatedSprite ? undefined : spriteSize)}
             tint={monster.isAlive ? (monster.debuffs.length > 0 ? 0xdd99ff : 0xffffff) : 0x888888}
           />
         </>

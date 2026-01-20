@@ -8,12 +8,13 @@ export const createAnimationSlice: SliceCreator<AnimationActions> = (set) => ({
     }));
   },
 
-  addActionMessage: (text, type) => {
+  addActionMessage: (text, type, sourceId) => {
     const newMessage = {
       id: generateId(),
       text,
       type,
       timestamp: Date.now(),
+      sourceId,
     };
     set((state) => ({
       animation: {
