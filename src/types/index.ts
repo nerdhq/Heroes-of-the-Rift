@@ -255,6 +255,7 @@ export interface ActionMessage {
   text: string;
   type: "action" | "damage" | "heal" | "buff" | "debuff" | "roll";
   timestamp: number;
+  sourceId?: string; // ID of the player or monster who performed the action
 }
 
 // ============================================
@@ -271,6 +272,9 @@ export interface AnimationState {
     type: "damage" | "heal" | "shield";
     targetId: string;
   }[];
+  // Attack animation state
+  attackingEntityId: string | null;
+  attackAnimation: "slash" | "cast" | "shoot" | "thrust" | null;
 }
 
 // ============================================

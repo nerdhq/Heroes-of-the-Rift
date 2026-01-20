@@ -379,7 +379,7 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
 
     // Handle stunned player
     if (player.isStunned) {
-      get().addActionMessage(`${player.name} is stunned!`, "debuff");
+      get().addActionMessage(`${player.name} is stunned!`, "debuff", player.id);
       set({
         log: [
           ...get().log,
@@ -398,16 +398,49 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
     const isEnhanced = enhanceMode && player.resource >= player.maxResource;
     const enhanceText = isEnhanced ? " (ENHANCED!)" : "";
 
+    // Determine attack animation type based on card effects and class
+    let attackAnimation: "slash" | "cast" | "shoot" | "thrust" = "slash";
+    const hasDamage = selectedCard.effects.some((e) => e.type === "damage");
+    const hasHeal = selectedCard.effects.some((e) => e.type === "heal");
+    const hasDebuff = selectedCard.effects.some((e) =>
+      ["poison", "burn", "ice", "stun", "weakness"].includes(e.type)
+    );
+
+    // Mages and Priests cast spells, Archers shoot
+    if (player.class === "mage" || player.class === "priest" || player.class === "bard") {
+      attackAnimation = "cast";
+    } else if (player.class === "archer") {
+      attackAnimation = "shoot";
+    } else if (player.class === "paladin" || player.class === "warrior") {
+      // Paladin heals are casts, attacks are slashes
+      if (hasHeal && !hasDamage) {
+        attackAnimation = "cast";
+      } else {
+        attackAnimation = "slash";
+      }
+    } else if (player.class === "rogue") {
+      attackAnimation = "thrust";
+    } else if (hasDebuff && !hasDamage) {
+      // Debuff-only cards use cast animation
+      attackAnimation = "cast";
+    }
+
     // Show action message
     set({ phase: "PLAYER_ACTION", enhanceMode: false });
-    get().addActionMessage(`${player.name} plays ${selectedCard.name}!${enhanceText}`, "action");
+    get().addActionMessage(`${player.name} plays ${selectedCard.name}!${enhanceText}`, "action", player.id);
     set({
       log: [
         ...get().log,
         createLogEntry(turn, "PLAYER_ACTION", `${player.name} plays ${selectedCard.name}!${enhanceText}`, "action"),
       ],
     });
-    await delay(1200);
+
+    // Trigger attack animation
+    get().triggerAttackAnimation(player.id, attackAnimation);
+    await delay(900);
+
+    // Clear attack animation
+    get().clearAttackAnimation();
 
     // Apply card effects using shared function
     const result = get().applyCardEffects(currentPlayerIndex, selectedCardId!, selectedTargetId, isEnhanced);
@@ -433,9 +466,9 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
     // Show log messages with delays
     for (const logEntry of result.logs) {
       const msgType = logEntry.type === "damage" ? "damage" : logEntry.type === "heal" ? "heal" : "action";
-      get().addActionMessage(logEntry.message, msgType as ActionMessage["type"]);
+      get().addActionMessage(logEntry.message, msgType as ActionMessage["type"], player.id);
       set({ log: [...get().log, logEntry] });
-      await delay(1000);
+      await delay(1500);
     }
 
     // Sync to other players if online
@@ -616,7 +649,7 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
 
       const isStunned = monster.debuffs.some((d) => d.type === "stun");
       if (isStunned) {
-        get().addActionMessage(`${monster.name} is stunned!`, "debuff");
+        get().addActionMessage(`${monster.name} is stunned!`, "debuff", monster.id);
         set({
           log: [
             ...get().log,
@@ -640,7 +673,7 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
         if (!currentMonster?.isAlive) break;
 
         if (actionNum === 1) {
-          get().addActionMessage(`${monster.name} acts again! ⚡`, "roll");
+          get().addActionMessage(`${monster.name} acts again! ⚡`, "roll", monster.id);
           syncNow();
           await delay(800);
         }
@@ -650,7 +683,7 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
           monster.abilities.find((a) => a.roll === rollD6()) ||
           monster.abilities[0];
 
-        get().addActionMessage(`${monster.name} uses ${ability.name}!`, "roll");
+        get().addActionMessage(`${monster.name} uses ${ability.name}!`, "roll", monster.id);
         set({
           log: [
             ...get().log,
@@ -662,8 +695,14 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
             ),
           ],
         });
+
+        // Trigger monster attack animation (slash for melee damage, cast for other effects)
+        const monsterAttackAnim: "slash" | "cast" = ability.damage > 0 ? "slash" : "cast";
+        get().triggerAttackAnimation(monster.id, monsterAttackAnim);
         syncNow();
-        await delay(1500);
+        await delay(900);
+        get().clearAttackAnimation();
+        await delay(1200);
 
         const alivePlayers = updatedPlayers.filter((p) => p.isAlive);
         if (alivePlayers.length === 0) continue;
@@ -760,7 +799,7 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
             const damageMsg = `${target.name} takes ${damage} damage!${
               !isAlive ? " 💀" : ""
             }`;
-            get().addActionMessage(damageMsg, "damage");
+            get().addActionMessage(damageMsg, "damage", monster.id);
             set({
               players: updatedPlayers,
               log: [
@@ -775,7 +814,7 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
                 ),
               ],
             });
-            await delay(1200);
+            await delay(1800);
           }
         } else if (ability.damage < 0) {
           const monsterIndex = monsters.findIndex((m) => m.id === monster.id);
@@ -789,7 +828,8 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
 
           get().addActionMessage(
             `${monster.name} heals for ${healAmount}!`,
-            "heal"
+            "heal",
+            monster.id
           );
           set({
             monsters: updatedMonstersArray,
@@ -803,7 +843,7 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
               ),
             ],
           });
-          await delay(1200);
+          await delay(1800);
         }
 
         if (ability.debuff) {
@@ -835,7 +875,8 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
 
             get().addActionMessage(
               `${target.name} is ${formatDebuffMessage(ability.debuff!.type)}!`,
-              "debuff"
+              "debuff",
+              monster.id
             );
             set({
               players: updatedPlayers,
@@ -849,12 +890,12 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
                 ),
               ],
             });
-            await delay(1000);
+            await delay(1500);
           }
         }
       }
 
-      await delay(500);
+      await delay(800);
     }
 
     set({
@@ -1196,7 +1237,8 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
     set({ phase: "PLAYER_ACTION", players: updatedPlayers });
     get().addActionMessage(
       `${player.name} uses ${config.specialAbility.name}!`,
-      "action"
+      "action",
+      player.id
     );
     set({
       log: [
@@ -1209,7 +1251,7 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
         ),
       ],
     });
-    await delay(1200);
+    await delay(1500);
 
     let finalPlayers = updatedPlayers;
     let finalMonsters = [...monsters];
@@ -1266,10 +1308,11 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
           : "action";
       get().addActionMessage(
         logEntry.message,
-        msgType as ActionMessage["type"]
+        msgType as ActionMessage["type"],
+        player.id
       );
       set({ log: [...get().log, logEntry] });
-      await delay(1000);
+      await delay(1500);
     }
 
     const currentPlayer = finalPlayers[currentPlayerIndex];
@@ -1312,7 +1355,7 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
         animation: { ...state.animation, diceRoll: fakeRoll },
       }));
       rollCount++;
-      if (rollCount >= 15) {
+      if (rollCount >= 5) {
         clearInterval(rollInterval);
 
         const finalRoll = rollD20();
@@ -1350,9 +1393,9 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
             animation: { ...state.animation, diceRoll: null },
           }));
           get().playCard();
-        }, 1000);
+        }, 300);
       }
-    }, 100);
+    }, 50);
   },
 
   // ============================================
@@ -1546,7 +1589,7 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
       };
 
       set({ players: updatedPlayers });
-      get().addActionMessage(`${player.name} rolls ${diceRoll} (+${cardAggro} card) = ${totalAggro} aggro`, "roll");
+      get().addActionMessage(`${player.name} rolls ${diceRoll} (+${cardAggro} card) = ${totalAggro} aggro`, "roll", player.id);
       logs.push(createLogEntry(turn, "AGGRO", `${player.name} rolls D20: ${diceRoll} + ${newBaseAggro} base = ${totalAggro} aggro`, "roll"));
       syncNow();
       await delay(600);
@@ -1568,7 +1611,7 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
       if (!player.isAlive) continue;
 
       if (player.isStunned) {
-        get().addActionMessage(`${player.name} is stunned!`, "debuff");
+        get().addActionMessage(`${player.name} is stunned!`, "debuff", player.id);
         logs.push(createLogEntry(turn, "RESOLVE", `${player.name} is stunned and cannot act!`, "debuff"));
         continue;
       }
@@ -1579,10 +1622,10 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
       const isEnhanced = selection.enhanceMode && player.resource >= player.maxResource;
       const enhanceText = isEnhanced ? " (ENHANCED!)" : "";
 
-      get().addActionMessage(`${player.name} plays ${selectedCard.name}!${enhanceText}`, "action");
+      get().addActionMessage(`${player.name} plays ${selectedCard.name}!${enhanceText}`, "action", player.id);
       logs.push(createLogEntry(turn, "RESOLVE", `${player.name} plays ${selectedCard.name}!${enhanceText}`, "action"));
       syncNow();
-      await delay(800);
+      await delay(1200);
 
       // Use shared effect application function
       const result = get().applyCardEffects(playerIndex, selection.cardId!, selection.targetId, isEnhanced);
@@ -1601,7 +1644,7 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
       set({ players: result.players, monsters: result.monsters });
       logs.push(...result.logs);
       syncNow();
-      await delay(500);
+      await delay(800);
     }
 
     // Final state update

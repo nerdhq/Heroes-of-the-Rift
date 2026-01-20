@@ -1,5 +1,4 @@
 import type { Environment } from "../../types";
-import { Sparkles } from "lucide-react";
 
 interface EnvironmentDisplayProps {
   environment: Environment | null;
@@ -35,43 +34,61 @@ export function EnvironmentDisplay({ environment }: EnvironmentDisplayProps) {
   };
 
   return (
-    <div
-      className="rounded-lg border-2 border-stone-700 p-4 mb-4 bg-gradient-to-br"
-      style={{
-        backgroundImage: `linear-gradient(to bottom right, ${environment.theme.primaryColor}15, ${environment.theme.secondaryColor}10)`,
-        borderColor: environment.theme.primaryColor + "40",
-      }}
-    >
-      {/* Header */}
-      <div className="flex items-center gap-2 mb-2">
-        <span className="text-2xl">{getEnvironmentIcon(environment.type)}</span>
-        <div>
-          <h2
-            className="font-bold text-lg"
-            style={{ color: environment.theme.primaryColor }}
-          >
-            {environment.name}
-          </h2>
-          <p className="text-xs text-stone-400 italic">{environment.description}</p>
-        </div>
+    <div className="relative inline-block group mb-2">
+      {/* Main pill - just icon and name */}
+      <div
+        className="inline-flex items-center gap-2 rounded-lg border border-stone-700 px-3 py-1.5 cursor-help transition-colors hover:border-stone-500"
+        style={{
+          backgroundImage: `linear-gradient(to right, ${environment.theme.primaryColor}20, ${environment.theme.secondaryColor}10)`,
+          borderColor: environment.theme.primaryColor + "50",
+        }}
+      >
+        <span className="text-lg">{getEnvironmentIcon(environment.type)}</span>
+        <span
+          className="font-bold text-sm"
+          style={{ color: environment.theme.primaryColor }}
+        >
+          {environment.name}
+        </span>
       </div>
 
-      {/* Effects */}
+      {/* Hover tooltip with full details */}
       {environment.effects && environment.effects.length > 0 && (
-        <div className="mt-3 space-y-1">
-          <div className="flex items-center gap-1 text-xs text-stone-400 mb-1">
-            <Sparkles className="w-3 h-3" />
-            <span className="font-semibold">Environmental Effects:</span>
-          </div>
-          {environment.effects.map((effect, idx) => (
-            <div
-              key={idx}
-              className="text-xs text-stone-300 flex items-center gap-1 pl-4"
-            >
-              <span>{getEffectIcon(effect.type)}</span>
-              <span>{effect.description}</span>
+        <div className="absolute left-0 top-full mt-1 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none group-hover:pointer-events-auto">
+          <div
+            className="rounded-lg border border-stone-600 p-3 shadow-xl min-w-[200px] max-w-[300px]"
+            style={{
+              backgroundColor: "#1a1a1a",
+              borderColor: environment.theme.primaryColor + "40",
+            }}
+          >
+            {/* Header */}
+            <div className="flex items-center gap-2 mb-2 pb-2 border-b border-stone-700">
+              <span className="text-lg">{getEnvironmentIcon(environment.type)}</span>
+              <span
+                className="font-bold text-sm"
+                style={{ color: environment.theme.primaryColor }}
+              >
+                {environment.name}
+              </span>
             </div>
-          ))}
+
+            {/* Effects list */}
+            <div className="space-y-2">
+              <div className="text-xs text-stone-400 uppercase tracking-wide">
+                Active Effects
+              </div>
+              {environment.effects.map((effect, idx) => (
+                <div
+                  key={idx}
+                  className="flex items-start gap-2 text-sm"
+                >
+                  <span className="flex-shrink-0">{getEffectIcon(effect.type)}</span>
+                  <span className="text-stone-200">{effect.description}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       )}
     </div>

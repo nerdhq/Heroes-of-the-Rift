@@ -3,10 +3,7 @@ import { useGameStore } from "../store/gameStore";
 import { HelpModal } from "./HelpModal";
 import {
   PlayerCard,
-  MonsterCard,
   BattleLog,
-  DiceRollOverlay,
-  ActionMessages,
   FloatingDamageNumbers,
   GameHeader,
   SpeedSettings,
@@ -16,6 +13,8 @@ import {
   EnvironmentDisplay,
   MobileTabBar,
 } from "./game";
+import { BattleStage } from "./game/pixi/BattleStage";
+import { useMusic } from "../hooks/useMusic";
 
 export function GameScreen() {
   const [showHelp, setShowHelp] = useState(false);
@@ -24,6 +23,9 @@ export function GameScreen() {
   const [activeTab, setActiveTab] = useState<"party" | "battle" | "log">(
     "battle"
   );
+
+  // Background music
+  const { isMuted, toggleMute } = useMusic("forest", { volume: 0.25, loop: true });
 
   // Game state from store
   const phase = useGameStore((state) => state.phase);
@@ -87,7 +89,7 @@ export function GameScreen() {
   const targetType = getTargetType();
 
   const [battleLogOpenRound, setBattleLogOpenRound] = useState<number | null>(
-    () => round
+    () => null
   );
   const showBattleLog = battleLogOpenRound === round;
 
@@ -219,19 +221,23 @@ export function GameScreen() {
   };
 
   return (
-    <div className="h-screen bg-gradient-to-b from-stone-900 via-stone-800 to-stone-900 p-2 pb-18 lg:pb-3 overflow-hidden relative flex flex-col">
-      {/* Top Right Controls */}
-      <TopControls
-        gameSpeed={gameSpeed}
-        skipAnimations={skipAnimations}
-        showBattleLog={showBattleLog}
-        onToggleSpeedSettings={() => setShowSpeedSettings(!showSpeedSettings)}
-        onShowHelp={() => setShowHelp(true)}
-        onShowQuitConfirm={() => setShowQuitConfirm(true)}
-        onToggleBattleLog={() =>
-          setBattleLogOpenRound(showBattleLog ? null : round)
-        }
-      />
+    <div className="h-screen bg-gradient-to-b from-stone-900 via-stone-800 to-stone-900 overflow-hidden flex flex-col">
+      {/* Top Controls */}
+      <div className="relative z-20 p-2">
+        <TopControls
+          gameSpeed={gameSpeed}
+          skipAnimations={skipAnimations}
+          showBattleLog={showBattleLog}
+          isMuted={isMuted}
+          onToggleSpeedSettings={() => setShowSpeedSettings(!showSpeedSettings)}
+          onShowHelp={() => setShowHelp(true)}
+          onShowQuitConfirm={() => setShowQuitConfirm(true)}
+          onToggleBattleLog={() =>
+            setBattleLogOpenRound(showBattleLog ? null : round)
+          }
+          onToggleMute={toggleMute}
+        />
+      </div>
 
       {/* Speed Settings Dropdown */}
       <SpeedSettings
@@ -255,111 +261,29 @@ export function GameScreen() {
         }}
       />
 
-      {/* Desktop Layout - hidden on mobile */}
-      <div className="hidden lg:grid max-w-7xl mx-auto grid-cols-12 gap-4 flex-1 w-full min-h-0">
-        {/* Left Panel - Players */}
-        <div className="col-span-3 flex flex-col gap-3 overflow-y-auto overflow-x-hidden pr-1 min-h-0">
-          <h2 className="text-lg font-bold text-amber-400">Party</h2>
-          {players.map((player, index) => (
-            <PlayerCard
-              key={player.id}
-              player={player}
-              isCurrentPlayer={index === currentPlayerIndex}
-              isTargeted={
-                player.id === highestAggroPlayerId &&
-                player.isAlive &&
-                monsters.some((m) => m.isAlive)
-              }
-            />
-          ))}
-        </div>
-
-        {/* Center Panel - Battlefield */}
-        <div className="col-span-6 flex flex-col h-full min-h-0 overflow-hidden">
-          {/* Round & Turn Info + Phase Progress */}
+      {/* Desktop Layout */}
+      <div className="hidden lg:flex flex-col flex-1 min-h-0 overflow-hidden">
+        {/* Game Header */}
+        <div className="px-4">
           <GameHeader
             round={round}
             maxRounds={maxRounds}
             turn={turn}
             phase={phase}
           />
+        </div>
 
-          {/* Environment Display */}
-          <EnvironmentDisplay environment={environment} />
-
-          {/* Monster Area */}
-          <div className="flex-1 flex items-start justify-center min-h-[200px] overflow-hidden pt-4">
-            <div
-              className={`grid gap-4 w-full ${
-                monsters.length > 1
-                  ? "grid-cols-2 max-w-2xl"
-                  : "grid-cols-1 max-w-md"
-              }`}
-            >
-              {monsters.map((monster) => {
-                // For online mode, check if local player has selected a card that needs targeting
-                const onlineCardNeedsMonsterTarget = (() => {
-                  if (!isOnline || !localPlayerSelection?.cardId) return false;
-                  const card = localPlayer?.hand.find(
-                    (c) => c.id === localPlayerSelection.cardId
-                  );
-                  return (
-                    card?.effects.some((e) => e.target === "monster") ?? false
-                  );
-                })();
-
-                // Monster is selectable when a card requiring monster target is selected
-                const isMonsterSelectable =
-                  phase === "SELECT" &&
-                  monster.isAlive &&
-                  // Offline mode: card selected and needs monster target
-                  ((!isOnline &&
-                    !!selectedCardId &&
-                    needsTarget &&
-                    targetType === "monster" &&
-                    isLocalPlayerTurn) ||
-                    // Online mode: local player has card selected that needs monster target, and not ready
-                    (isOnline &&
-                      onlineCardNeedsMonsterTarget &&
-                      !localPlayerSelection?.isReady));
-
-                const monsterIsSelected = isOnline
-                  ? localPlayerSelection?.targetId === monster.id
-                  : selectedTargetId === monster.id;
-
-                return (
-                  <MonsterCard
-                    key={monster.id}
-                    monster={monster}
-                    isSelectable={isMonsterSelectable}
-                    isSelected={monsterIsSelected}
-                    onSelect={(monsterId) => {
-                      if (
-                        isOnline &&
-                        localPlayer &&
-                        localPlayerSelection?.cardId
-                      ) {
-                        // Online mode: set target and auto-ready
-                        setPlayerSelection(
-                          localPlayer.id,
-                          localPlayerSelection.cardId,
-                          monsterId,
-                          localPlayerSelection.enhanceMode
-                        );
-                        setPlayerReady(localPlayer.id, true);
-                      } else {
-                        // Offline mode: select target and start dice roll
-                        useGameStore.setState({ selectedTargetId: monsterId });
-                        startDiceRoll();
-                      }
-                    }}
-                  />
-                );
-              })}
-            </div>
+        {/* PixiJS Battle Canvas - Main battle area */}
+        <div className="flex-1 min-h-0 w-full relative">
+          <BattleStage className="absolute inset-0 w-full h-full" />
+          {/* Environment overlay in top-left corner */}
+          <div className="absolute top-2 left-2 z-10">
+            <EnvironmentDisplay environment={environment} />
           </div>
+        </div>
 
-          {/* Hand Area */}
+        {/* Card Hand - Bottom */}
+        <div className="px-4 pb-3 flex-shrink-0 max-w-4xl mx-auto w-full">
           <CardHand
             currentPlayer={currentPlayer}
             localPlayer={localPlayer}
@@ -389,7 +313,7 @@ export function GameScreen() {
 
           {/* Battle Log - below player's hand */}
           {showBattleLog && (
-            <div className="mt-3 max-h-32 overflow-hidden flex-shrink-0">
+            <div className="mt-3 max-h-32 overflow-hidden">
               <BattleLog log={log} />
             </div>
           )}
@@ -397,8 +321,8 @@ export function GameScreen() {
       </div>
 
       {/* Mobile Layout - Tabbed interface */}
-      <div className="lg:hidden flex-1 flex flex-col min-h-0 overflow-hidden">
-        {/* Party Tab */}
+      <div className="lg:hidden flex-1 flex flex-col min-h-0 overflow-hidden pb-16">
+        {/* Party Tab - Shows detailed PlayerCards */}
         {activeTab === "party" && (
           <div className="flex-1 overflow-y-auto px-2">
             <h2 className="text-lg font-bold text-amber-400 py-3 sticky top-0 bg-stone-900/95 z-10">
@@ -421,111 +345,56 @@ export function GameScreen() {
           </div>
         )}
 
-        {/* Battle Tab */}
+        {/* Battle Tab - Pixi canvas + CardHand */}
         {activeTab === "battle" && (
-          <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
-            <GameHeader
-              round={round}
-              maxRounds={maxRounds}
-              turn={turn}
-              phase={phase}
-            />
-            <EnvironmentDisplay environment={environment} />
-
+          <div className="flex-1 flex flex-col min-h-0">
             <div className="px-2">
-              <div
-                className={`grid gap-2 py-1 ${
-                  monsters.length > 1
-                    ? "grid-cols-2"
-                    : "grid-cols-1 max-w-xs mx-auto"
-                }`}
-              >
-                {monsters.map((monster) => {
-                  const onlineCardNeedsMonsterTarget = (() => {
-                    if (!isOnline || !localPlayerSelection?.cardId)
-                      return false;
-                    const card = localPlayer?.hand.find(
-                      (c) => c.id === localPlayerSelection.cardId
-                    );
-                    return (
-                      card?.effects.some((e) => e.target === "monster") ?? false
-                    );
-                  })();
+              <GameHeader
+                round={round}
+                maxRounds={maxRounds}
+                turn={turn}
+                phase={phase}
+              />
+            </div>
 
-                  const isMonsterSelectable =
-                    phase === "SELECT" &&
-                    monster.isAlive &&
-                    ((!isOnline &&
-                      !!selectedCardId &&
-                      needsTarget &&
-                      targetType === "monster" &&
-                      isLocalPlayerTurn) ||
-                      (isOnline &&
-                        onlineCardNeedsMonsterTarget &&
-                        !localPlayerSelection?.isReady));
-
-                  const monsterIsSelected = isOnline
-                    ? localPlayerSelection?.targetId === monster.id
-                    : selectedTargetId === monster.id;
-
-                  return (
-                    <MonsterCard
-                      key={monster.id}
-                      monster={monster}
-                      isSelectable={isMonsterSelectable}
-                      isSelected={monsterIsSelected}
-                      onSelect={(monsterId) => {
-                        if (
-                          isOnline &&
-                          localPlayer &&
-                          localPlayerSelection?.cardId
-                        ) {
-                          setPlayerSelection(
-                            localPlayer.id,
-                            localPlayerSelection.cardId,
-                            monsterId,
-                            localPlayerSelection.enhanceMode
-                          );
-                          setPlayerReady(localPlayer.id, true);
-                        } else {
-                          useGameStore.setState({
-                            selectedTargetId: monsterId,
-                          });
-                          startDiceRoll();
-                        }
-                      }}
-                    />
-                  );
-                })}
+            {/* PixiJS Battle Canvas */}
+            <div className="flex-1 min-h-0 w-full relative">
+              <BattleStage className="absolute inset-0 w-full h-full" />
+              {/* Environment overlay in top-left corner */}
+              <div className="absolute top-2 left-2 z-10">
+                <EnvironmentDisplay environment={environment} />
               </div>
             </div>
 
-            <CardHand
-              currentPlayer={currentPlayer}
-              localPlayer={localPlayer}
-              phase={phase}
-              selectedCardId={selectedCardId}
-              selectedTargetId={selectedTargetId}
-              enhanceMode={enhanceMode}
-              needsTarget={needsTarget}
-              targetType={targetType}
-              monsters={monsters}
-              players={players}
-              canUseSpecialAbility={canUseSpecialAbility()}
-              canEnhanceCard={canEnhanceCard()}
-              isOnline={isOnline}
-              isLocalPlayerTurn={isLocalPlayerTurn}
-              playerSelections={playerSelections}
-              localPlayerSelection={localPlayerSelection}
-              onSelectCard={isOnline ? selectCard : handleAutoPlayCard}
-              onSelectTarget={selectTarget}
-              onConfirmCard={handleConfirmCard}
-              onConfirmTarget={confirmTarget}
-              onUseSpecialAbility={useSpecialAbility}
-              onToggleEnhanceMode={() => setEnhanceMode(!enhanceMode)}
-              onSetPlayerSelection={setPlayerSelection}
-              onSetPlayerReady={setPlayerReady}
-            />
+            {/* Card Hand */}
+            <div className="px-2 pb-2 flex-shrink-0">
+              <CardHand
+                currentPlayer={currentPlayer}
+                localPlayer={localPlayer}
+                phase={phase}
+                selectedCardId={selectedCardId}
+                selectedTargetId={selectedTargetId}
+                enhanceMode={enhanceMode}
+                needsTarget={needsTarget}
+                targetType={targetType}
+                monsters={monsters}
+                players={players}
+                canUseSpecialAbility={canUseSpecialAbility()}
+                canEnhanceCard={canEnhanceCard()}
+                isOnline={isOnline}
+                isLocalPlayerTurn={isLocalPlayerTurn}
+                playerSelections={playerSelections}
+                localPlayerSelection={localPlayerSelection}
+                onSelectCard={isOnline ? selectCard : handleAutoPlayCard}
+                onSelectTarget={selectTarget}
+                onConfirmCard={handleConfirmCard}
+                onConfirmTarget={confirmTarget}
+                onUseSpecialAbility={useSpecialAbility}
+                onToggleEnhanceMode={() => setEnhanceMode(!enhanceMode)}
+                onSetPlayerSelection={setPlayerSelection}
+                onSetPlayerReady={setPlayerReady}
+              />
+            </div>
           </div>
         )}
 
@@ -540,17 +409,7 @@ export function GameScreen() {
       {/* Mobile Tab Bar */}
       <MobileTabBar activeTab={activeTab} onTabChange={setActiveTab} />
 
-      {/* Dice Roll Overlay */}
-      <DiceRollOverlay
-        diceRolling={animation.diceRolling}
-        diceRoll={animation.diceRoll}
-        currentPlayer={currentPlayer}
-      />
-
-      {/* Stacked Action Messages */}
-      <ActionMessages messages={animation.actionMessages} />
-
-      {/* Floating Damage Numbers */}
+      {/* Floating Damage Numbers - React fallback (Pixi also renders them) */}
       <FloatingDamageNumbers damageNumbers={animation.damageNumbers} />
     </div>
   );

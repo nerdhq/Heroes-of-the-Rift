@@ -82,19 +82,9 @@ export interface RewardsState {
   roundGoldEarned: number;
 }
 
-export interface AnimationState {
-  animation: {
-    isAnimating: boolean;
-    diceRoll: number | null;
-    diceRolling: boolean;
-    actionMessages: ActionMessage[];
-    damageNumbers: Array<{
-      id: string;
-      targetId: string;
-      value: number;
-      type: "damage" | "heal" | "shield";
-    }>;
-  };
+// AnimationState is defined in types/index.ts - this slice tracks animation-related state
+export interface AnimationSliceState {
+  // Animation state is part of GameState from types/index.ts
 }
 
 export interface SettingsState {
@@ -223,13 +213,18 @@ export interface RewardsActions {
 
 export interface AnimationActions {
   setAnimation: (animation: Partial<GameStore["animation"]>) => void;
-  addActionMessage: (text: string, type: ActionMessage["type"]) => void;
+  addActionMessage: (text: string, type: ActionMessage["type"], sourceId?: string) => void;
   clearActionMessages: () => void;
   addDamageNumber: (
     targetId: string,
     value: number,
     type: "damage" | "heal" | "shield"
   ) => void;
+  triggerAttackAnimation: (
+    entityId: string,
+    animation: "slash" | "cast" | "shoot" | "thrust"
+  ) => void;
+  clearAttackAnimation: () => void;
 }
 
 export interface SettingsActions {
