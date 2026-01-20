@@ -188,7 +188,7 @@ export const createPlayer = (
     hand: [],
     resource: 0,
     maxResource: config.maxResource,
-    gold: 0,
+    gold: champion?.gold ?? 0,
     isAlive: true,
     isStealth: false,
     hasTaunt: false,

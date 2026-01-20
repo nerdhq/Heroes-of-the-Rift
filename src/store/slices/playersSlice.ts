@@ -91,11 +91,11 @@ export const createPlayersSlice: SliceCreator<PlayersActions> = (set, get) => ({
         id: `${card.id}-${deckBuildingPlayerIndex}-${generateId()}`,
       }));
 
-    // Check if first player is the active champion (for stat scaling)
+    // Check if this player is the active champion (for stat scaling and gold sync)
+    // Link champion to first player if their class matches
     const isChampionPlayer =
       deckBuildingPlayerIndex === 0 &&
       activeChampion &&
-      selectedClasses.length === 1 &&
       selectedClasses[0] === activeChampion.class;
 
     const newPlayer = createPlayer(

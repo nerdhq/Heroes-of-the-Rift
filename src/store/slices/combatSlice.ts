@@ -65,8 +65,8 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
       const { activeChampion } = get();
       if (activeChampion) {
         const championPlayer = refreshedPlayers.find((p) => p.championId === activeChampion.id);
-        if (championPlayer && championPlayer.gold > 0) {
-          get().addChampionGold(activeChampion.id, championPlayer.gold);
+        if (championPlayer) {
+          get().setChampionGold(activeChampion.id, championPlayer.gold);
         }
       }
       // Campaign mode: fail the campaign
@@ -186,8 +186,8 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
       const { activeChampion, players: currentPlayers } = get();
       if (activeChampion) {
         const championPlayer = currentPlayers.find((p) => p.championId === activeChampion.id);
-        if (championPlayer && championPlayer.gold > 0) {
-          get().addChampionGold(activeChampion.id, championPlayer.gold);
+        if (championPlayer) {
+          get().setChampionGold(activeChampion.id, championPlayer.gold);
         }
       }
       set({ currentScreen: "victory" });
@@ -911,8 +911,8 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
       const { activeChampion } = get();
       if (activeChampion) {
         const championPlayer = updatedPlayers.find((p) => p.championId === activeChampion.id);
-        if (championPlayer && championPlayer.gold > 0) {
-          get().addChampionGold(activeChampion.id, championPlayer.gold);
+        if (championPlayer) {
+          get().setChampionGold(activeChampion.id, championPlayer.gold);
         }
       }
       set({ currentScreen: "defeat" });
@@ -1138,8 +1138,8 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
       const { activeChampion } = get();
       if (activeChampion) {
         const championPlayer = updatedPlayers.find((p) => p.championId === activeChampion.id);
-        if (championPlayer && championPlayer.gold > 0) {
-          get().addChampionGold(activeChampion.id, championPlayer.gold);
+        if (championPlayer) {
+          get().setChampionGold(activeChampion.id, championPlayer.gold);
         }
       }
       // Campaign mode: fail the campaign
@@ -1164,8 +1164,8 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
       const { activeChampion } = get();
       if (activeChampion) {
         const championPlayer = players.find((p) => p.championId === activeChampion.id);
-        if (championPlayer && championPlayer.gold > 0) {
-          get().addChampionGold(activeChampion.id, championPlayer.gold);
+        if (championPlayer) {
+          get().setChampionGold(activeChampion.id, championPlayer.gold);
         }
       }
       // Campaign mode: fail the campaign
@@ -1668,8 +1668,8 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
       const { activeChampion } = get();
       if (activeChampion) {
         const championPlayer = finalPlayers.find((p) => p.championId === activeChampion.id);
-        if (championPlayer && championPlayer.gold > 0) {
-          get().addChampionGold(activeChampion.id, championPlayer.gold);
+        if (championPlayer) {
+          get().setChampionGold(activeChampion.id, championPlayer.gold);
         }
       }
       set({ currentScreen: "defeat" });

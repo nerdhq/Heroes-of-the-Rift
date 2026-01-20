@@ -43,7 +43,6 @@ export function GameScreen() {
   const skipAnimations = useGameStore((state) => state.skipAnimations);
   const enhanceMode = useGameStore((state) => state.enhanceMode);
   const environment = useGameStore((state) => state.environment);
-  const userData = useGameStore((state) => state.userData);
 
   // Actions from store
   const selectCard = useGameStore((state) => state.selectCard);
@@ -271,7 +270,6 @@ export function GameScreen() {
             maxRounds={maxRounds}
             turn={turn}
             phase={phase}
-            gold={userData.gold}
           />
         </div>
 
@@ -356,7 +354,6 @@ export function GameScreen() {
                 maxRounds={maxRounds}
                 turn={turn}
                 phase={phase}
-                gold={userData.gold}
               />
             </div>
 

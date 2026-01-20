@@ -266,7 +266,7 @@ export const createRewardsSlice: SliceCreator<RewardsActions> = (set, get) => ({
   },
 
   continueFromRoundComplete: (cardSelections: Record<number, string>) => {
-    const { players, userData } = get();
+    const { players, userData, activeChampion, selectedClasses } = get();
     const updatedPlayers = [...players];
 
     // Add selected cards to each player's deck
@@ -275,8 +275,18 @@ export const createRewardsSlice: SliceCreator<RewardsActions> = (set, get) => ({
       const player = updatedPlayers[playerIndex];
       if (!player) continue;
 
-      // Find the card in owned cards
-      const card = (userData?.ownedCards ?? []).find((c) => c.id === cardId);
+      // Check if this player is the active champion (first player in solo champion mode)
+      const isChampionPlayer = 
+        playerIndex === 0 && 
+        activeChampion && 
+        selectedClasses.length === 1 && 
+        selectedClasses[0] === activeChampion.class;
+
+      // Find the card in owned cards (use champion's cards if playing as champion)
+      const ownedCards = isChampionPlayer 
+        ? activeChampion.ownedCards 
+        : (userData?.ownedCards ?? []);
+      const card = ownedCards.find((c) => c.id === cardId);
       if (!card) continue;
 
       // Add card to player's deck with unique ID

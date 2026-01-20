@@ -1,4 +1,3 @@
-import { Coins } from "lucide-react";
 import type { GamePhase } from "../../types";
 
 interface GameHeaderProps {
@@ -6,7 +5,6 @@ interface GameHeaderProps {
   maxRounds: number;
   turn: number;
   phase: GamePhase;
-  gold: number;
 }
 
 export function GameHeader({
@@ -14,7 +12,6 @@ export function GameHeader({
   maxRounds,
   turn,
   phase,
-  gold,
 }: GameHeaderProps) {
   const phases = ["DRAW", "SELECT", "AGGRO", "PLAYER_ACTION", "MONSTER_ACTION"];
   const phaseLabels: Record<string, string> = {
@@ -34,10 +31,6 @@ export function GameHeader({
         </span>
         <span className="bg-stone-800 text-amber-400 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full font-bold text-sm sm:text-base hidden sm:inline">
           Turn {turn}
-        </span>
-        <span className="bg-yellow-900/50 text-yellow-300 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full font-bold border border-yellow-700 flex items-center gap-1 text-sm sm:text-base">
-          <Coins className="w-4 h-4" />
-          {gold}
         </span>
       </div>
 

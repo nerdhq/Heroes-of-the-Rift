@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Heart, Shield, Skull, Zap, BarChart3, Swords, Wind, Activity, Brain, Sparkles, Clover } from "lucide-react";
+import { Heart, Shield, Skull, Zap, BarChart3, Swords, Wind, Activity, Brain, Sparkles, Clover, Coins } from "lucide-react";
 import { CLASS_CONFIGS } from "../../data/classes";
 import type { Player, CharacterAttributes, StatusEffect } from "../../types";
 import { HealthBar } from "./HealthBar";
@@ -162,6 +162,11 @@ export function PlayerCard({
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {/* Gold display */}
+          <div className="flex items-center gap-1 bg-yellow-900/40 text-yellow-300 px-2 py-1 rounded-full text-xs font-bold border border-yellow-700/50">
+            <Coins className="w-3 h-3" />
+            {player.gold}
+          </div>
           {/* Stats icon with hover tooltip */}
           {player.attributes && (
             <div

@@ -477,7 +477,11 @@ export const createLobbySlice: StateCreator<
           })
           .filter((card): card is Card => card !== null);
 
-        return createPlayer(`player-${index}`, heroName, classType, deck);
+        // Pass champion for local player so gold syncs back after game
+        const champion = isLocalPlayer && activeChampion && activeChampion.class === classType 
+          ? activeChampion 
+          : undefined;
+        return createPlayer(`player-${index}`, heroName, classType, deck, champion);
       });
 
       // Shuffle each player's deck using seeded random (same seed = same shuffle on all clients)
