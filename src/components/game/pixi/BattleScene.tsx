@@ -117,7 +117,8 @@ export function BattleScene({ width, height }: BattleSceneProps) {
   const startDiceRoll = useGameStore((state) => state.startDiceRoll);
   const round = useGameStore((state) => state.round);
 
-  // Particle animation time
+  // Particle animation time - use ref to avoid re-renders every frame
+  const particleTimeRef = useRef(0);
   const [particleTime, setParticleTime] = useState(0);
 
   // Local state for active damage numbers
@@ -146,6 +147,10 @@ export function BattleScene({ width, height }: BattleSceneProps) {
   // Action messages state - track displayed messages
   const [displayedActionMessages, setDisplayedActionMessages] = useState<ActionMessage[]>([]);
   const lastActionMessageCountRef = useRef(0);
+
+  // Responsive sizing for mobile
+  const isMobile = width < 500;
+  const spriteScale = isMobile ? 1.2 : 2.0;
 
   // Calculate highest aggro player for targeting indicator
   const highestAggroPlayerId = useMemo(() => {
@@ -176,9 +181,17 @@ export function BattleScene({ width, height }: BattleSceneProps) {
   const targetType = getTargetType();
   const monstersSelectable = phase === "SELECT" && !!selectedCardId && needsTarget && targetType === "monster";
 
-  // Animate particles
+  // Animate particles - throttle updates to reduce re-renders
+  const lastParticleUpdateRef = useRef(0);
   useTick(useCallback((ticker: Ticker) => {
-    setParticleTime(prev => prev + ticker.deltaTime * 0.02);
+    particleTimeRef.current += ticker.deltaTime * 0.02;
+
+    // Only update state every 32ms (~30fps) for particles - they don't need 60fps
+    const now = Date.now();
+    if (now - lastParticleUpdateRef.current > 32) {
+      lastParticleUpdateRef.current = now;
+      setParticleTime(particleTimeRef.current);
+    }
   }, []));
 
   // Process damage numbers from animation state
@@ -268,14 +281,19 @@ export function BattleScene({ width, height }: BattleSceneProps) {
     const safeWidth = Math.max(width, 400);
     const safeHeight = Math.max(height, 300);
 
-    // Fixed spacing between monsters (not stretched to fill canvas)
-    const spacing = 150;
+    // Responsive spacing - needs enough space for name/HP bars to not overlap
+    const isMobile = width < 500;
+    const spacing = isMobile ? 140 : 210;
     const totalHeight = (total - 1) * spacing;
     const startY = (safeHeight - totalHeight) / 2;
 
+    // Stagger monsters horizontally (alternating left/right offset)
+    const staggerOffset = isMobile ? (index % 2 === 0 ? 0 : -40) : (index % 2 === 0 ? 0 : -80);
+    const baseX = isMobile ? safeWidth * 0.75 : safeWidth * 0.68;
+
     return {
-      x: safeWidth * 0.72,
-      y: Math.max(100, startY) + spacing * index
+      x: baseX + staggerOffset,
+      y: Math.max(isMobile ? 50 : 100, startY) + spacing * index
     };
   }, [width, height]);
 
@@ -284,14 +302,15 @@ export function BattleScene({ width, height }: BattleSceneProps) {
     const safeWidth = Math.max(width, 400);
     const safeHeight = Math.max(height, 300);
 
-    // Fixed spacing between players
-    const spacing = 160;
+    // Responsive spacing - smaller on mobile
+    const isMobile = width < 500;
+    const spacing = isMobile ? 90 : 160;
     const totalHeight = (total - 1) * spacing;
     const startY = (safeHeight - totalHeight) / 2;
 
     return {
-      x: safeWidth * 0.25,
-      y: Math.max(120, startY) + spacing * index
+      x: isMobile ? safeWidth * 0.22 : safeWidth * 0.25,
+      y: Math.max(isMobile ? 60 : 120, startY) + spacing * index
     };
   }, [width, height]);
 
@@ -299,6 +318,8 @@ export function BattleScene({ width, height }: BattleSceneProps) {
   const getActionMessagePosition = useCallback((sourceId?: string) => {
     const safeWidth = Math.max(width, 400);
     const safeHeight = Math.max(height, 300);
+    const isMobile = width < 500;
+    const offset = isMobile ? 60 : 120;
 
     if (!sourceId) {
       // No source - center of screen
@@ -310,7 +331,7 @@ export function BattleScene({ width, height }: BattleSceneProps) {
     if (playerIndex >= 0) {
       const pos = getPlayerPosition(playerIndex, players.length);
       // Offset to the right of player so it doesn't cover them
-      return { x: pos.x + 120, y: pos.y - 40 };
+      return { x: pos.x + offset, y: pos.y - (isMobile ? 20 : 40) };
     }
 
     // Check if source is a monster
@@ -318,7 +339,7 @@ export function BattleScene({ width, height }: BattleSceneProps) {
     if (monsterIndex >= 0) {
       const pos = getMonsterPosition(monsterIndex, monsters.length);
       // Offset to the left of monster so it doesn't cover them
-      return { x: pos.x - 120, y: pos.y - 40 };
+      return { x: pos.x - offset, y: pos.y - (isMobile ? 20 : 40) };
     }
 
     // Fallback to center
@@ -551,6 +572,7 @@ export function BattleScene({ width, height }: BattleSceneProps) {
               isSelectable={monstersSelectable && monster.isAlive}
               isSelected={selectedTargetId === monster.id}
               onSelect={handleSelectMonster}
+              scaleFactor={spriteScale}
             />
           );
         })}
@@ -570,6 +592,7 @@ export function BattleScene({ width, height }: BattleSceneProps) {
                 player.isAlive &&
                 monsters.some((m) => m.isAlive)
               }
+              scaleFactor={spriteScale}
             />
           );
         })}
@@ -667,6 +690,7 @@ export function BattleScene({ width, height }: BattleSceneProps) {
               message={msg}
               x={pos.x}
               y={pos.y}
+              scaleFactor={isMobile ? 0.7 : 1.0}
               onComplete={handleActionMessageComplete}
             />
           );

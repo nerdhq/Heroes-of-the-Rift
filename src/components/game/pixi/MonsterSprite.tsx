@@ -127,7 +127,8 @@ export function MonsterSprite({
   const [imageLoaded, setImageLoaded] = useState(false);
   const [spritesheetInfo, setSpritesheetInfo] = useState<SpritesheetInfo | null>(null);
 
-  // Animation state
+  // Animation state - use refs for values that update every frame to reduce re-renders
+  const breathingRef = useRef({ offsetY: 0, selectionPulse: 1, lastUpdate: 0 });
   const [offsetY, setOffsetY] = useState(0);
   const [scale, setScale] = useState(1);
   const [currentAnimationType, setCurrentAnimationType] = useState<"idle" | "slash" | "cast">("idle");
@@ -321,11 +322,21 @@ export function MonsterSprite({
 
     // Subtle breathing/bobbing (reduced when attacking)
     const bobAmount = ref.isAttacking ? 1 : 3;
-    setOffsetY(Math.sin(ref.time) * bobAmount);
+    breathingRef.current.offsetY = Math.sin(ref.time) * bobAmount;
 
     // Selection pulse
     if (isSelectable) {
-      setSelectionPulse(Math.sin(ref.time * 3) * 0.1 + 0.95);
+      breathingRef.current.selectionPulse = Math.sin(ref.time * 3) * 0.1 + 0.95;
+    }
+
+    // Throttle state updates to ~20fps for breathing - doesn't need 60fps
+    const now = Date.now();
+    if (now - breathingRef.current.lastUpdate > 50) {
+      breathingRef.current.lastUpdate = now;
+      setOffsetY(breathingRef.current.offsetY);
+      if (isSelectable) {
+        setSelectionPulse(breathingRef.current.selectionPulse);
+      }
     }
 
     // Animate spritesheet if loaded (only for LPC type)

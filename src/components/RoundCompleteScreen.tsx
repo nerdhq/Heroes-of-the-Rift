@@ -131,7 +131,7 @@ export function RoundCompleteScreen() {
             <span className="text-3xl font-bold text-yellow-300">+{roundGoldEarned} Gold Earned</span>
           </div>
           <p className="text-yellow-200/70">
-            {activeChampion?.name}'s Gold: {alivePlayers[0]?.gold ?? 0}
+            {activeChampion?.name || alivePlayers[0]?.name || "Party"}'s Gold: {alivePlayers[0]?.gold ?? 0}
           </p>
         </div>
 

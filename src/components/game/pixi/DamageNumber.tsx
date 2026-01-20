@@ -21,10 +21,10 @@ interface DamageNumberProps {
 }
 
 export function DamageNumber({ id, value, type, x, y, onComplete }: DamageNumberProps) {
-  const [offsetY, setOffsetY] = useState(0);
-  const [alpha, setAlpha] = useState(1);
-  const [scale, setScale] = useState(0.5);
-  const animationRef = useRef({ elapsed: 0 });
+  // Use refs for animation values to avoid re-renders every frame
+  const animValuesRef = useRef({ offsetY: 0, alpha: 1, scale: 0.5 });
+  const [, forceUpdate] = useState(0);
+  const animationRef = useRef({ elapsed: 0, lastUpdateTime: 0 });
 
   const duration = 1.5; // seconds
   const riseHeight = 60;
@@ -35,20 +35,30 @@ export function DamageNumber({ id, value, type, x, y, onComplete }: DamageNumber
 
     // Ease out for rising
     const easeOut = 1 - Math.pow(1 - progress, 3);
-    setOffsetY(-riseHeight * easeOut);
+    let newOffsetY = -riseHeight * easeOut;
 
     // Pop in effect for scale
+    let newScale = 1;
     if (progress < 0.2) {
       const popProgress = progress / 0.2;
-      setScale(0.5 + 0.8 * Math.sin(popProgress * Math.PI * 0.5));
-    } else {
-      setScale(1);
+      newScale = 0.5 + 0.8 * Math.sin(popProgress * Math.PI * 0.5);
     }
 
     // Fade out in last 30%
+    let newAlpha = 1;
     if (progress > 0.7) {
       const fadeProgress = (progress - 0.7) / 0.3;
-      setAlpha(1 - fadeProgress);
+      newAlpha = 1 - fadeProgress;
+    }
+
+    // Update ref values
+    animValuesRef.current = { offsetY: newOffsetY, alpha: newAlpha, scale: newScale };
+
+    // Throttle re-renders to ~60fps max
+    const now = Date.now();
+    if (now - animationRef.current.lastUpdateTime > 16) {
+      animationRef.current.lastUpdateTime = now;
+      forceUpdate(n => n + 1);
     }
 
     // Complete when done
@@ -56,6 +66,8 @@ export function DamageNumber({ id, value, type, x, y, onComplete }: DamageNumber
       onComplete(id);
     }
   }, [id, onComplete]));
+
+  const { offsetY, alpha, scale } = animValuesRef.current;
 
   // Color based on type
   const color = type === "damage" ? 0xef4444 : type === "shield" ? 0x3b82f6 : 0x22c55e;

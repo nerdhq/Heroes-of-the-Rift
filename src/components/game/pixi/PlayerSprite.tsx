@@ -129,7 +129,8 @@ export function PlayerSprite({
   const attackingEntityId = useGameStore((state) => state.animation.attackingEntityId);
   const attackAnimation = useGameStore((state) => state.animation.attackAnimation);
 
-  // Animation state
+  // Animation state - use ref for breathing to avoid re-renders every frame
+  const breathingRef = useRef({ offsetY: 0, lastUpdate: 0 });
   const [offsetY, setOffsetY] = useState(0);
   const [scale, setScale] = useState(1);
   const [characterAnimation, setCharacterAnimation] = useState<LPCAnimationType>("idle");
@@ -156,11 +157,18 @@ export function PlayerSprite({
     }
   }, [attackingEntityId]);
 
-  // Idle breathing animation - subtle y offset for all sprites
+  // Idle breathing animation - subtle y offset for all sprites (throttled to reduce re-renders)
   useTick(useCallback((ticker: Ticker) => {
     animationRef.current.time += ticker.deltaTime * 0.04;
     // Subtle breathing effect for idle
-    setOffsetY(Math.sin(animationRef.current.time) * 2);
+    breathingRef.current.offsetY = Math.sin(animationRef.current.time) * 2;
+
+    // Only update state every 50ms (~20fps) - breathing doesn't need 60fps
+    const now = Date.now();
+    if (now - breathingRef.current.lastUpdate > 50) {
+      breathingRef.current.lastUpdate = now;
+      setOffsetY(breathingRef.current.offsetY);
+    }
   }, []));
 
   // Damage flash effect and hurt animation

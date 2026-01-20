@@ -23,7 +23,7 @@ export function GameHeader({
   };
 
   return (
-    <div className="pt-6 sm:pt-0">
+    <div className="pt-2 sm:pt-0">
       {/* Round & Turn Info */}
       <div className="text-center mb-1 sm:mb-2 flex flex-wrap justify-center gap-2 sm:gap-4">
         <span className="bg-amber-900/50 text-amber-300 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full font-bold border border-amber-700 text-sm sm:text-base">

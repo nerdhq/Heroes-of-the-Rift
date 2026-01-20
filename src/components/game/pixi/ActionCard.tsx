@@ -56,27 +56,27 @@ interface ActionCardProps {
   message: ActionMessage;
   x: number;
   y: number;
+  scaleFactor?: number;
   onComplete?: (id: string) => void;
 }
 
-export function ActionCard({ message, x, y, onComplete }: ActionCardProps) {
-  const [alpha, setAlpha] = useState(0);
-  const [scale, setScale] = useState(0.5);
-  const [offsetY, setOffsetY] = useState(0);
+export function ActionCard({ message, x, y, scaleFactor = 1, onComplete }: ActionCardProps) {
+  // Use refs for animation values to avoid re-renders every frame
+  const animValuesRef = useRef({ alpha: 0, scale: 0.5, offsetY: 0 });
+  const [, forceUpdate] = useState(0);
 
   const animRef = useRef({
     elapsed: 0,
     phase: "enter" as "enter" | "display" | "exit",
+    lastUpdateTime: 0,
   });
   const hasCompletedRef = useRef(false);
 
   // Reset animation state when message changes
   useEffect(() => {
-    animRef.current = { elapsed: 0, phase: "enter" };
+    animRef.current = { elapsed: 0, phase: "enter", lastUpdateTime: 0 };
     hasCompletedRef.current = false;
-    setAlpha(0);
-    setScale(0.5);
-    setOffsetY(0);
+    animValuesRef.current = { alpha: 0, scale: 0.5, offsetY: 0 };
   }, [message.id]);
 
   useTick(useCallback((ticker: Ticker) => {
@@ -84,13 +84,17 @@ export function ActionCard({ message, x, y, onComplete }: ActionCardProps) {
     animRef.current.elapsed += dt;
     const elapsed = animRef.current.elapsed;
 
+    let newAlpha = animValuesRef.current.alpha;
+    let newScale = animValuesRef.current.scale;
+    let newOffsetY = animValuesRef.current.offsetY;
+
     if (animRef.current.phase === "enter") {
       // Pop in animation
       const progress = Math.min(1, elapsed * 4);
       const eased = 1 - Math.pow(1 - progress, 3); // Ease out cubic
-      setAlpha(eased);
-      setScale(0.5 + eased * 0.5);
-      setOffsetY(-20 + eased * 20);
+      newAlpha = eased;
+      newScale = 0.5 + eased * 0.5;
+      newOffsetY = -20 + eased * 20;
 
       if (progress >= 1) {
         animRef.current.phase = "display";
@@ -98,8 +102,9 @@ export function ActionCard({ message, x, y, onComplete }: ActionCardProps) {
       }
     } else if (animRef.current.phase === "display") {
       // Display with subtle floating
-      setOffsetY(Math.sin(elapsed * 2) * 3);
-      setScale(1 + Math.sin(elapsed * 3) * 0.02);
+      newOffsetY = Math.sin(elapsed * 2) * 3;
+      newScale = 1 + Math.sin(elapsed * 3) * 0.02;
+      newAlpha = 1;
 
       // Display duration based on message length (min 2s, max 4s)
       const displayDuration = Math.min(4, Math.max(2, message.text.length * 0.05));
@@ -110,16 +115,28 @@ export function ActionCard({ message, x, y, onComplete }: ActionCardProps) {
     } else if (animRef.current.phase === "exit") {
       // Fade out and float up
       const progress = Math.min(1, elapsed * 2);
-      setAlpha(1 - progress);
-      setOffsetY(progress * -30);
-      setScale(1 - progress * 0.2);
+      newAlpha = 1 - progress;
+      newOffsetY = progress * -30;
+      newScale = 1 - progress * 0.2;
 
       if (progress >= 1 && !hasCompletedRef.current) {
         hasCompletedRef.current = true;
         onComplete?.(message.id);
       }
     }
+
+    // Update ref values
+    animValuesRef.current = { alpha: newAlpha, scale: newScale, offsetY: newOffsetY };
+
+    // Only trigger re-render every few frames to reduce overhead
+    const now = Date.now();
+    if (now - animRef.current.lastUpdateTime > 16) { // ~60fps max
+      animRef.current.lastUpdateTime = now;
+      forceUpdate(n => n + 1);
+    }
   }, [message.id, message.text.length, onComplete]));
+
+  const { alpha, scale, offsetY } = animValuesRef.current;
 
   // Calculate card dimensions based on text
   const padding = 12;
@@ -133,8 +150,11 @@ export function ActionCard({ message, x, y, onComplete }: ActionCardProps) {
   const borderColor = getBorderColor(message.type);
   const textStyle = createTextStyle(message.type);
 
+  // Apply scaleFactor to overall scale
+  const finalScale = scale * scaleFactor;
+
   return (
-    <pixiContainer x={x} y={y + offsetY} alpha={alpha} scale={scale}>
+    <pixiContainer x={x} y={y + offsetY} alpha={alpha} scale={finalScale}>
       {/* Card background with rounded corners */}
       <pixiGraphics
         draw={(g) => {
