@@ -24,7 +24,7 @@ export function ClassSelectScreen() {
       rogue: "🗡️",
       paladin: "🛡️",
       mage: "🔮",
-      priest: "✨",
+      cleric: "✨",
       bard: "🎵",
       archer: "🏹",
       barbarian: "🪓",

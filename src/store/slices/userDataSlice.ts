@@ -139,7 +139,7 @@ const getCardPrice = (rarity: Card["rarity"]): number => {
 // Generate 8 starter cards PER CLASS: common/uncommon mix with 50% chance of a rare per class
 const generateStarterCards = (): Card[] => {
   const allClasses: ClassType[] = [
-    "warrior", "rogue", "paladin", "mage", "priest", "bard", "archer", "barbarian"
+    "warrior", "rogue", "paladin", "mage", "cleric", "bard", "archer", "barbarian"
   ];
   
   const starterCards: Card[] = [];

@@ -18,7 +18,7 @@ const getClassIcon = (classType: string): string => {
     rogue: "🗡️",
     paladin: "🛡️",
     mage: "🔮",
-    priest: "✨",
+    cleric: "✨",
     bard: "🎵",
     archer: "🏹",
     barbarian: "🪓",

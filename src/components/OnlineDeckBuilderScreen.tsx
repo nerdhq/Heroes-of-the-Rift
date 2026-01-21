@@ -202,7 +202,7 @@ export function OnlineDeckBuilderScreen() {
       rogue: "🗡️",
       paladin: "🛡️",
       mage: "🔮",
-      priest: "✨",
+      cleric: "✨",
       bard: "🎵",
       archer: "🏹",
       barbarian: "🪓",

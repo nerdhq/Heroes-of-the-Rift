@@ -125,7 +125,7 @@ export function PlayerCard({
       rogue: "🗡️",
       paladin: "🛡️",
       mage: "🔮",
-      priest: "✨",
+      cleric: "✨",
       bard: "🎵",
       archer: "🏹",
       barbarian: "🪓",

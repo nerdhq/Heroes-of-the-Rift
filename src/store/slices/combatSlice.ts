@@ -556,7 +556,7 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => ({
         resourceGain = 1;
         break;
       case "paladin":
-      case "priest":
+      case "cleric":
         if (totalHealing > 0) resourceGain = 2;
         break;
       case "bard":

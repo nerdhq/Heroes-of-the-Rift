@@ -8,7 +8,7 @@ export type ClassType =
   | "rogue"
   | "paladin"
   | "mage"
-  | "priest"
+  | "cleric"
   | "bard"
   | "archer"
   | "barbarian";
@@ -33,7 +33,8 @@ export type EffectType =
   | "stun"
   | "taunt"
   | "disable"
-  | "accuracy";
+  | "accuracy"
+  | "vulnerable";
 
 // Target Types
 export type TargetType =

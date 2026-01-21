@@ -18,7 +18,7 @@ export function VictoryScreen() {
       rogue: "🗡️",
       paladin: "🛡️",
       mage: "🔮",
-      priest: "✨",
+      cleric: "✨",
       bard: "🎵",
       archer: "🏹",
       barbarian: "🪓",

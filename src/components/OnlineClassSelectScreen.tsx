@@ -180,7 +180,7 @@ export function OnlineClassSelectScreen() {
       rogue: "🗡️",
       paladin: "🛡️",
       mage: "🔮",
-      priest: "✨",
+      cleric: "✨",
       bard: "🎵",
       archer: "🏹",
       barbarian: "🪓",
