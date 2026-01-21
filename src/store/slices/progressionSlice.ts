@@ -11,8 +11,31 @@ import { generateId } from "../utils";
 import { getCardsByClass } from "../../data/cards";
 import { getSupabase } from "../../lib/supabase";
 import type { ChampionRow } from "../../lib/database.types";
-
-const PROGRESSION_KEY = "heroes-progression";
+import {
+  STAT_SOFT_CAP,
+  STAT_HARD_CAP,
+  STAT_POINT_COST_NORMAL,
+  STAT_POINT_COST_ABOVE_CAP,
+  XP_BASE,
+  XP_EARLY_GROWTH_RATE,
+  XP_MID_BASE,
+  XP_MID_PER_LEVEL,
+  XP_LATE_BASE,
+  XP_LATE_PER_LEVEL,
+  STAT_POINTS_EARLY,
+  STAT_POINTS_MID,
+  STAT_POINTS_LATE,
+  STARTING_GOLD,
+  STARTING_XP_TO_LEVEL,
+  MAX_CHAMPION_SLOTS,
+  STARTER_CARDS_COMMON_COUNT,
+  STARTER_CARDS_UNCOMMON_SLOTS,
+  STARTER_CARDS_UNCOMMON_CHANCE,
+  STARTER_CARDS_RARE_CHANCE,
+  DEFAULT_ATTRIBUTES,
+} from "../../constants";
+import { storage, STORAGE_KEYS } from "../../lib/storage";
+import { normalizeError, logSupabaseError } from "../../lib/supabaseHelpers";
 
 // Convert database row to Champion type
 const rowToChampion = (row: ChampionRow): Champion => ({
@@ -30,16 +53,6 @@ const rowToChampion = (row: ChampionRow): Champion => ({
   stats: row.stats,
 });
 
-// Default attributes for new champions
-const DEFAULT_ATTRIBUTES: CharacterAttributes = {
-  STR: 10,
-  AGI: 10,
-  CON: 10,
-  INT: 10,
-  WIS: 10,
-  LCK: 10,
-};
-
 // Default stats for new champions
 const DEFAULT_STATS: ChampionStats = {
   gamesPlayed: 0,
@@ -52,10 +65,6 @@ const DEFAULT_STATS: ChampionStats = {
   roundsCompleted: 0,
   deaths: 0,
 };
-
-// Stat soft cap - costs double above this
-const STAT_SOFT_CAP = 50;
-const STAT_HARD_CAP = 99;
 
 // Generate starter cards for a specific class
 // Rules: 8 cards total
@@ -77,7 +86,7 @@ const generateStarterCardsForClass = (classType: ClassType): Card[] => {
   const addCardFromPool = (pool: Card[]): boolean => {
     const availableCards = pool.filter((c) => !usedCardNames.has(c.name));
     if (availableCards.length === 0) return false;
-    
+
     const shuffled = [...availableCards].sort(() => Math.random() - 0.5);
     const card = shuffled[0];
     starterCards.push({
@@ -88,14 +97,14 @@ const generateStarterCardsForClass = (classType: ClassType): Card[] => {
     return true;
   };
 
-  // 1. Add 5 guaranteed common cards
-  for (let i = 0; i < 5; i++) {
+  // 1. Add guaranteed common cards
+  for (let i = 0; i < STARTER_CARDS_COMMON_COUNT; i++) {
     addCardFromPool(commonCards);
   }
 
-  // 2. Add 2 cards with 50% chance of being uncommon (otherwise common)
-  for (let i = 0; i < 2; i++) {
-    const isUncommon = Math.random() < 0.5;
+  // 2. Add cards with chance of being uncommon (otherwise common)
+  for (let i = 0; i < STARTER_CARDS_UNCOMMON_SLOTS; i++) {
+    const isUncommon = Math.random() < STARTER_CARDS_UNCOMMON_CHANCE;
     if (isUncommon && uncommonCards.filter((c) => !usedCardNames.has(c.name)).length > 0) {
       addCardFromPool(uncommonCards);
     } else {
@@ -103,8 +112,8 @@ const generateStarterCardsForClass = (classType: ClassType): Card[] => {
     }
   }
 
-  // 3. Add 1 card with 5% chance of being rare (otherwise common)
-  const isRare = Math.random() < 0.05;
+  // 3. Add 1 card with chance of being rare (otherwise common)
+  const isRare = Math.random() < STARTER_CARDS_RARE_CHANCE;
   if (isRare && rareCards.filter((c) => !usedCardNames.has(c.name)).length > 0) {
     addCardFromPool(rareCards);
   } else {
@@ -122,10 +131,10 @@ const createNewChampion = (name: string, classType: ClassType): Champion => ({
   createdAt: Date.now(),
   level: 1,
   xp: 0,
-  xpToNextLevel: 100,
+  xpToNextLevel: STARTING_XP_TO_LEVEL,
   unspentStatPoints: 0,
   attributes: { ...DEFAULT_ATTRIBUTES },
-  gold: 50, // Starting gold
+  gold: STARTING_GOLD,
   ownedCards: generateStarterCardsForClass(classType),
   stats: { ...DEFAULT_STATS },
 });
@@ -134,7 +143,7 @@ const createNewChampion = (name: string, classType: ClassType): Champion => ({
 const createDefaultAccount = (): PlayerAccount => ({
   id: generateId(),
   champions: [],
-  maxChampionSlots: 3,
+  maxChampionSlots: MAX_CHAMPION_SLOTS,
   activeChampionId: null,
   createdAt: Date.now(),
   lastPlayedAt: Date.now(),
@@ -190,15 +199,15 @@ export const createProgressionSlice: SliceCreator<ProgressionActions> = (
         });
         return;
       } catch (error) {
-        console.error("Failed to load from Supabase:", error);
+        const normalizedError = normalizeError(error);
+        logSupabaseError("loadProgression", normalizedError);
       }
     }
 
     // Fallback to localStorage for offline play
     try {
-      const saved = localStorage.getItem(PROGRESSION_KEY);
-      if (saved) {
-        const account: PlayerAccount = JSON.parse(saved);
+      const account = storage.get(STORAGE_KEYS.PROGRESSION);
+      if (account) {
         const activeChampion = account.activeChampionId
           ? account.champions.find((c) => c.id === account.activeChampionId) ||
             null
@@ -214,7 +223,7 @@ export const createProgressionSlice: SliceCreator<ProgressionActions> = (
           playerAccount: newAccount,
           activeChampion: null,
         });
-        localStorage.setItem(PROGRESSION_KEY, JSON.stringify(newAccount));
+        storage.set(STORAGE_KEYS.PROGRESSION, newAccount);
       }
     } catch (error) {
       console.error("Failed to load progression:", error);
@@ -234,8 +243,11 @@ export const createProgressionSlice: SliceCreator<ProgressionActions> = (
     // Just update lastPlayedAt in localStorage as backup
     if (!user) {
       try {
-        playerAccount.lastPlayedAt = Date.now();
-        localStorage.setItem(PROGRESSION_KEY, JSON.stringify(playerAccount));
+        const updatedAccount = {
+          ...playerAccount,
+          lastPlayedAt: Date.now(),
+        };
+        storage.set(STORAGE_KEYS.PROGRESSION, updatedAccount);
       } catch (error) {
         console.error("Failed to save progression:", error);
       }
@@ -292,7 +304,7 @@ export const createProgressionSlice: SliceCreator<ProgressionActions> = (
 
         return newChampion;
       } catch (error) {
-        console.error("Failed to create champion in Supabase:", error);
+        logSupabaseError("createChampion", normalizeError(error));
         return null;
       }
     }
@@ -334,7 +346,7 @@ export const createProgressionSlice: SliceCreator<ProgressionActions> = (
 
         if (error) throw error;
       } catch (error) {
-        console.error("Failed to delete champion from Supabase:", error);
+        logSupabaseError("deleteChampion", normalizeError(error));
         return false;
       }
     }
@@ -378,7 +390,7 @@ export const createProgressionSlice: SliceCreator<ProgressionActions> = (
           .update({ active_champion_id: championId })
           .eq("id", user.id);
       } catch (error) {
-        console.error("Failed to update active champion:", error);
+        logSupabaseError("selectChampion", normalizeError(error));
       }
     }
 
@@ -432,8 +444,8 @@ export const createProgressionSlice: SliceCreator<ProgressionActions> = (
 
   getStatCost: (currentValue: number): number => {
     if (currentValue >= STAT_HARD_CAP) return Infinity;
-    if (currentValue >= STAT_SOFT_CAP) return 2;
-    return 1;
+    if (currentValue >= STAT_SOFT_CAP) return STAT_POINT_COST_ABOVE_CAP;
+    return STAT_POINT_COST_NORMAL;
   },
 
   allocateStatPoint: async (stat: keyof CharacterAttributes): Promise<boolean> => {
@@ -481,7 +493,7 @@ export const createProgressionSlice: SliceCreator<ProgressionActions> = (
 
         return true;
       } catch (error) {
-        console.error("Failed to allocate stat in Supabase:", error);
+        logSupabaseError("allocateStatPoint", normalizeError(error));
         return false;
       }
     }
@@ -515,15 +527,15 @@ export const createProgressionSlice: SliceCreator<ProgressionActions> = (
 
   getXPForLevel: (level: number): number => {
     if (level <= 1) return 0;
-    if (level <= 10) return Math.floor(100 * Math.pow(1.5, level - 2));
-    if (level <= 20) return Math.floor(5000 + 1000 * (level - 10));
-    return Math.floor(15000 + 2000 * (level - 20));
+    if (level <= 10) return Math.floor(XP_BASE * Math.pow(XP_EARLY_GROWTH_RATE, level - 2));
+    if (level <= 20) return Math.floor(XP_MID_BASE + XP_MID_PER_LEVEL * (level - 10));
+    return Math.floor(XP_LATE_BASE + XP_LATE_PER_LEVEL * (level - 20));
   },
 
   getStatPointsForLevel: (level: number): number => {
-    if (level <= 10) return 3;
-    if (level <= 20) return 2;
-    return 1;
+    if (level <= 10) return STAT_POINTS_EARLY;
+    if (level <= 20) return STAT_POINTS_MID;
+    return STAT_POINTS_LATE;
   },
 
   addXP: async (championId: string, amount: number) => {
@@ -567,7 +579,7 @@ export const createProgressionSlice: SliceCreator<ProgressionActions> = (
         });
         return;
       } catch (error) {
-        console.error("Failed to add XP in Supabase:", error);
+        logSupabaseError("addXP", normalizeError(error));
       }
     }
 
@@ -637,7 +649,7 @@ export const createProgressionSlice: SliceCreator<ProgressionActions> = (
           .eq("id", championId)
           .eq("user_id", user.id);
       } catch (error) {
-        console.error("Failed to add gold in Supabase:", error);
+        logSupabaseError("addChampionGold", normalizeError(error));
       }
     }
 
@@ -685,7 +697,7 @@ export const createProgressionSlice: SliceCreator<ProgressionActions> = (
           .eq("id", championId)
           .eq("user_id", user.id);
       } catch (error) {
-        console.error("Failed to set gold in Supabase:", error);
+        logSupabaseError("setChampionGold", normalizeError(error));
       }
     }
 
@@ -730,7 +742,7 @@ export const createProgressionSlice: SliceCreator<ProgressionActions> = (
           .eq("id", championId)
           .eq("user_id", user.id);
       } catch (error) {
-        console.error("Failed to spend gold in Supabase:", error);
+        logSupabaseError("spendChampionGold", normalizeError(error));
         return false;
       }
     }
@@ -781,7 +793,7 @@ export const createProgressionSlice: SliceCreator<ProgressionActions> = (
           .eq("id", championId)
           .eq("user_id", user.id);
       } catch (error) {
-        console.error("Failed to add card in Supabase:", error);
+        logSupabaseError("addCardToChampion", normalizeError(error));
       }
     }
 
@@ -833,7 +845,7 @@ export const createProgressionSlice: SliceCreator<ProgressionActions> = (
           .eq("id", championId)
           .eq("user_id", user.id);
       } catch (error) {
-        console.error("Failed to update stats in Supabase:", error);
+        logSupabaseError("updateChampionStats", normalizeError(error));
       }
     }
 

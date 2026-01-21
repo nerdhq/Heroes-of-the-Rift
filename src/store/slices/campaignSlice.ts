@@ -14,6 +14,7 @@ import {
 import { ENVIRONMENTS } from "../../data/environments";
 import type { Monster, Environment } from "../../types";
 import { createPlayer } from "../utils";
+import { storage, STORAGE_KEYS } from "../../lib/storage";
 
 // ============================================
 // INITIAL CAMPAIGN STATE
@@ -51,19 +52,14 @@ export const createCampaignSlice: StateCreator<
   // Load campaigns from data
   loadCampaigns: () => {
     // Load completed campaigns from localStorage
-    const savedCompleted = localStorage.getItem("completedCampaigns");
-    const completedCampaigns = savedCompleted ? JSON.parse(savedCompleted) : [];
+    const completedCampaigns = storage.get(STORAGE_KEYS.COMPLETED_CAMPAIGNS) || [];
 
     // Load saved campaign progress
-    const savedProgress = localStorage.getItem("campaignProgress");
-    let campaignProgress: CampaignProgress | null = null;
+    const campaignProgress = storage.get(STORAGE_KEYS.CAMPAIGN_PROGRESS);
     let activeCampaign = null;
 
-    if (savedProgress) {
-      campaignProgress = JSON.parse(savedProgress);
-      if (campaignProgress) {
-        activeCampaign = CAMPAIGNS.find((c) => c.id === campaignProgress!.campaignId) || null;
-      }
+    if (campaignProgress) {
+      activeCampaign = CAMPAIGNS.find((c) => c.id === campaignProgress.campaignId) || null;
     }
 
     set({
@@ -105,7 +101,7 @@ export const createCampaignSlice: StateCreator<
     };
 
     // Save progress to localStorage
-    localStorage.setItem("campaignProgress", JSON.stringify(progress));
+    storage.set(STORAGE_KEYS.CAMPAIGN_PROGRESS, progress);
 
     set({
       activeCampaign: campaign,
@@ -131,7 +127,7 @@ export const createCampaignSlice: StateCreator<
       totalRounds,
     };
 
-    localStorage.setItem("campaignProgress", JSON.stringify(updatedProgress));
+    storage.set(STORAGE_KEYS.CAMPAIGN_PROGRESS, updatedProgress);
 
     set({
       campaignProgress: updatedProgress,
@@ -301,7 +297,7 @@ export const createCampaignSlice: StateCreator<
       totalRounds,
     };
 
-    localStorage.setItem("campaignProgress", JSON.stringify(updatedProgress));
+    storage.set(STORAGE_KEYS.CAMPAIGN_PROGRESS, updatedProgress);
 
     set({
       campaignProgress: updatedProgress,
@@ -320,8 +316,8 @@ export const createCampaignSlice: StateCreator<
       : [...completedCampaigns, activeCampaign.id];
 
     // Save to localStorage
-    localStorage.setItem("completedCampaigns", JSON.stringify(newCompleted));
-    localStorage.removeItem("campaignProgress");
+    storage.set(STORAGE_KEYS.COMPLETED_CAMPAIGNS, newCompleted);
+    storage.remove(STORAGE_KEYS.CAMPAIGN_PROGRESS);
 
     const finalProgress: CampaignProgress = {
       ...campaignProgress,
@@ -342,7 +338,7 @@ export const createCampaignSlice: StateCreator<
     if (!campaignProgress) return;
 
     // Clear saved progress
-    localStorage.removeItem("campaignProgress");
+    storage.remove(STORAGE_KEYS.CAMPAIGN_PROGRESS);
 
     const failedProgress: CampaignProgress = {
       ...campaignProgress,
@@ -411,12 +407,12 @@ export const createCampaignSlice: StateCreator<
     const { campaignProgress } = get();
     if (!campaignProgress) return;
 
-    localStorage.setItem("campaignProgress", JSON.stringify(campaignProgress));
+    storage.set(STORAGE_KEYS.CAMPAIGN_PROGRESS, campaignProgress);
   },
 
   // Abandon campaign and clear progress
   abandonCampaign: () => {
-    localStorage.removeItem("campaignProgress");
+    storage.remove(STORAGE_KEYS.CAMPAIGN_PROGRESS);
 
     set({
       activeCampaign: null,

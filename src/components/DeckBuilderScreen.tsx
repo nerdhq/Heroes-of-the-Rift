@@ -3,7 +3,7 @@ import { useGameStore } from "../store/gameStore";
 import { CLASS_CONFIGS } from "../data/classes";
 import { Check, ArrowLeft, HelpCircle, Shuffle, Star } from "lucide-react";
 import { HelpModal } from "./HelpModal";
-import type { Card } from "../types";
+import { getRarityColor, getRarityTextColor } from "../utils/cardHelpers";
 
 export function DeckBuilderScreen() {
   const [showHelp, setShowHelp] = useState(false);
@@ -48,26 +48,6 @@ export function DeckBuilderScreen() {
     selectedClasses[0] === activeChampion.class;
   const heroName =
     heroNames[deckBuildingPlayerIndex] || `Hero ${deckBuildingPlayerIndex + 1}`;
-
-  const getRarityColor = (rarity: Card["rarity"]): string => {
-    const colors = {
-      common: "border-stone-500 bg-stone-800",
-      uncommon: "border-green-500 bg-green-900/30",
-      rare: "border-blue-500 bg-blue-900/30",
-      legendary: "border-amber-500 bg-amber-900/30",
-    };
-    return colors[rarity];
-  };
-
-  const getRarityTextColor = (rarity: Card["rarity"]): string => {
-    const colors = {
-      common: "text-stone-400",
-      uncommon: "text-green-400",
-      rare: "text-blue-400",
-      legendary: "text-amber-400",
-    };
-    return colors[rarity];
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-stone-900 via-stone-800 to-stone-900 p-8 relative">

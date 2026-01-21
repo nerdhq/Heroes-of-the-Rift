@@ -1,4 +1,5 @@
 import type { Environment, EnvironmentType } from "../types";
+import { BACKGROUND_IMAGES, DEFAULT_BACKGROUND } from "../assets/backgrounds";
 
 // ============================================
 // ENVIRONMENT DEFINITIONS
@@ -26,6 +27,7 @@ export const ENVIRONMENTS: Record<EnvironmentType, Environment> = {
         description: "Poison damage increased by 30%",
       },
     ],
+    backgroundImage: BACKGROUND_IMAGES.forest,
   },
 
   castle: {
@@ -49,6 +51,7 @@ export const ENVIRONMENTS: Record<EnvironmentType, Environment> = {
         description: "Physical damage increased by 10%",
       },
     ],
+    backgroundImage: BACKGROUND_IMAGES.castle,
   },
 
   volcano: {
@@ -72,6 +75,7 @@ export const ENVIRONMENTS: Record<EnvironmentType, Environment> = {
         description: "Ice and frost damage reduced by 50%",
       },
     ],
+    backgroundImage: BACKGROUND_IMAGES.volcano,
   },
 
   iceCave: {
@@ -95,6 +99,7 @@ export const ENVIRONMENTS: Record<EnvironmentType, Environment> = {
         description: "Fire and burn damage reduced by 50%",
       },
     ],
+    backgroundImage: BACKGROUND_IMAGES.iceCave,
   },
 
   swamp: {
@@ -118,6 +123,7 @@ export const ENVIRONMENTS: Record<EnvironmentType, Environment> = {
         description: "Healing effects reduced by 30%",
       },
     ],
+    backgroundImage: BACKGROUND_IMAGES.swamp,
   },
 
   desert: {
@@ -141,6 +147,7 @@ export const ENVIRONMENTS: Record<EnvironmentType, Environment> = {
         description: "All damage increased by 15%",
       },
     ],
+    backgroundImage: BACKGROUND_IMAGES.desert,
   },
 
   crypt: {
@@ -164,6 +171,7 @@ export const ENVIRONMENTS: Record<EnvironmentType, Environment> = {
         description: "Healing effects reduced by 40%",
       },
     ],
+    backgroundImage: BACKGROUND_IMAGES.crypt,
   },
 
   void: {
@@ -187,6 +195,7 @@ export const ENVIRONMENTS: Record<EnvironmentType, Environment> = {
         description: "Shield effects reduced by 25%",
       },
     ],
+    backgroundImage: BACKGROUND_IMAGES.void,
   },
 };
 
@@ -244,3 +253,6 @@ export const getEnvironmentForRound = (round: number): Environment | null => {
     lateEnvironments[Math.floor(Math.random() * lateEnvironments.length)];
   return ENVIRONMENTS[randomType];
 };
+
+// Export default background for use when no environment is set
+export { DEFAULT_BACKGROUND };

@@ -5,6 +5,7 @@ import { Check, Users, Loader2, HelpCircle, Crown } from "lucide-react";
 import { HelpModal } from "./HelpModal";
 import type { ClassType } from "../types";
 import { isSupabaseConfigured, getSupabase } from "../lib/supabase";
+import { getClassIcon } from "../utils/classHelpers";
 
 export function OnlineClassSelectScreen() {
   const [showHelp, setShowHelp] = useState(false);
@@ -172,20 +173,6 @@ export function OnlineClassSelectScreen() {
     }
 
     setIsSubmitting(false);
-  };
-
-  const getClassIcon = (classType: ClassType): string => {
-    const icons: Record<ClassType, string> = {
-      warrior: "⚔️",
-      rogue: "🗡️",
-      paladin: "🛡️",
-      mage: "🔮",
-      priest: "✨",
-      bard: "🎵",
-      archer: "🏹",
-      barbarian: "🪓",
-    };
-    return icons[classType];
   };
 
   // Check if all players are ready

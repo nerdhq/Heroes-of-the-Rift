@@ -8,6 +8,8 @@ import type { Card, ClassType } from "../types";
 import { getCardsByClass, getAllCards } from "../data/cards";
 import { getMonstersForRound } from "../data/monsters";
 import { getEnvironmentForRound } from "../data/environments";
+import { getClassIcon } from "../utils/classHelpers";
+import { getRarityColor, getRarityTextColor } from "../utils/cardHelpers";
 
 export function OnlineDeckBuilderScreen() {
   const [showHelp, setShowHelp] = useState(false);
@@ -194,40 +196,6 @@ export function OnlineDeckBuilderScreen() {
     }
 
     setIsSubmitting(false);
-  };
-
-  const getClassIcon = (classType: ClassType): string => {
-    const icons: Record<ClassType, string> = {
-      warrior: "⚔️",
-      rogue: "🗡️",
-      paladin: "🛡️",
-      mage: "🔮",
-      priest: "✨",
-      bard: "🎵",
-      archer: "🏹",
-      barbarian: "🪓",
-    };
-    return icons[classType];
-  };
-
-  const getRarityColor = (rarity: Card["rarity"]): string => {
-    const colors = {
-      common: "border-stone-500 bg-stone-800",
-      uncommon: "border-green-500 bg-green-900/30",
-      rare: "border-blue-500 bg-blue-900/30",
-      legendary: "border-amber-500 bg-amber-900/30",
-    };
-    return colors[rarity];
-  };
-
-  const getRarityTextColor = (rarity: Card["rarity"]): string => {
-    const colors = {
-      common: "text-stone-400",
-      uncommon: "text-green-400",
-      rare: "text-blue-400",
-      legendary: "text-amber-400",
-    };
-    return colors[rarity];
   };
 
   // Check if all players have confirmed their decks

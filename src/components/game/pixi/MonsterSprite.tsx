@@ -143,6 +143,9 @@ export function MonsterSprite({
   // Selection pulse animation
   const [selectionPulse, setSelectionPulse] = useState(1);
 
+  // Hover state for showing name
+  const [isHovered, setIsHovered] = useState(false);
+
   // Handle attack animation triggered from store
   useEffect(() => {
     if (attackingEntityId === monster.id && attackAnimation && spritesheetInfo?.type === "lpc") {
@@ -315,6 +318,15 @@ export function MonsterSprite({
     }
   }, [isSelectable, onSelect, monster.id, monster.isAlive]);
 
+  // Handle hover
+  const handlePointerOver = useCallback(() => {
+    setIsHovered(true);
+  }, []);
+
+  const handlePointerOut = useCallback(() => {
+    setIsHovered(false);
+  }, []);
+
   // Animation tick - idle bobbing, selection pulse, and spritesheet animation
   useTick(useCallback((ticker: Ticker) => {
     const ref = animationRef.current;
@@ -435,9 +447,9 @@ export function MonsterSprite({
     animationRef.current.prevHp = monster.hp;
   }, [monster.hp]);
 
-  // Dimensions
-  const barWidth = 90;
-  const barHeight = 10;
+  // Dimensions - compact health bar
+  const barWidth = 70;
+  const barHeight = 8;
   const healthPercent = Math.max(0, monster.hp / monster.maxHp);
 
   // Sprite display size based on spritesheet type
@@ -461,12 +473,12 @@ export function MonsterSprite({
   // Calculate final scale
   const finalScale = scale * scaleFactor * (isSelectable ? selectionPulse : 1);
 
-  // Layout positions
+  // Layout positions - condensed for tighter spacing
   const effectiveSpriteSize = imageLoaded ? spriteSize : bodySize;
-  const nameY = -effectiveSpriteSize / 2 - 25;
-  const barY = -effectiveSpriteSize / 2 - 8;
-  const intentY = effectiveSpriteSize / 2 + 18;
-  const debuffY = effectiveSpriteSize / 2 + 40;
+  const nameY = -effectiveSpriteSize / 2 - 18;  // Closer to sprite
+  const barY = -effectiveSpriteSize / 2 - 2;    // Much closer to sprite top
+  const intentY = effectiveSpriteSize / 2 + 8;  // Closer below sprite
+  const debuffY = effectiveSpriteSize / 2 + 24; // Closer to intent
 
   return (
     <pixiContainer
@@ -474,9 +486,11 @@ export function MonsterSprite({
       y={y + offsetY}
       scale={finalScale}
       alpha={monster.isAlive ? 1 : 0.3}
-      eventMode={isSelectable && monster.isAlive ? "static" : "auto"}
+      eventMode="static"
       cursor={isSelectable && monster.isAlive ? "pointer" : "default"}
       onPointerTap={handleClick}
+      onPointerOver={handlePointerOver}
+      onPointerOut={handlePointerOut}
     >
       {/* Selection highlight ring */}
       {(isSelectable || isSelected) && monster.isAlive && (
@@ -501,12 +515,12 @@ export function MonsterSprite({
       {/* Monster Body - Animated Spritesheet, Static Image, or Fallback Graphics */}
       {imageLoaded && frameTexture ? (
         <>
-          {/* Shadow */}
+          {/* Shadow - smaller and closer to sprite */}
           <pixiGraphics
             draw={(g) => {
               g.clear();
-              g.ellipse(0, effectiveSpriteSize / 2, effectiveSpriteSize / 2.5, effectiveSpriteSize / 8);
-              g.fill({ color: 0x000000, alpha: 0.4 });
+              g.ellipse(0, effectiveSpriteSize / 2 - 5, effectiveSpriteSize / 3, effectiveSpriteSize / 12);
+              g.fill({ color: 0x000000, alpha: 0.3 });
             }}
           />
           {/* Monster sprite */}
@@ -563,26 +577,30 @@ export function MonsterSprite({
         />
       )}
 
-      {/* Monster Name - above sprite */}
-      <pixiGraphics
-        x={0}
-        y={nameY}
-        draw={(g) => {
-          g.clear();
-          const nameWidth = monster.name.length * 7 + 16;
-          g.roundRect(-nameWidth / 2, -10, nameWidth, 20, 4);
-          g.fill({ color: 0x1a1a1a, alpha: 0.85 });
-          g.stroke({ color: 0x444444, width: 1 });
-        }}
-      />
-      <pixiText
-        text={monster.name}
-        style={nameStyle}
-        resolution={TEXT_RESOLUTION}
-        anchor={{ x: 0.5, y: 0.5 }}
-        x={0}
-        y={nameY}
-      />
+      {/* Monster Name - above sprite (only on hover) */}
+      {isHovered && (
+        <>
+          <pixiGraphics
+            x={0}
+            y={nameY}
+            draw={(g) => {
+              g.clear();
+              const nameWidth = monster.name.length * 7 + 16;
+              g.roundRect(-nameWidth / 2, -10, nameWidth, 20, 4);
+              g.fill({ color: 0x1a1a1a, alpha: 0.85 });
+              g.stroke({ color: 0x444444, width: 1 });
+            }}
+          />
+          <pixiText
+            text={monster.name}
+            style={nameStyle}
+            resolution={TEXT_RESOLUTION}
+            anchor={{ x: 0.5, y: 0.5 }}
+            x={0}
+            y={nameY}
+          />
+        </>
+      )}
 
       {/* Health Bar Background */}
       <pixiGraphics
@@ -634,14 +652,14 @@ export function MonsterSprite({
         y={barY + barHeight / 2}
       />
 
-      {/* Intent indicator */}
+      {/* Intent indicator - compact */}
       {monster.isAlive && monster.intent && (
         <pixiContainer x={0} y={intentY}>
           <pixiGraphics
             draw={(g) => {
               g.clear();
-              const intentWidth = 55;
-              g.roundRect(-intentWidth / 2, -10, intentWidth, 20, 4);
+              const intentWidth = 45;
+              g.roundRect(-intentWidth / 2, -8, intentWidth, 16, 3);
               g.fill({ color: monster.intent!.damage > 0 ? 0x7f1d1d : 0x1f2937, alpha: 0.9 });
               g.stroke({ color: monster.intent!.damage > 0 ? 0xef4444 : 0x6b7280, width: 1 });
             }}
@@ -657,14 +675,14 @@ export function MonsterSprite({
         </pixiContainer>
       )}
 
-      {/* Debuff indicators - pill badges */}
+      {/* Debuff indicators - compact pill badges */}
       {monster.debuffs.length > 0 && (
         <pixiContainer y={debuffY}>
           {monster.debuffs.map((debuff, i) => {
             const info = getEffectInfo(debuff);
-            const effectY = i * 14;
-            const text = `${info.emoji} ${info.name}${debuff.duration > 0 ? ` (${debuff.duration})` : ""}`;
-            const pillWidth = text.length * 5 + 12;
+            const effectY = i * 12;  // Tighter spacing
+            const text = `${info.emoji}${debuff.duration > 0 ? debuff.duration : ""}`;  // Compact: just emoji + duration
+            const pillWidth = text.length * 6 + 8;
 
             return (
               <pixiContainer key={`${debuff.type}-${i}`} x={0} y={effectY}>

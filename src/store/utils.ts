@@ -1,21 +1,30 @@
 import type { GamePhase, LogEntry, Card, Player, Monster, Environment, EffectType, Effect, StatusEffect, CharacterAttributes, Champion } from "../types";
 import { CLASS_CONFIGS } from "../data/classes";
+import {
+  BASE_STAT_VALUE,
+  STR_DAMAGE_MULTIPLIER,
+  INT_DAMAGE_MULTIPLIER,
+  WIS_HEAL_MULTIPLIER,
+  CON_SHIELD_MULTIPLIER,
+  DURATION_BONUS_DIVISOR,
+  MAX_HP_BONUS_MULTIPLIER,
+  BASE_CRIT_CHANCE,
+  CRIT_CHANCE_PER_LCK,
+  BASE_CRIT_MULTIPLIER,
+  CRIT_MULTIPLIER_PER_LCK,
+  DODGE_CHANCE_PER_AGI,
+  ACCURACY_MITIGATION_DIVISOR,
+  DEFAULT_ATTRIBUTES,
+} from "../constants";
 
 // ============================================
 // STAT SCALING UTILITIES
 // ============================================
 
-// Default attributes for players without a champion
-export const DEFAULT_ATTRIBUTES: CharacterAttributes = {
-  STR: 10,
-  AGI: 10,
-  CON: 10,
-  INT: 10,
-  WIS: 10,
-  LCK: 10,
-};
+// Re-export DEFAULT_ATTRIBUTES for backward compatibility
+export { DEFAULT_ATTRIBUTES };
 
-// Physical damage scaling: base * (1 + (STR-10) * 0.03)
+// Physical damage scaling: base * (1 + (STR-10) * multiplier)
 export const calculateScaledDamage = (
   base: number,
   attrs: CharacterAttributes | undefined,
@@ -23,55 +32,56 @@ export const calculateScaledDamage = (
 ): number => {
   if (!attrs) return base;
   const stat = isPhysical ? attrs.STR : attrs.INT;
-  const multiplier = 1 + (stat - 10) * (isPhysical ? 0.03 : 0.04);
+  const scalingMultiplier = isPhysical ? STR_DAMAGE_MULTIPLIER : INT_DAMAGE_MULTIPLIER;
+  const multiplier = 1 + (stat - BASE_STAT_VALUE) * scalingMultiplier;
   return Math.floor(base * multiplier);
 };
 
-// Healing scaling: base * (1 + (WIS-10) * 0.035)
+// Healing scaling: base * (1 + (WIS-10) * multiplier)
 export const calculateScaledHeal = (
   base: number,
   attrs: CharacterAttributes | undefined
 ): number => {
   if (!attrs) return base;
-  const multiplier = 1 + (attrs.WIS - 10) * 0.035;
+  const multiplier = 1 + (attrs.WIS - BASE_STAT_VALUE) * WIS_HEAL_MULTIPLIER;
   return Math.floor(base * multiplier);
 };
 
-// Shield scaling: base * (1 + (CON-10) * 0.025)
+// Shield scaling: base * (1 + (CON-10) * multiplier)
 export const calculateScaledShield = (
   base: number,
   attrs: CharacterAttributes | undefined
 ): number => {
   if (!attrs) return base;
-  const multiplier = 1 + (attrs.CON - 10) * 0.025;
+  const multiplier = 1 + (attrs.CON - BASE_STAT_VALUE) * CON_SHIELD_MULTIPLIER;
   return Math.floor(base * multiplier);
 };
 
-// Duration bonus from WIS: floor((WIS-10) / 10)
+// Duration bonus from WIS: floor((WIS-10) / divisor)
 export const calculateDurationBonus = (
   attrs: CharacterAttributes | undefined
 ): number => {
   if (!attrs) return 0;
-  return Math.floor((attrs.WIS - 10) / 10);
+  return Math.floor((attrs.WIS - BASE_STAT_VALUE) / DURATION_BONUS_DIVISOR);
 };
 
-// Calculate max HP bonus from CON: (CON-10) * 2
+// Calculate max HP bonus from CON: (CON-10) * multiplier
 export const calculateMaxHpBonus = (
   attrs: CharacterAttributes | undefined
 ): number => {
   if (!attrs) return 0;
-  return (attrs.CON - 10) * 2;
+  return (attrs.CON - BASE_STAT_VALUE) * MAX_HP_BONUS_MULTIPLIER;
 };
 
-// Crit chance: 5% + (LCK * 0.5%)
-// Returns multiplier (1.5+) if crit, 1 if not
+// Crit chance: base + (LCK * bonus per point)
+// Returns multiplier if crit, 1 if not
 export const rollCrit = (
   attrs: CharacterAttributes | undefined
 ): { isCrit: boolean; multiplier: number } => {
   if (!attrs) return { isCrit: false, multiplier: 1 };
 
-  const critChance = 0.05 + attrs.LCK * 0.005;
-  const critMultiplier = 1.5 + attrs.LCK * 0.005;
+  const critChance = BASE_CRIT_CHANCE + attrs.LCK * CRIT_CHANCE_PER_LCK;
+  const critMultiplier = BASE_CRIT_MULTIPLIER + attrs.LCK * CRIT_MULTIPLIER_PER_LCK;
 
   if (Math.random() < critChance) {
     return { isCrit: true, multiplier: critMultiplier };
@@ -79,12 +89,12 @@ export const rollCrit = (
   return { isCrit: false, multiplier: 1 };
 };
 
-// Dodge chance: (AGI-10) * 0.5%
+// Dodge chance: (AGI-base) * chance per point
 export const rollDodge = (
   attrs: CharacterAttributes | undefined
 ): boolean => {
   if (!attrs) return false;
-  const dodgeChance = (attrs.AGI - 10) * 0.005;
+  const dodgeChance = (attrs.AGI - BASE_STAT_VALUE) * DODGE_CHANCE_PER_AGI;
   return Math.random() < dodgeChance;
 };
 
@@ -93,7 +103,7 @@ export const calculateAccuracyMitigation = (
   attrs: CharacterAttributes | undefined
 ): number => {
   if (!attrs) return 0;
-  return Math.floor((attrs.AGI - 10) / 5);
+  return Math.floor((attrs.AGI - BASE_STAT_VALUE) / ACCURACY_MITIGATION_DIVISOR);
 };
 
 // Determine if a card's damage is physical or magical based on class

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useGameStore } from "../store/gameStore";
 import { CLASS_CONFIGS, AVAILABLE_CLASSES } from "../data/classes";
 import { ArrowLeft, Heart, Zap, Sparkles } from "lucide-react";
@@ -37,12 +37,26 @@ export function ChampionCreateScreen() {
   const returnScreen = useGameStore((state) => state.returnScreen);
   const setReturnScreen = useGameStore((state) => state.setReturnScreen);
   const createChampion = useGameStore((state) => state.createChampion);
+  const playerAccount = useGameStore((state) => state.playerAccount);
+  const loadProgression = useGameStore((state) => state.loadProgression);
 
   const [name, setName] = useState("");
   const [selectedClass, setSelectedClass] = useState<ClassType | null>(null);
   const [error, setError] = useState("");
 
-  const handleCreate = () => {
+  // Ensure player account is loaded
+  useEffect(() => {
+    if (!playerAccount) {
+      loadProgression();
+    }
+  }, [playerAccount, loadProgression]);
+
+  const handleCreate = async () => {
+    if (!playerAccount) {
+      setError("Loading account data... Please try again.");
+      loadProgression();
+      return;
+    }
     if (!name.trim()) {
       setError("Please enter a name for your champion");
       return;
@@ -59,9 +73,19 @@ export function ChampionCreateScreen() {
       setError("Please select a class");
       return;
     }
+    if (playerAccount.champions.length >= playerAccount.maxChampionSlots) {
+      setError(`Maximum champion slots reached (${playerAccount.maxChampionSlots})`);
+      return;
+    }
 
-    createChampion(name.trim(), selectedClass);
-    
+    // Wait for champion creation to complete
+    const newChampion = await createChampion(name.trim(), selectedClass);
+
+    if (!newChampion) {
+      setError("Failed to create champion. Please try again.");
+      return;
+    }
+
     // Return to the appropriate screen based on where we came from
     const targetScreen = returnScreen || "championSelect";
     setReturnScreen(null); // Clear the return screen

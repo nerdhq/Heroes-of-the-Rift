@@ -319,6 +319,7 @@ export interface Environment {
     secondaryColor: string;
   };
   effects: EnvironmentEffect[];
+  backgroundImage?: string;
 }
 
 // ============================================

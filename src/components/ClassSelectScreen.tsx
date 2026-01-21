@@ -3,7 +3,7 @@ import { useGameStore } from "../store/gameStore";
 import { CLASS_CONFIGS, AVAILABLE_CLASSES } from "../data/classes";
 import { Check, Users, ArrowLeft, Edit2, HelpCircle } from "lucide-react";
 import { HelpModal } from "./HelpModal";
-import type { ClassType } from "../types";
+import { getClassIcon } from "../utils/classHelpers";
 
 export function ClassSelectScreen() {
   const [showHelp, setShowHelp] = useState(false);
@@ -17,20 +17,6 @@ export function ClassSelectScreen() {
     (state) => state.confirmClassSelection
   );
   const setScreen = useGameStore((state) => state.setScreen);
-
-  const getClassIcon = (classType: ClassType): string => {
-    const icons: Record<ClassType, string> = {
-      warrior: "⚔️",
-      rogue: "🗡️",
-      paladin: "🛡️",
-      mage: "🔮",
-      priest: "✨",
-      bard: "🎵",
-      archer: "🏹",
-      barbarian: "🪓",
-    };
-    return icons[classType];
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-stone-900 via-stone-800 to-stone-900 p-8 relative">

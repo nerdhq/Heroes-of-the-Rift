@@ -2,8 +2,7 @@ import type { SliceCreator, UserDataActions } from "../types";
 import type { Card, ClassType } from "../../types";
 import { generateId } from "../utils";
 import { getCardsByClass } from "../../data/cards";
-
-const USER_DATA_KEY = "dungeon-crawler-user-data";
+import { storage, STORAGE_KEYS } from "../../lib/storage";
 
 export const createUserDataSlice: SliceCreator<UserDataActions> = (set, get) => ({
   addUserGold: (amount: number) => {
@@ -57,37 +56,32 @@ export const createUserDataSlice: SliceCreator<UserDataActions> = (set, get) => 
 
   loadUserData: () => {
     try {
-      const saved = localStorage.getItem(USER_DATA_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
+      const parsed = storage.get(STORAGE_KEYS.USER_DATA);
+      if (parsed) {
         let ownedCards = parsed.ownedCards || [];
-        
+
         // Check if user needs starter cards (no cards or less than expected per-class setup)
         // Expected: 8 cards per class = 64 cards minimum for starter set
         const needsStarterCards = ownedCards.length < 64;
-        
+
         if (needsStarterCards) {
           // Generate new starter cards and merge with any existing purchased cards
           const starterCards = generateStarterCards();
-          
+
           // Keep any cards that were purchased (not starter cards)
           const purchasedCards = ownedCards.filter(
             (card: Card) => !card.id.includes('-starter-')
           );
-          
+
           ownedCards = [...starterCards, ...purchasedCards];
-          
-          set({
-            userData: {
-              gold: parsed.gold || 0,
-              ownedCards,
-            },
-          });
-          // Save the updated cards
-          localStorage.setItem(USER_DATA_KEY, JSON.stringify({
+
+          const updatedUserData = {
             gold: parsed.gold || 0,
             ownedCards,
-          }));
+          };
+          set({ userData: updatedUserData });
+          // Save the updated cards
+          storage.set(STORAGE_KEYS.USER_DATA, updatedUserData);
         } else {
           set({
             userData: {
@@ -104,7 +98,7 @@ export const createUserDataSlice: SliceCreator<UserDataActions> = (set, get) => 
           ownedCards: starterCards,
         };
         set({ userData: newUserData });
-        localStorage.setItem(USER_DATA_KEY, JSON.stringify(newUserData));
+        storage.set(STORAGE_KEYS.USER_DATA, newUserData);
       }
     } catch (error) {
       console.error("Failed to load user data:", error);
@@ -118,7 +112,7 @@ export const createUserDataSlice: SliceCreator<UserDataActions> = (set, get) => 
         gold: userData?.gold ?? 0,
         ownedCards: userData?.ownedCards ?? [],
       };
-      localStorage.setItem(USER_DATA_KEY, JSON.stringify(dataToSave));
+      storage.set(STORAGE_KEYS.USER_DATA, dataToSave);
     } catch (error) {
       console.error("Failed to save user data:", error);
     }

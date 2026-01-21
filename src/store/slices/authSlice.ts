@@ -3,6 +3,7 @@ import type { GameStore } from "../types";
 import { isSupabaseConfigured, getSupabase } from "../../lib/supabase";
 import type { Profile } from "../../lib/database.types";
 import type { User } from "@supabase/supabase-js";
+import { normalizeError, logSupabaseError, getUserFriendlyMessage } from "../../lib/supabaseHelpers";
 
 // ============================================
 // AUTH STATE & ACTIONS
@@ -100,8 +101,9 @@ export const createAuthSlice: StateCreator<
         }
       });
     } catch (error) {
-      console.error("Auth initialization error:", error);
-      set({ isAuthLoading: false });
+      const normalizedError = normalizeError(error);
+      logSupabaseError("initializeAuth", normalizedError);
+      set({ isAuthLoading: false, authError: normalizedError.message });
     }
   },
 
@@ -174,8 +176,9 @@ export const createAuthSlice: StateCreator<
 
       return true;
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown error";
-      set({ authError: message, isAuthLoading: false });
+      const normalizedError = normalizeError(error);
+      logSupabaseError("signInAnonymously", normalizedError);
+      set({ authError: getUserFriendlyMessage(normalizedError), isAuthLoading: false });
       return false;
     }
   },
@@ -195,7 +198,8 @@ export const createAuthSlice: StateCreator<
         authError: null,
       });
     } catch (error) {
-      console.error("Sign out error:", error);
+      const normalizedError = normalizeError(error);
+      logSupabaseError("signOut", normalizedError);
     }
   },
 
@@ -225,8 +229,9 @@ export const createAuthSlice: StateCreator<
       set({ profile: data });
       return true;
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown error";
-      set({ authError: message });
+      const normalizedError = normalizeError(error);
+      logSupabaseError("updateProfile", normalizedError);
+      set({ authError: getUserFriendlyMessage(normalizedError) });
       return false;
     }
   },
