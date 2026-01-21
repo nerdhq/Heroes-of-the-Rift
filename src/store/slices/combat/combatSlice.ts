@@ -32,6 +32,7 @@ export const createCombatSlice: SliceCreator<CombatActions> = (set, get) => {
     startRound: phaseActions.startRound,
     nextRound: phaseActions.nextRound,
     endTurn: phaseActions.endTurn,
+    startMockBattle: phaseActions.startMockBattle,
 
     // Card actions
     selectCard: cardActions.selectCard,

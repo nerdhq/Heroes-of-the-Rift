@@ -26,6 +26,7 @@ import { QuestIntroScreen } from "./components/QuestIntroScreen";
 import { QuestCompleteScreen } from "./components/QuestCompleteScreen";
 import { CampaignVictoryScreen } from "./components/CampaignVictoryScreen";
 import { CampaignDefeatScreen } from "./components/CampaignDefeatScreen";
+import { DevToolsScreen } from "./components/DevToolsScreen";
 
 function App() {
   const currentScreen = useGameStore((state) => state.currentScreen);
@@ -67,6 +68,7 @@ function App() {
       {currentScreen === "questComplete" && <QuestCompleteScreen />}
       {currentScreen === "campaignVictory" && <CampaignVictoryScreen />}
       {currentScreen === "campaignDefeat" && <CampaignDefeatScreen />}
+      {currentScreen === "devTools" && <DevToolsScreen />}
     </>
   );
 }

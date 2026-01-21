@@ -90,7 +90,8 @@ export type ScreenType =
   | "questIntro"
   | "questComplete"
   | "campaignVictory"
-  | "campaignDefeat";
+  | "campaignDefeat"
+  | "devTools";
 
 // ============================================
 // EFFECT

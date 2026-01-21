@@ -22,6 +22,7 @@ import type {
   CampaignState,
   CampaignActions,
 } from "../types/campaign";
+import type { MockBattleConfig } from "./slices/combat/actions/phaseActions";
 
 // Combined store type
 export type GameStore = GameState & AuthState & LobbyState & MultiplayerState & ProgressionState & CampaignState & GameActions;
@@ -167,6 +168,7 @@ export interface CombatActions {
   startGame: () => void;
   startRound: () => void;
   nextRound: () => void;
+  startMockBattle: (config: MockBattleConfig) => void;
   drawCards: () => void;
   selectCard: (cardId: string) => void;
   selectTarget: (targetId: string) => void;

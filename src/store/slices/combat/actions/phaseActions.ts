@@ -1,14 +1,43 @@
 /**
- * Phase-related combat actions: startGame, startRound, nextRound, endTurn
+ * Phase-related combat actions: startGame, startRound, nextRound, endTurn, startMockBattle
  */
 
 import type { SetState, GetState } from "../types";
-import type { SavedParty } from "../../../../types";
-import { getMonstersForRound, ROUNDS, getRoundDescription } from "../../../../data/monsters";
-import { getEnvironmentForRound } from "../../../../data/environments";
-import { shuffleArray, createLogEntry, rollMonsterIntents } from "../../../utils";
+import type { SavedParty, ClassType, EliteModifier, EnvironmentType } from "../../../../types";
+import {
+  getMonstersForRound,
+  ROUNDS,
+  getRoundDescription,
+  createMonster,
+} from "../../../../data/monsters";
+import { getEnvironmentForRound, ENVIRONMENTS } from "../../../../data/environments";
+import { CARDS_BY_CLASS } from "../../../../data/cards";
+import {
+  shuffleArray,
+  createLogEntry,
+  rollMonsterIntents,
+  createPlayer,
+  generateId,
+} from "../../../utils";
 import { BETWEEN_ROUND_HEAL_PERCENT, GOLD_PER_ALIVE_PLAYER } from "../../../../constants";
 import { storage, STORAGE_KEYS } from "../../../../lib/storage";
+
+// Mock battle configuration type
+export interface MockBattleConfig {
+  heroes: Array<{
+    id: string;
+    name: string;
+    classType: ClassType;
+    deckCardIds: string[];
+  }>;
+  monsters: Array<{
+    id: string;
+    templateId: string;
+    level: number;
+    eliteModifier?: EliteModifier;
+  }>;
+  environmentType: EnvironmentType | null;
+}
 
 export const createPhaseActions = (set: SetState, get: GetState) => ({
   startGame: () => {
@@ -266,5 +295,79 @@ export const createPhaseActions = (set: SetState, get: GetState) => ({
     } else {
       get().drawCards();
     }
+  },
+
+  startMockBattle: (config: MockBattleConfig) => {
+    // 1. Create players from config
+    const players = config.heroes.map((hero, idx) => {
+      // Get the cards for the deck
+      const availableCards = CARDS_BY_CLASS[hero.classType];
+      const deck = availableCards
+        .filter((card) => hero.deckCardIds.includes(card.id))
+        .map((card) => ({
+          ...card,
+          id: `${card.id}-mock-${idx}-${generateId()}`,
+        }));
+
+      return createPlayer(
+        `player-${idx}`,
+        hero.name,
+        hero.classType,
+        shuffleArray(deck)
+      );
+    });
+
+    // 2. Create monsters from config
+    const rawMonsters = config.monsters.map((m) =>
+      createMonster(m.templateId, m.level, m.eliteModifier)
+    );
+    const monsters = rollMonsterIntents(rawMonsters);
+
+    // 3. Get environment
+    const environment = config.environmentType
+      ? ENVIRONMENTS[config.environmentType]
+      : null;
+
+    // 4. Set initial game state
+    set({
+      players,
+      monsters,
+      environment,
+      round: 1,
+      turn: 1,
+      currentPlayerIndex: 0,
+      phase: "DRAW",
+      selectedCardId: null,
+      selectedTargetId: null,
+      log: [
+        createLogEntry(1, "DRAW", `────────────────`, "info"),
+        createLogEntry(1, "DRAW", `MOCK BATTLE: DevTools Test`, "info"),
+        ...(environment
+          ? [
+              createLogEntry(
+                1,
+                "DRAW",
+                `Environment: ${environment.name} - ${environment.description}`,
+                "info"
+              ),
+            ]
+          : []),
+        createLogEntry(
+          1,
+          "DRAW",
+          `${monsters.map((m) => m.name).join(" & ")} appear${
+            monsters.length > 1 ? "" : "s"
+          }!`,
+          "info"
+        ),
+      ],
+      currentScreen: "game",
+      maxRounds: 1, // Mock battles are single round
+      savedParty: null,
+      campaignProgress: null, // Ensure not in campaign mode
+    });
+
+    // 5. Draw cards for first player
+    get().drawCards();
   },
 });
