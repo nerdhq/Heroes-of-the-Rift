@@ -38,6 +38,8 @@ export const initialState: GameState = {
     diceRolling: false,
     actionMessages: [],
     damageNumbers: [],
+    attackingEntityId: null,
+    attackAnimation: null,
   },
   gameSpeed: "normal",
   skipAnimations: false,

@@ -4,7 +4,16 @@
       "Bash(npm run build:*)",
       "Bash(grep:*)",
       "Bash(./node_modules/.bin/tsc:*)",
-      "Bash(npm run lint:*)"
+      "Bash(npm run lint:*)",
+      "WebFetch(domain:www.youtube.com)",
+      "WebFetch(domain:pixijs.io)",
+      "WebFetch(domain:react.pixijs.io)",
+      "WebFetch(domain:liberatedpixelcup.github.io)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:api.github.com)",
+      "Bash(ls:*)",
+      "Bash(dir:*)"
     ]
   }
 }

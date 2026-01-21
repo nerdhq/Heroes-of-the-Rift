@@ -8,12 +8,13 @@ export const createAnimationSlice: SliceCreator<AnimationActions> = (set) => ({
     }));
   },
 
-  addActionMessage: (text, type) => {
+  addActionMessage: (text, type, sourceId) => {
     const newMessage = {
       id: generateId(),
       text,
       type,
       timestamp: Date.now(),
+      sourceId,
     };
     set((state) => ({
       animation: {
@@ -52,5 +53,25 @@ export const createAnimationSlice: SliceCreator<AnimationActions> = (set) => ({
         },
       }));
     }, 1500);
+  },
+
+  triggerAttackAnimation: (entityId, animation) => {
+    set((state) => ({
+      animation: {
+        ...state.animation,
+        attackingEntityId: entityId,
+        attackAnimation: animation,
+      },
+    }));
+  },
+
+  clearAttackAnimation: () => {
+    set((state) => ({
+      animation: {
+        ...state.animation,
+        attackingEntityId: null,
+        attackAnimation: null,
+      },
+    }));
   },
 });

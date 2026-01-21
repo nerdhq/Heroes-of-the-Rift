@@ -169,7 +169,7 @@ export function CardHand({
         key={card.id}
         onClick={() => isSelectable && handleCardSelect(card.id)}
         disabled={!isSelectable || isLocalPlayerReady}
-        className={`p-4 rounded-xl border-2 transition-all transform text-left relative ${
+        className={`p-2 md:p-4 rounded-lg md:rounded-xl border-2 transition-all transform text-left relative ${
           isSelectable && !isLocalPlayerReady ? "hover:scale-105 cursor-pointer" : "cursor-default"
         } ${
           willBeEnhanced
@@ -180,25 +180,25 @@ export function CardHand({
         } ${isLocalPlayerReady ? "opacity-75" : ""}`}
       >
         {willBeEnhanced && (
-          <div className="absolute -top-2 -right-2 bg-amber-500 text-amber-900 text-xs px-2 py-0.5 rounded-full font-bold">
+          <div className="absolute -top-1 -right-1 md:-top-2 md:-right-2 bg-amber-500 text-amber-900 text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 rounded-full font-bold">
             ✨ ENHANCED
           </div>
         )}
-        <div className="flex justify-between items-start mb-2">
-          <h3 className={`text-lg font-bold ${rarityText}`}>{card.name}</h3>
+        <div className="flex justify-between items-start mb-1 md:mb-2">
+          <h3 className={`text-sm md:text-lg font-bold ${rarityText} leading-tight`}>{card.name}</h3>
           <span
-            className={`text-xs px-2 py-0.5 rounded ${rarityText} bg-stone-900/50`}
+            className={`text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 rounded ${rarityText} bg-stone-900/50 ml-1`}
           >
             {card.rarity}
           </span>
         </div>
-        <p className="text-stone-300 text-sm mb-2">{card.description}</p>
-        <div className="flex items-center justify-between text-sm">
+        <p className="text-stone-300 text-xs md:text-sm mb-1 md:mb-2 line-clamp-2">{card.description}</p>
+        <div className="flex items-center justify-between text-xs md:text-sm">
           <span className="text-amber-400">
-            ⚡ Base: {card.aggro}
+            ⚡ {card.aggro}
             {localPlayer && localPlayer.diceAggro > 0 && isSelected && (
-              <span className="text-amber-300 ml-2">
-                (Total: {projectedTotal})
+              <span className="text-amber-300 ml-1 md:ml-2">
+                (+{localPlayer.diceAggro}={projectedTotal})
               </span>
             )}
           </span>
@@ -224,10 +224,10 @@ export function CardHand({
   const totalPlayers = playerSelections.length;
 
   return (
-    <div className="bg-stone-800/50 rounded-xl p-3 sm:p-4 border border-stone-700 mt-2 flex-shrink-0 lg:max-h-[35vh] lg:overflow-y-auto">
+    <div className="bg-stone-800/50 rounded-lg md:rounded-xl p-2 md:p-4 border border-stone-700 mt-1 md:mt-2 flex-shrink-0 lg:max-h-[35vh] lg:overflow-y-auto">
       {/* Header with ready status for online mode */}
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-lg font-bold text-amber-100">
+      <div className="flex items-center justify-between mb-2 md:mb-3">
+        <h3 className="text-sm md:text-lg font-bold text-amber-100">
           {displayPlayer?.name}'s Hand
         </h3>
 
@@ -261,13 +261,13 @@ export function CardHand({
         {!isOnline && (
           <>
             {isLocalPlayerTurn && phase === "SELECT" && !selectedCardId && (
-              <span className="text-amber-400 text-sm animate-pulse">
-                Choose a card to play
+              <span className="text-amber-400 text-xs md:text-sm animate-pulse">
+                Choose a card
               </span>
             )}
             {isLocalPlayerTurn && phase === "SELECT" && selectedCardId && (
-              <span className="text-green-400 text-sm">
-                Card selected - click Confirm
+              <span className="text-green-400 text-xs md:text-sm">
+                Card selected
               </span>
             )}
           </>
@@ -275,8 +275,8 @@ export function CardHand({
 
         {/* Waiting for resolve */}
         {phase === "RESOLVE" && (
-          <span className="text-purple-400 text-sm flex items-center gap-1">
-            <Clock className="w-4 h-4 animate-spin" /> Resolving actions...
+          <span className="text-purple-400 text-xs md:text-sm flex items-center gap-1">
+            <Clock className="w-3 h-3 md:w-4 md:h-4 animate-spin" /> Resolving...
           </span>
         )}
       </div>
@@ -307,7 +307,7 @@ export function CardHand({
       )}
 
       {cardsToDisplay.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-1">
+        <div className="grid grid-cols-2 gap-2 md:gap-4 p-1">
           {cardsToDisplay.map((card) => renderCard(card, canSelectCards))}
         </div>
       ) : (
@@ -360,35 +360,35 @@ export function CardHand({
 
       {/* Special Ability Button - works for both online and offline */}
       {phase === "SELECT" && canUseSpecialAbility && displayPlayer && !isLocalPlayerReady && (
-        <div className="mt-3 p-3 bg-gradient-to-r from-purple-900/50 to-pink-900/50 rounded-lg border border-purple-500">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-purple-300 font-bold text-sm">
+        <div className="mt-2 md:mt-3 p-2 md:p-3 bg-gradient-to-r from-purple-900/50 to-pink-900/50 rounded-lg border border-purple-500">
+          <div className="flex items-center justify-between mb-1 md:mb-2">
+            <span className="text-purple-300 font-bold text-xs md:text-sm">
               ⚡ {CLASS_CONFIGS[displayPlayer.class].resourceName} Full!
             </span>
-            <span className="text-purple-400 text-xs">
+            <span className="text-purple-400 text-[10px] md:text-xs hidden md:inline">
               Choose how to spend it:
             </span>
           </div>
-          <div className="flex gap-2 justify-center">
+          <div className="flex gap-1 md:gap-2 justify-center">
             <button
               onClick={onUseSpecialAbility}
-              className="flex-1 bg-gradient-to-r from-purple-700 to-purple-600 hover:from-purple-600 hover:to-purple-500 text-purple-100 font-bold py-2 px-4 rounded-lg transition-all transform hover:scale-105 shadow-lg text-sm"
+              className="flex-1 bg-gradient-to-r from-purple-700 to-purple-600 hover:from-purple-600 hover:to-purple-500 text-purple-100 font-bold py-1.5 md:py-2 px-2 md:px-4 rounded-lg transition-all transform hover:scale-105 shadow-lg text-xs md:text-sm"
               title={CLASS_CONFIGS[displayPlayer.class].specialAbility.description}
             >
-              🌟 {CLASS_CONFIGS[displayPlayer.class].specialAbility.name}
+              🌟 <span className="hidden md:inline">{CLASS_CONFIGS[displayPlayer.class].specialAbility.name}</span><span className="md:hidden">Special</span>
             </button>
             <button
               onClick={handleEnhanceToggle}
-              className={`flex-1 font-bold py-2 px-4 rounded-lg transition-all transform hover:scale-105 shadow-lg text-sm ${
+              className={`flex-1 font-bold py-1.5 md:py-2 px-2 md:px-4 rounded-lg transition-all transform hover:scale-105 shadow-lg text-xs md:text-sm ${
                 localEnhanceMode
                   ? "bg-gradient-to-r from-amber-600 to-amber-500 text-amber-100"
                   : "bg-gradient-to-r from-amber-700 to-amber-600 hover:from-amber-600 hover:to-amber-500 text-amber-100"
               }`}
             >
-              {localEnhanceMode ? "✨ Enhancing..." : "✨ Enhance Card"}
+              {localEnhanceMode ? "✨ Enhancing" : "✨ Enhance"}
             </button>
           </div>
-          <p className="text-purple-400/70 text-xs mt-2 text-center">
+          <p className="text-purple-400/70 text-[10px] md:text-xs mt-1 md:mt-2 text-center hidden md:block">
             {localEnhanceMode
               ? `Select a card to enhance (+${
                   CLASS_CONFIGS[displayPlayer.class].enhanceBonus.damageBonus
