@@ -1,6 +1,7 @@
 import { useCallback, useState, useRef } from "react";
 import { useTick } from "@pixi/react";
 import type { Ticker } from "pixi.js";
+import { TextStyle } from "pixi.js";
 
 export interface DamageNumberData {
   id: string;
@@ -70,96 +71,58 @@ export function DamageNumber({ id, value, type, x, y, onComplete }: DamageNumber
   const { offsetY, alpha, scale } = animValuesRef.current;
 
   // Color based on type
-  const color = type === "damage" ? 0xef4444 : type === "shield" ? 0x3b82f6 : 0x22c55e;
+  const color = type === "damage" ? "#ef4444" : type === "shield" ? "#3b82f6" : "#22c55e";
+  const bgColor = type === "damage" ? 0x7f1d1d : type === "shield" ? 0x1e3a5f : 0x14532d;
+  const strokeColor = type === "damage" ? 0xef4444 : type === "shield" ? 0x3b82f6 : 0x22c55e;
   const sign = type === "damage" ? "-" : "+";
   const isCritical = type === "damage" && value >= 15;
+  const displayText = `${sign}${value}`;
+
+  const textStyle = new TextStyle({
+    fontFamily: "Arial, sans-serif",
+    fontSize: isCritical ? 20 : 16,
+    fontWeight: "bold",
+    fill: color,
+    stroke: { color: "#000000", width: 3 },
+    align: "center",
+  });
 
   return (
     <pixiContainer x={x} y={y + offsetY} alpha={alpha} scale={scale}>
-      {/* Glow/shadow for better visibility */}
+      {/* Background pill */}
       <pixiGraphics
         draw={(g) => {
           g.clear();
-          const textWidth = String(value).length * 12 + 20;
-          const textHeight = 24;
-          g.roundRect(-textWidth / 2, -textHeight / 2, textWidth, textHeight, 4);
-          g.fill({ color: 0x000000, alpha: 0.5 });
+          const bgWidth = displayText.length * 10 + 20;
+          g.roundRect(-bgWidth / 2, -14, bgWidth, 28, 14);
+          g.fill({ color: bgColor, alpha: 0.9 });
+          g.stroke({ color: strokeColor, width: 2 });
         }}
       />
 
-      {/* Main number display using graphics (since Text needs font loading) */}
-      <pixiGraphics
-        draw={(g) => {
-          g.clear();
+      {/* Actual text number */}
+      <pixiText
+        text={displayText}
+        style={textStyle}
+        anchor={0.5}
+      />
 
-          // Draw number as stylized graphic
-          const displayText = `${sign}${value}`;
-          const charWidth = isCritical ? 14 : 10;
-          const startX = -((displayText.length - 1) * charWidth) / 2;
-
-          displayText.split("").forEach((char, i) => {
-            const charX = startX + i * charWidth;
-
-            // Simple digit/sign shapes
-            if (char === "-") {
-              g.rect(charX - 4, -2, 8, 4);
-              g.fill({ color: color });
-            } else if (char === "+") {
-              g.rect(charX - 4, -1, 8, 2);
-              g.rect(charX - 1, -4, 2, 8);
-              g.fill({ color: color });
-            } else {
-              // Number - draw as filled circle with different sizes
-              g.circle(charX, 0, isCritical ? 8 : 6);
-              g.fill({ color: color });
-              g.stroke({ color: 0xffffff, width: 1 });
-            }
-          });
-
-          // Critical hit indicator
-          if (isCritical) {
-            // Exclamation mark
-            g.circle(displayText.length * charWidth / 2 + 10, -3, 4);
+      {/* Critical hit indicator */}
+      {isCritical && (
+        <pixiGraphics
+          draw={(g) => {
+            g.clear();
+            const xPos = displayText.length * 5 + 14;
+            g.circle(xPos, -6, 5);
             g.fill({ color: 0xfbbf24 });
-          }
-        }}
-      />
-
-      {/* Number text overlay using simple shapes */}
-      <pixiGraphics
-        draw={(g) => {
-          g.clear();
-
-          // Background pill for the number
-          const displayText = `${sign}${value}`;
-          const bgWidth = displayText.length * 10 + 16;
-
-          g.roundRect(-bgWidth / 2, -12, bgWidth, 24, 12);
-          g.fill({ color: type === "damage" ? 0x7f1d1d : 0x14532d, alpha: 0.9 });
-          g.stroke({ color: color, width: 2 });
-
-          // Draw digits as blocks to represent numbers
-          const digitWidth = 8;
-          const startX = -(displayText.length * digitWidth) / 2 + digitWidth / 2;
-
-          displayText.split("").forEach((char, i) => {
-            const dx = startX + i * digitWidth;
-
-            if (char === "-") {
-              g.rect(dx - 3, -1, 6, 2);
-              g.fill({ color: 0xffffff });
-            } else if (char === "+") {
-              g.rect(dx - 3, -0.5, 6, 1);
-              g.rect(dx - 0.5, -3, 1, 6);
-              g.fill({ color: 0xffffff });
-            } else {
-              // Simple circle for each digit
-              g.circle(dx, 0, 4);
-              g.fill({ color: 0xffffff });
-            }
-          });
-        }}
-      />
+            // Exclamation mark
+            g.rect(xPos - 1, -9, 2, 4);
+            g.fill({ color: 0x000000 });
+            g.circle(xPos, -3, 1);
+            g.fill({ color: 0x000000 });
+          }}
+        />
+      )}
     </pixiContainer>
   );
 }
