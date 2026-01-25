@@ -220,6 +220,8 @@ export const createPlayer = (
     attributes: champion?.attributes,
     // Bard-specific: start with no active song
     bardSongType: classType === "bard" ? null : undefined,
+    // Cleric-specific: start in Judgment mode
+    clericMode: classType === "cleric" ? "judgment" : undefined,
   };
 };
 
@@ -955,6 +957,7 @@ export function applyEffect(
     case "stealth":
     case "taunt":
     case "strength":
+    case "regen":
     case "block": {
       const targets = getTargets();
       for (const target of targets) {
@@ -997,6 +1000,7 @@ export function applyEffect(
     case "burn":
     case "ice":
     case "weakness":
+    case "vulnerable":
     case "stun":
     case "accuracy": {
       const monsterTargets = getMonsterTargets();

@@ -65,6 +65,33 @@ export const createDebuffActions = (set: SetState, get: GetState) => ({
         );
       }
 
+      // Process regen buffs (heal over time)
+      let totalRegen = 0;
+      for (const buff of player.buffs) {
+        if (buff.type === "regen") {
+          totalRegen += buff.value;
+        }
+      }
+      if (totalRegen > 0 && updatedPlayers[i].isAlive) {
+        const currentHp = updatedPlayers[i].hp;
+        const newHp = Math.min(updatedPlayers[i].maxHp, currentHp + totalRegen);
+        const actualHeal = newHp - currentHp;
+        if (actualHeal > 0) {
+          updatedPlayers[i] = {
+            ...updatedPlayers[i],
+            hp: newHp,
+          };
+          logs.push(
+            createLogEntry(
+              turn,
+              "BUFF_RESOLUTION",
+              `${player.name} regenerates ${actualHeal} HP!`,
+              "heal"
+            )
+          );
+        }
+      }
+
       const updatedDebuffs = player.debuffs
         .map((d) => ({ ...d, duration: d.duration - 1 }))
         .filter((d) => d.duration > 0);

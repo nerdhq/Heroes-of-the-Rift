@@ -133,6 +133,11 @@ export interface StatusEffect {
 export type BardSongType = "harmony" | "riot" | null;
 
 // ============================================
+// CLERIC MODE TYPES
+// ============================================
+export type ClericMode = "judgment" | "benediction";
+
+// ============================================
 // PLAYER
 // ============================================
 export interface Player {
@@ -164,6 +169,9 @@ export interface Player {
 
   // Bard-specific: current song type (Harmony or Riot)
   bardSongType?: BardSongType;
+
+  // Cleric-specific: current prayer mode (Judgment or Benediction)
+  clericMode?: ClericMode;
 }
 
 // ============================================

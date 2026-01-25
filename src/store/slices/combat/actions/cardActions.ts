@@ -476,6 +476,36 @@ export const createCardActions = (set: SetState, get: GetState) => ({
       };
     }
 
+    // Filter effects for Cleric's Prayer Cycle based on current mode
+    if (player.class === "cleric") {
+      const mode = player.clericMode || "judgment";
+      if (mode === "judgment") {
+        // Judgment: damage + strength buff (first 2 effects)
+        effectsToApply = effectsToApply.filter(
+          (e) => e.type === "damage" || e.type === "strength"
+        );
+      } else {
+        // Benediction: heal + regen (last 2 effects)
+        effectsToApply = effectsToApply.filter(
+          (e) => e.type === "heal" || e.type === "regen"
+        );
+      }
+      // Switch mode after Prayer Cycle
+      finalPlayers[currentPlayerIndex] = {
+        ...finalPlayers[currentPlayerIndex],
+        clericMode: mode === "judgment" ? "benediction" : "judgment",
+      };
+      // Log the mode switch
+      logs.push(
+        createLogEntry(
+          turn,
+          "PLAYER_ACTION",
+          `${player.name} switches to ${mode === "judgment" ? "Benediction" : "Judgment"} mode!`,
+          "action"
+        )
+      );
+    }
+
     for (const effect of effectsToApply) {
       const result = applyEffect(
         effect,

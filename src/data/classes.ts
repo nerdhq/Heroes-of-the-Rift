@@ -68,7 +68,7 @@ export const CLASS_CONFIGS: Record<ClassType, ClassConfig> = {
     color: "#3b82f6", // blue
     specialAbility: {
       name: "Mana Overload",
-      description: "Deal 36 damage to all enemies. Apply 2 Burn, 2 Ice, and 2 Vulnerable for 2 turns. Reset mana to 10. Unlocks after spending 20 mana.",
+      description: "At 10 Mana: Deal 36 damage to all enemies. Apply Burn 2, Ice 2, and Vulnerable 2 for 2 turns.",
       effects: [
         { type: "damage", value: 36, target: "allMonsters" },
         { type: "burn", value: 2, target: "allMonsters", duration: 2 },
@@ -88,10 +88,14 @@ export const CLASS_CONFIGS: Record<ClassType, ClassConfig> = {
     color: "#f8fafc", // white
     specialAbility: {
       name: "Prayer Cycle",
-      description: "Switch modes. At 5 Devotion: Judgment deals 10 AOE damage + 50% damage buff. Benediction heals 15 AOE + 50% healing buff.",
+      description: "At 5 Devotion: Judgment deals 10 AOE damage + grants allies +50% damage (2 turns). Benediction heals 15 AOE + grants allies +50% healing received (2 turns). Switches mode after use.",
       effects: [
+        // Judgment effects (damage-focused)
         { type: "damage", value: 10, target: "allMonsters" },
+        { type: "strength", value: 50, target: "allAllies", duration: 2 },
+        // Benediction effects (healing-focused)
         { type: "heal", value: 15, target: "allAllies" },
+        { type: "regen", value: 5, target: "allAllies", duration: 2 },
       ],
     },
     enhanceBonus: { damageBonus: 6, healBonus: 10, shieldBonus: 5 },
