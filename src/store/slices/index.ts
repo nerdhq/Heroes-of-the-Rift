@@ -1,6 +1,6 @@
 export { createCoreSlice } from "./coreSlice";
 export { createPlayersSlice } from "./playersSlice";
-export { createCombatSlice } from "./combatSlice";
+export { createCombatSlice } from "./combat";
 export { createRewardsSlice } from "./rewardsSlice";
 export { createAnimationSlice } from "./animationSlice";
 export { createSettingsSlice } from "./settingsSlice";

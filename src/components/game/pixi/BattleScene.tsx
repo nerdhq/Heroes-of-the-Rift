@@ -281,19 +281,21 @@ export function BattleScene({ width, height }: BattleSceneProps) {
     const safeWidth = Math.max(width, 400);
     const safeHeight = Math.max(height, 300);
 
-    // Responsive spacing - needs enough space for name/HP bars to not overlap
+    // Responsive spacing - condensed vertically since monster UI is more compact
     const isMobile = width < 500;
-    const spacing = isMobile ? 140 : 210;
+    const spacing = isMobile ? 100 : 140;
     const totalHeight = (total - 1) * spacing;
     const startY = (safeHeight - totalHeight) / 2;
 
-    // Stagger monsters horizontally (alternating left/right offset)
-    const staggerOffset = isMobile ? (index % 2 === 0 ? 0 : -40) : (index % 2 === 0 ? 0 : -80);
-    const baseX = isMobile ? safeWidth * 0.75 : safeWidth * 0.68;
+    // Stagger monsters horizontally MORE (alternating left/right offset)
+    const staggerOffset = isMobile
+      ? (index % 2 === 0 ? 0 : -70)
+      : (index % 2 === 0 ? 0 : -140);
+    const baseX = isMobile ? safeWidth * 0.75 : safeWidth * 0.70;
 
     return {
       x: baseX + staggerOffset,
-      y: Math.max(isMobile ? 50 : 100, startY) + spacing * index
+      y: Math.max(isMobile ? 50 : 80, startY) + spacing * index
     };
   }, [width, height]);
 
@@ -506,33 +508,9 @@ export function BattleScene({ width, height }: BattleSceneProps) {
   return (
     <ScreenShake isShaking={isShaking} intensity={5}>
       <pixiContainer>
-        {/* Environment Background */}
+        {/* Environment-specific overlay effects (background is now on the page level) */}
         {envTheme && (
           <>
-            {/* Sky gradient */}
-            <pixiGraphics
-              draw={(g) => {
-                g.clear();
-                // Top part - darker
-                g.rect(0, 0, width, height * 0.6);
-                g.fill({ color: envTheme.skyTop });
-                // Bottom part - lighter
-                g.rect(0, height * 0.4, width, height * 0.6);
-                g.fill({ color: envTheme.skyBottom });
-              }}
-            />
-            {/* Ground area */}
-            <pixiGraphics
-              draw={(g) => {
-                g.clear();
-                g.rect(0, height * 0.85, width, height * 0.15);
-                g.fill({ color: envTheme.groundTop });
-                // Ground line
-                g.moveTo(0, height * 0.85);
-                g.lineTo(width, height * 0.85);
-                g.stroke({ color: envTheme.groundBottom, width: 2, alpha: 0.5 });
-              }}
-            />
             {/* Floating particles */}
             {envTheme.particles && (
               <pixiGraphics
@@ -549,12 +527,12 @@ export function BattleScene({ width, height }: BattleSceneProps) {
                 }}
               />
             )}
-            {/* Atmospheric overlay */}
+            {/* Atmospheric overlay for environment tinting */}
             <pixiGraphics
               draw={(g) => {
                 g.clear();
                 g.rect(0, 0, width, height);
-                g.fill({ color: envTheme.skyTop, alpha: 0.1 });
+                g.fill({ color: envTheme.skyTop, alpha: 0.15 });
               }}
             />
           </>
@@ -726,9 +704,9 @@ function getRoundName(round: number): string {
     1: "The Dark Passage",
     2: "The Haunted Halls",
     3: "The Chamber of Horrors",
-    4: "The Lich King's Crypt",
+    4: "The Boulder's Den",
     5: "The Demon Gate",
-    6: "The Dragon's Lair",
+    6: "The Tower Knight's Arena",
   };
   return names[round] || `Round ${round}`;
 }

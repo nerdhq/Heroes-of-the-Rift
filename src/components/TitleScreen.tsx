@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useGameStore } from "../store/gameStore";
-import { Sword, Shield, Scroll, Users, Wifi, Coins, ShoppingBag, Library, Crown, Star, Map, Play } from "lucide-react";
+import { Sword, Shield, Scroll, Users, Wifi, Coins, ShoppingBag, Library, Crown, Star, Map, Play, Wrench } from "lucide-react";
 import { isSupabaseConfigured } from "../lib/supabase";
 import { CLASS_CONFIGS } from "../data/classes";
 
@@ -203,6 +203,14 @@ export function TitleScreen() {
           className="bg-stone-700 text-stone-500 font-bold py-4 px-8 rounded-lg text-xl cursor-not-allowed opacity-50"
         >
           Options
+        </button>
+
+        <button
+          onClick={() => setScreen("devTools")}
+          className="bg-gradient-to-r from-stone-700 to-stone-600 hover:from-stone-600 hover:to-stone-500 text-stone-300 font-bold py-3 px-6 rounded-lg text-lg transition-all transform hover:scale-105 shadow-lg shadow-stone-900/50 flex items-center justify-center gap-2 mt-4"
+        >
+          <Wrench className="w-5 h-5" />
+          Dev Tools
         </button>
       </div>
 

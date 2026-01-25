@@ -28,798 +28,1196 @@ export interface EliteModifierConfig {
 export const ELITE_MODIFIERS: Record<EliteModifier, EliteModifierConfig> = {
   fast: {
     name: "Fast",
-    icon: "⚡",
+    icon: "\u26A1",
     description: "Acts twice per turn",
     color: "#fbbf24", // yellow
   },
   armored: {
     name: "Armored",
-    icon: "🛡️",
+    icon: "\uD83D\uDEE1\uFE0F",
     description: "+50% HP, reduces damage taken by 25%",
     color: "#6b7280", // gray
   },
   enraged: {
     name: "Enraged",
-    icon: "🔥",
+    icon: "\uD83D\uDD25",
     description: "+50% damage dealt",
     color: "#ef4444", // red
   },
   regenerating: {
     name: "Regenerating",
-    icon: "💚",
+    icon: "\uD83D\uDC9A",
     description: "Heals 10 HP per turn",
     color: "#22c55e", // green
   },
   cursed: {
     name: "Cursed",
-    icon: "💀",
+    icon: "\uD83D\uDC80",
     description: "Applies random debuffs to attackers",
     color: "#a855f7", // purple
   },
   shielded: {
     name: "Shielded",
-    icon: "🔰",
+    icon: "\uD83D\uDD30",
     description: "Has shield that regenerates each turn",
     color: "#3b82f6", // blue
   },
 };
 
 // ============================================
-// GOBLIN (Starter Monster)
+// ARCANE MONSTERS
 // ============================================
-const goblinAbilities: MonsterAbility[] = [
-  {
-    roll: 1,
-    name: "Stumble",
-    description: "The goblin trips and does nothing.",
-    damage: 0,
-    target: "single",
-  },
-  {
-    roll: 2,
-    name: "Scratch",
-    description: "A weak scratch attack.",
-    damage: 4,
-    target: "single",
-  },
-  {
-    roll: 3,
-    name: "Stab",
-    description: "A quick stab with a rusty dagger.",
-    damage: 6,
-    target: "single",
-  },
-  {
-    roll: 4,
-    name: "Poison Spit",
-    description: "Spits poison at a hero.",
-    damage: 3,
-    target: "single",
-    debuff: { type: "poison", value: 2, duration: 2 },
-  },
-  {
-    roll: 5,
-    name: "Frenzy",
-    description: "Wild slashing attack.",
-    damage: 8,
-    target: "single",
-  },
-  {
-    roll: 6,
-    name: "Call Reinforcements",
-    description: "Attacks all heroes in a panic.",
-    damage: 4,
-    target: "all",
-  },
-];
 
-// ============================================
-// SKELETON
-// ============================================
-const skeletonAbilities: MonsterAbility[] = [
+// ARCHMAGE - Powerful magic user
+const archmageAbilities: MonsterAbility[] = [
   {
     roll: 1,
-    name: "Bone Rattle",
-    description: "Bones clatter harmlessly.",
+    name: "Channel Power",
+    description: "The archmage gathers magical energy.",
     damage: 0,
     target: "single",
   },
   {
     roll: 2,
-    name: "Bone Throw",
-    description: "Throws a bone at a hero.",
-    damage: 5,
-    target: "single",
-  },
-  {
-    roll: 3,
-    name: "Sword Slash",
-    description: "Slashes with a rusted sword.",
-    damage: 7,
-    target: "single",
-  },
-  {
-    roll: 4,
-    name: "Chilling Touch",
-    description: "A cold touch that slows.",
-    damage: 4,
-    target: "single",
-    debuff: { type: "ice", value: 2, duration: 2 },
-  },
-  {
-    roll: 5,
-    name: "Bone Storm",
-    description: "Bones fly everywhere.",
-    damage: 5,
-    target: "all",
-  },
-  {
-    roll: 6,
-    name: "Death Strike",
-    description: "A powerful overhead strike.",
-    damage: 10,
-    target: "single",
-  },
-];
-
-// ============================================
-// WEREWOLF
-// ============================================
-const werewolfAbilities: MonsterAbility[] = [
-  {
-    roll: 1,
-    name: "Howl",
-    description: "A terrifying howl that weakens resolve.",
-    damage: 0,
-    target: "all",
-    debuff: { type: "weakness", value: 1, duration: 2 },
-  },
-  {
-    roll: 2,
-    name: "Claw Swipe",
-    description: "Quick claw attack.",
-    damage: 8,
-    target: "single",
-  },
-  {
-    roll: 3,
-    name: "Bite",
-    description: "A vicious bite.",
+    name: "Arcane Bolt",
+    description: "A bolt of pure arcane energy.",
     damage: 10,
     target: "single",
   },
   {
-    roll: 4,
-    name: "Savage Leap",
-    description: "Leaps at a random target.",
-    damage: 12,
-    target: "random",
-  },
-  {
-    roll: 5,
-    name: "Rending Claws",
-    description: "Deep wounds that bleed.",
+    roll: 3,
+    name: "Mana Burn",
+    description: "Burns away magical defenses.",
     damage: 8,
     target: "single",
-    debuff: { type: "poison", value: 3, duration: 3 },
-  },
-  {
-    roll: 6,
-    name: "Feral Frenzy",
-    description: "Attacks everyone in a blood rage.",
-    damage: 7,
-    target: "all",
-  },
-];
-
-// ============================================
-// TROLL
-// ============================================
-const trollAbilities: MonsterAbility[] = [
-  {
-    roll: 1,
-    name: "Regenerate",
-    description: "The troll heals itself.",
-    damage: -10, // negative = heal self
-    target: "single",
-  },
-  {
-    roll: 2,
-    name: "Club Smash",
-    description: "Smashes with a massive club.",
-    damage: 12,
-    target: "single",
-  },
-  {
-    roll: 3,
-    name: "Ground Pound",
-    description: "Pounds the ground, hitting all.",
-    damage: 6,
-    target: "all",
-  },
-  {
-    roll: 4,
-    name: "Grab and Throw",
-    description: "Grabs and throws a hero.",
-    damage: 14,
-    target: "single",
-    debuff: { type: "stun", value: 1, duration: 1 },
-  },
-  {
-    roll: 5,
-    name: "Roar",
-    description: "A deafening roar.",
-    damage: 0,
-    target: "all",
-    debuff: { type: "accuracy", value: 3, duration: 2 },
-  },
-  {
-    roll: 6,
-    name: "Devastating Blow",
-    description: "A crushing overhead strike.",
-    damage: 18,
-    target: "single",
-  },
-];
-
-// ============================================
-// VAMPIRE
-// ============================================
-const vampireAbilities: MonsterAbility[] = [
-  {
-    roll: 1,
-    name: "Mesmerize",
-    description: "Hypnotic gaze stuns a hero.",
-    damage: 0,
-    target: "single",
-    debuff: { type: "stun", value: 1, duration: 1 },
-  },
-  {
-    roll: 2,
-    name: "Claw Strike",
-    description: "Sharp claws slash.",
-    damage: 9,
-    target: "single",
-  },
-  {
-    roll: 3,
-    name: "Life Drain",
-    description: "Drains life from a hero.",
-    damage: 8,
-    target: "single",
-  },
-  {
-    roll: 4,
-    name: "Shadow Step",
-    description: "Appears behind a random hero.",
-    damage: 11,
-    target: "random",
-  },
-  {
-    roll: 5,
-    name: "Blood Curse",
-    description: "Curses a hero with burning blood.",
-    damage: 5,
-    target: "single",
-    debuff: { type: "burn", value: 4, duration: 3 },
-  },
-  {
-    roll: 6,
-    name: "Crimson Feast",
-    description: "Bites and drains all heroes.",
-    damage: 6,
-    target: "all",
-  },
-];
-
-// ============================================
-// CERBERUS (Boss)
-// ============================================
-const cerberusAbilities: MonsterAbility[] = [
-  {
-    roll: 1,
-    name: "Triple Bark",
-    description: "All three heads bark menacingly.",
-    damage: 0,
-    target: "all",
     debuff: { type: "weakness", value: 2, duration: 2 },
   },
   {
-    roll: 2,
-    name: "Fire Breath",
-    description: "One head breathes fire.",
-    damage: 10,
-    target: "single",
-    debuff: { type: "burn", value: 3, duration: 2 },
-  },
-  {
-    roll: 3,
-    name: "Triple Bite",
-    description: "All heads bite one target.",
-    damage: 15,
-    target: "single",
-  },
-  {
     roll: 4,
-    name: "Hellfire",
-    description: "Flames engulf all heroes.",
-    damage: 8,
+    name: "Arcane Missiles",
+    description: "Multiple missiles seek out targets.",
+    damage: 6,
+    target: "all",
+  },
+  {
+    roll: 5,
+    name: "Power Word: Pain",
+    description: "A word of power that causes agony.",
+    damage: 12,
+    target: "single",
+    debuff: { type: "poison", value: 3, duration: 2 },
+  },
+  {
+    roll: 6,
+    name: "Meteor Strike",
+    description: "Calls down a devastating meteor.",
+    damage: 14,
     target: "all",
     debuff: { type: "burn", value: 2, duration: 2 },
   },
-  {
-    roll: 5,
-    name: "Savage Mauling",
-    description: "Brutal attack on random hero.",
-    damage: 18,
-    target: "random",
-  },
-  {
-    roll: 6,
-    name: "Infernal Rampage",
-    description: "All heads attack all heroes.",
-    damage: 12,
-    target: "all",
-  },
 ];
 
-// ============================================
-// IMP (Fast attacker, low damage)
-// ============================================
-const impAbilities: MonsterAbility[] = [
+// GLIMMERSHELL - Magical turtle creature
+const glimmershellAbilities: MonsterAbility[] = [
   {
     roll: 1,
-    name: "Cackle",
-    description: "The imp laughs mockingly.",
-    damage: 0,
-    target: "single",
-  },
-  {
-    roll: 2,
-    name: "Fire Spit",
-    description: "Spits a small fireball.",
-    damage: 4,
-    target: "single",
-    debuff: { type: "burn", value: 1, duration: 1 },
-  },
-  {
-    roll: 3,
-    name: "Quick Slash",
-    description: "A rapid claw attack.",
-    damage: 5,
-    target: "single",
-  },
-  {
-    roll: 4,
-    name: "Mischief",
-    description: "Steals resources from a hero.",
-    damage: 3,
-    target: "single",
-  },
-  {
-    roll: 5,
-    name: "Double Strike",
-    description: "Two quick attacks.",
-    damage: 7,
-    target: "single",
-  },
-  {
-    roll: 6,
-    name: "Infernal Dash",
-    description: "Dashes through all heroes.",
-    damage: 4,
-    target: "all",
-  },
-];
-
-// ============================================
-// SLIME (Splits when damaged - high HP)
-// ============================================
-const slimeAbilities: MonsterAbility[] = [
-  {
-    roll: 1,
-    name: "Wobble",
-    description: "The slime jiggles harmlessly.",
-    damage: 0,
-    target: "single",
-  },
-  {
-    roll: 2,
-    name: "Acid Splash",
-    description: "Splashes corrosive acid.",
-    damage: 5,
-    target: "single",
-    debuff: { type: "poison", value: 2, duration: 2 },
-  },
-  {
-    roll: 3,
-    name: "Engulf",
-    description: "Attempts to engulf a hero.",
-    damage: 7,
-    target: "single",
-  },
-  {
-    roll: 4,
-    name: "Toxic Cloud",
-    description: "Releases a toxic cloud.",
-    damage: 4,
-    target: "all",
-    debuff: { type: "poison", value: 1, duration: 2 },
-  },
-  {
-    roll: 5,
-    name: "Absorb",
-    description: "Absorbs damage and heals.",
+    name: "Retreat",
+    description: "Hides in its glowing shell.",
     damage: -8,
     target: "single",
   },
   {
-    roll: 6,
-    name: "Acid Wave",
-    description: "A wave of acid hits everyone.",
-    damage: 6,
-    target: "all",
-  },
-];
-
-// ============================================
-// NECROMANCER (Summons skeletons, dark magic)
-// ============================================
-const necromancerAbilities: MonsterAbility[] = [
-  {
-    roll: 1,
-    name: "Dark Ritual",
-    description: "Channels dark energy.",
-    damage: 0,
-    target: "all",
-    debuff: { type: "weakness", value: 1, duration: 2 },
-  },
-  {
     roll: 2,
-    name: "Shadow Bolt",
-    description: "Fires a bolt of shadow.",
-    damage: 8,
+    name: "Shell Bash",
+    description: "Rams with its hard shell.",
+    damage: 7,
     target: "single",
   },
   {
     roll: 3,
-    name: "Life Tap",
-    description: "Drains life to heal.",
-    damage: 6,
-    target: "single",
+    name: "Shimmer Spray",
+    description: "Sprays blinding light particles.",
+    damage: 5,
+    target: "all",
+    debuff: { type: "accuracy", value: 2, duration: 2 },
   },
   {
     roll: 4,
-    name: "Curse of Decay",
-    description: "Curses a hero with decay.",
-    damage: 4,
-    target: "single",
-    debuff: { type: "poison", value: 3, duration: 3 },
-  },
-  {
-    roll: 5,
-    name: "Soul Harvest",
-    description: "Harvests soul energy.",
-    damage: 10,
-    target: "single",
-  },
-  {
-    roll: 6,
-    name: "Death Wave",
-    description: "A wave of death energy.",
-    damage: 7,
-    target: "all",
-    debuff: { type: "weakness", value: 2, duration: 2 },
-  },
-];
-
-// ============================================
-// GARGOYLE (High armor, stone form)
-// ============================================
-const gargoyleAbilities: MonsterAbility[] = [
-  {
-    roll: 1,
-    name: "Stone Form",
-    description: "Hardens into stone, healing.",
-    damage: -12,
-    target: "single",
-  },
-  {
-    roll: 2,
-    name: "Claw Rake",
-    description: "Stone claws rake a hero.",
+    name: "Crystal Spike",
+    description: "Launches a crystalline projectile.",
     damage: 9,
     target: "single",
   },
   {
+    roll: 5,
+    name: "Prismatic Beam",
+    description: "A beam of rainbow light.",
+    damage: 8,
+    target: "single",
+    debuff: { type: "burn", value: 2, duration: 2 },
+  },
+  {
+    roll: 6,
+    name: "Shell Nova",
+    description: "Explodes with magical energy.",
+    damage: 10,
+    target: "all",
+  },
+];
+
+// SLUGMANCER - Slug necromancer
+const slugmancerAbilities: MonsterAbility[] = [
+  {
+    roll: 1,
+    name: "Slime Trail",
+    description: "Leaves a trail of acidic slime.",
+    damage: 0,
+    target: "all",
+    debuff: { type: "poison", value: 1, duration: 3 },
+  },
+  {
+    roll: 2,
+    name: "Acid Spit",
+    description: "Spits corrosive acid.",
+    damage: 6,
+    target: "single",
+    debuff: { type: "poison", value: 2, duration: 2 },
+  },
+  {
     roll: 3,
-    name: "Wing Buffet",
-    description: "Powerful wing attack.",
-    damage: 7,
+    name: "Dark Binding",
+    description: "Tendrils of darkness grab a hero.",
+    damage: 5,
     target: "single",
     debuff: { type: "stun", value: 1, duration: 1 },
+  },
+  {
+    roll: 4,
+    name: "Necrotic Wave",
+    description: "A wave of death energy.",
+    damage: 7,
+    target: "all",
+  },
+  {
+    roll: 5,
+    name: "Soul Drain",
+    description: "Drains life force.",
+    damage: 8,
+    target: "single",
+  },
+  {
+    roll: 6,
+    name: "Plague Cloud",
+    description: "Releases a cloud of disease.",
+    damage: 6,
+    target: "all",
+    debuff: { type: "poison", value: 3, duration: 3 },
+  },
+];
+
+// ============================================
+// BEAST MONSTERS
+// ============================================
+
+// BAT - Fast flying attacker
+const batAbilities: MonsterAbility[] = [
+  {
+    roll: 1,
+    name: "Screech",
+    description: "A disorienting screech.",
+    damage: 0,
+    target: "all",
+    debuff: { type: "accuracy", value: 1, duration: 2 },
+  },
+  {
+    roll: 2,
+    name: "Bite",
+    description: "A quick bite attack.",
+    damage: 5,
+    target: "single",
+  },
+  {
+    roll: 3,
+    name: "Wing Slash",
+    description: "Slashes with sharp wing edges.",
+    damage: 6,
+    target: "single",
   },
   {
     roll: 4,
     name: "Dive Attack",
     description: "Dives from above.",
-    damage: 12,
+    damage: 8,
     target: "random",
   },
   {
     roll: 5,
-    name: "Stone Gaze",
-    description: "Petrifying gaze.",
+    name: "Blood Drain",
+    description: "Drains blood to heal.",
+    damage: 4,
+    target: "single",
+  },
+  {
+    roll: 6,
+    name: "Swarm Strike",
+    description: "Calls other bats to attack.",
+    damage: 5,
+    target: "all",
+  },
+];
+
+// DIREWOLF - Fierce pack hunter
+const direwolfAbilities: MonsterAbility[] = [
+  {
+    roll: 1,
+    name: "Howl",
+    description: "A terrifying howl.",
+    damage: 0,
+    target: "all",
+    debuff: { type: "weakness", value: 1, duration: 2 },
+  },
+  {
+    roll: 2,
+    name: "Bite",
+    description: "A powerful bite.",
+    damage: 8,
+    target: "single",
+  },
+  {
+    roll: 3,
+    name: "Claw Swipe",
+    description: "Rakes with sharp claws.",
+    damage: 7,
+    target: "single",
+  },
+  {
+    roll: 4,
+    name: "Pounce",
+    description: "Leaps at a target.",
+    damage: 10,
+    target: "random",
+  },
+  {
+    roll: 5,
+    name: "Savage Bite",
+    description: "A vicious bite that causes bleeding.",
+    damage: 9,
+    target: "single",
+    debuff: { type: "poison", value: 2, duration: 2 },
+  },
+  {
+    roll: 6,
+    name: "Pack Frenzy",
+    description: "Goes into a hunting frenzy.",
+    damage: 8,
+    target: "all",
+  },
+];
+
+// WHOLLY SPIDER - Giant venomous spider
+const whollySpiderAbilities: MonsterAbility[] = [
+  {
+    roll: 1,
+    name: "Web Shot",
+    description: "Shoots sticky webbing.",
     damage: 0,
     target: "single",
     debuff: { type: "stun", value: 1, duration: 1 },
   },
   {
-    roll: 6,
-    name: "Crushing Descent",
-    description: "Crashes down on all heroes.",
-    damage: 8,
-    target: "all",
-  },
-];
-
-// ============================================
-// BANSHEE (Fear debuff, drains resources)
-// ============================================
-const bansheeAbilities: MonsterAbility[] = [
-  {
-    roll: 1,
-    name: "Wail",
-    description: "A terrifying wail.",
-    damage: 0,
-    target: "all",
-    debuff: { type: "weakness", value: 2, duration: 2 },
-  },
-  {
     roll: 2,
-    name: "Ghostly Touch",
-    description: "A chilling touch.",
+    name: "Fang Strike",
+    description: "Bites with venomous fangs.",
     damage: 6,
     target: "single",
-    debuff: { type: "ice", value: 2, duration: 2 },
+    debuff: { type: "poison", value: 2, duration: 2 },
   },
   {
     roll: 3,
-    name: "Soul Scream",
-    description: "Screams pierce the soul.",
-    damage: 8,
-    target: "single",
-  },
-  {
-    roll: 4,
-    name: "Drain Essence",
-    description: "Drains life essence.",
+    name: "Leg Slash",
+    description: "Slashes with sharp legs.",
     damage: 7,
     target: "single",
   },
   {
-    roll: 5,
-    name: "Terrify",
-    description: "Induces pure terror.",
+    roll: 4,
+    name: "Venom Spray",
+    description: "Sprays venom at multiple targets.",
     damage: 5,
     target: "all",
-    debuff: { type: "accuracy", value: 3, duration: 2 },
+    debuff: { type: "poison", value: 1, duration: 2 },
+  },
+  {
+    roll: 5,
+    name: "Cocoon",
+    description: "Wraps a hero in webbing.",
+    damage: 4,
+    target: "single",
+    debuff: { type: "stun", value: 1, duration: 1 },
   },
   {
     roll: 6,
-    name: "Death Shriek",
-    description: "A deadly shriek.",
+    name: "Death Bite",
+    description: "A deadly venomous bite.",
     damage: 10,
-    target: "all",
+    target: "single",
+    debuff: { type: "poison", value: 3, duration: 3 },
   },
 ];
 
 // ============================================
-// MIMIC (Copies player abilities)
+// EARTH MONSTERS
 // ============================================
-const mimicAbilities: MonsterAbility[] = [
+
+// MUSHROOM - Poisonous fungus creature
+const mushroomAbilities: MonsterAbility[] = [
   {
     roll: 1,
-    name: "Disguise",
-    description: "Shifts form confusingly.",
+    name: "Spore Cloud",
+    description: "Releases confusing spores.",
     damage: 0,
     target: "all",
     debuff: { type: "accuracy", value: 2, duration: 2 },
   },
   {
     roll: 2,
-    name: "Copied Strike",
-    description: "Mimics a hero's attack.",
-    damage: 8,
+    name: "Fungal Slap",
+    description: "Slaps with a rubbery cap.",
+    damage: 4,
     target: "single",
   },
   {
     roll: 3,
-    name: "Tongue Lash",
-    description: "A sticky tongue attack.",
-    damage: 7,
-    target: "single",
+    name: "Toxic Spores",
+    description: "Releases poisonous spores.",
+    damage: 3,
+    target: "all",
+    debuff: { type: "poison", value: 2, duration: 3 },
   },
   {
     roll: 4,
-    name: "Devour",
-    description: "Attempts to devour a hero.",
-    damage: 12,
+    name: "Root Grab",
+    description: "Roots grab at heroes.",
+    damage: 5,
     target: "single",
+    debuff: { type: "stun", value: 1, duration: 1 },
   },
   {
     roll: 5,
-    name: "Reflect",
-    description: "Reflects damage back.",
+    name: "Decompose",
+    description: "Spreads decay.",
     damage: 6,
-    target: "random",
+    target: "single",
+    debuff: { type: "weakness", value: 2, duration: 2 },
   },
   {
     roll: 6,
-    name: "True Form",
-    description: "Reveals monstrous true form.",
-    damage: 9,
+    name: "Mushroom Burst",
+    description: "Explodes in a cloud of toxins.",
+    damage: 7,
     target: "all",
+    debuff: { type: "poison", value: 2, duration: 2 },
   },
 ];
 
-// ============================================
-// ELEMENTAL (Rotates immunities)
-// ============================================
-const elementalAbilities: MonsterAbility[] = [
+// ROCKMAN - Stone golem
+const rockmanAbilities: MonsterAbility[] = [
   {
     roll: 1,
-    name: "Elemental Shift",
-    description: "Changes elemental form.",
-    damage: 0,
+    name: "Stone Form",
+    description: "Hardens body to heal.",
+    damage: -10,
     target: "single",
   },
   {
     roll: 2,
-    name: "Fire Burst",
-    description: "Erupts in flames.",
+    name: "Rock Punch",
+    description: "A heavy stone fist.",
     damage: 10,
     target: "single",
-    debuff: { type: "burn", value: 3, duration: 2 },
   },
   {
     roll: 3,
-    name: "Ice Shard",
-    description: "Launches ice shards.",
-    damage: 9,
-    target: "single",
-    debuff: { type: "ice", value: 2, duration: 2 },
-  },
-  {
-    roll: 4,
-    name: "Lightning Strike",
-    description: "Strikes with lightning.",
+    name: "Boulder Throw",
+    description: "Throws a large boulder.",
     damage: 12,
     target: "random",
   },
   {
-    roll: 5,
-    name: "Earth Slam",
+    roll: 4,
+    name: "Ground Pound",
     description: "Slams the ground.",
     damage: 8,
     target: "all",
   },
   {
-    roll: 6,
-    name: "Elemental Storm",
-    description: "Unleashes all elements.",
-    damage: 11,
-    target: "all",
-    debuff: { type: "burn", value: 2, duration: 2 },
-  },
-];
-
-// ============================================
-// HYDRA (Multiple attacks per turn)
-// ============================================
-const hydraAbilities: MonsterAbility[] = [
-  {
-    roll: 1,
-    name: "Regenerate Head",
-    description: "A head regrows, healing.",
-    damage: -15,
-    target: "single",
-  },
-  {
-    roll: 2,
-    name: "Triple Bite",
-    description: "Three heads bite.",
-    damage: 12,
-    target: "single",
-  },
-  {
-    roll: 3,
-    name: "Poison Spray",
-    description: "Sprays venom everywhere.",
-    damage: 6,
-    target: "all",
-    debuff: { type: "poison", value: 3, duration: 3 },
-  },
-  {
-    roll: 4,
-    name: "Head Slam",
-    description: "Slams with multiple heads.",
-    damage: 14,
-    target: "single",
-  },
-  {
     roll: 5,
-    name: "Constrict",
-    description: "Wraps around a hero.",
-    damage: 10,
+    name: "Crushing Grip",
+    description: "Grabs and crushes a hero.",
+    damage: 14,
     target: "single",
     debuff: { type: "stun", value: 1, duration: 1 },
   },
   {
     roll: 6,
-    name: "Hydra Fury",
-    description: "All heads attack all heroes.",
+    name: "Earthquake",
+    description: "Causes a localized earthquake.",
     damage: 10,
+    target: "all",
+    debuff: { type: "stun", value: 1, duration: 1 },
+  },
+];
+
+// THE BOULDER - Massive rock creature (Boss-tier)
+const theBoulderAbilities: MonsterAbility[] = [
+  {
+    roll: 1,
+    name: "Regenerate",
+    description: "Reforms damaged rock.",
+    damage: -15,
+    target: "single",
+  },
+  {
+    roll: 2,
+    name: "Massive Slam",
+    description: "A devastating slam attack.",
+    damage: 16,
+    target: "single",
+  },
+  {
+    roll: 3,
+    name: "Rock Slide",
+    description: "Causes rocks to fall on all heroes.",
+    damage: 10,
+    target: "all",
+  },
+  {
+    roll: 4,
+    name: "Rolling Charge",
+    description: "Rolls into heroes.",
+    damage: 14,
+    target: "all",
+  },
+  {
+    roll: 5,
+    name: "Seismic Toss",
+    description: "Throws a hero.",
+    damage: 18,
+    target: "random",
+    debuff: { type: "stun", value: 1, duration: 1 },
+  },
+  {
+    roll: 6,
+    name: "Meteor Crash",
+    description: "Leaps up and crashes down.",
+    damage: 15,
+    target: "all",
+    debuff: { type: "stun", value: 1, duration: 1 },
+  },
+];
+
+// ============================================
+// MILITARY MONSTERS
+// ============================================
+
+// ARBALIST - Crossbow soldier
+const arbalistAbilities: MonsterAbility[] = [
+  {
+    roll: 1,
+    name: "Reload",
+    description: "Reloads the crossbow.",
+    damage: 0,
+    target: "single",
+  },
+  {
+    roll: 2,
+    name: "Quick Shot",
+    description: "A fast crossbow bolt.",
+    damage: 6,
+    target: "single",
+  },
+  {
+    roll: 3,
+    name: "Aimed Shot",
+    description: "A carefully aimed shot.",
+    damage: 10,
+    target: "single",
+  },
+  {
+    roll: 4,
+    name: "Poison Bolt",
+    description: "A bolt coated in poison.",
+    damage: 7,
+    target: "single",
+    debuff: { type: "poison", value: 2, duration: 2 },
+  },
+  {
+    roll: 5,
+    name: "Multi-Shot",
+    description: "Fires multiple bolts.",
+    damage: 5,
+    target: "all",
+  },
+  {
+    roll: 6,
+    name: "Piercing Shot",
+    description: "A bolt that pierces armor.",
+    damage: 12,
+    target: "single",
+    debuff: { type: "weakness", value: 2, duration: 2 },
+  },
+];
+
+// CAPTAIN - Military leader
+const captainAbilities: MonsterAbility[] = [
+  {
+    roll: 1,
+    name: "Rally",
+    description: "Rallies troops, healing self.",
+    damage: -8,
+    target: "single",
+  },
+  {
+    roll: 2,
+    name: "Sword Slash",
+    description: "A skilled sword attack.",
+    damage: 9,
+    target: "single",
+  },
+  {
+    roll: 3,
+    name: "Shield Bash",
+    description: "Bashes with a shield.",
+    damage: 7,
+    target: "single",
+    debuff: { type: "stun", value: 1, duration: 1 },
+  },
+  {
+    roll: 4,
+    name: "War Cry",
+    description: "A demoralizing war cry.",
+    damage: 0,
+    target: "all",
+    debuff: { type: "weakness", value: 2, duration: 2 },
+  },
+  {
+    roll: 5,
+    name: "Execute",
+    description: "A brutal finishing move.",
+    damage: 14,
+    target: "single",
+  },
+  {
+    roll: 6,
+    name: "Command Strike",
+    description: "Leads a coordinated attack.",
+    damage: 8,
+    target: "all",
+  },
+];
+
+// SOLDIER - Basic military unit
+const soldierAbilities: MonsterAbility[] = [
+  {
+    roll: 1,
+    name: "Defensive Stance",
+    description: "Takes a defensive position.",
+    damage: 0,
+    target: "single",
+  },
+  {
+    roll: 2,
+    name: "Spear Thrust",
+    description: "Thrusts with a spear.",
+    damage: 6,
+    target: "single",
+  },
+  {
+    roll: 3,
+    name: "Shield Block",
+    description: "Blocks and counterattacks.",
+    damage: 5,
+    target: "single",
+  },
+  {
+    roll: 4,
+    name: "Charge",
+    description: "Charges at a hero.",
+    damage: 8,
+    target: "single",
+  },
+  {
+    roll: 5,
+    name: "Formation Strike",
+    description: "Attacks in formation.",
+    damage: 7,
+    target: "single",
+  },
+  {
+    roll: 6,
+    name: "Sweep Attack",
+    description: "Sweeps through enemies.",
+    damage: 5,
     target: "all",
   },
 ];
 
 // ============================================
-// DEMON (Curses players)
+// MYSTIC MONSTERS
 // ============================================
-const demonAbilities: MonsterAbility[] = [
+
+// CHANNELER - Spirit medium
+const channelerAbilities: MonsterAbility[] = [
   {
     roll: 1,
-    name: "Demonic Presence",
-    description: "Aura of dread.",
-    damage: 0,
-    target: "all",
-    debuff: { type: "weakness", value: 2, duration: 3 },
+    name: "Spirit Link",
+    description: "Channels healing spirits.",
+    damage: -6,
+    target: "single",
   },
   {
     roll: 2,
-    name: "Hellfire Slash",
-    description: "Flaming sword attack.",
-    damage: 14,
+    name: "Spirit Bolt",
+    description: "A bolt of spirit energy.",
+    damage: 7,
     target: "single",
-    debuff: { type: "burn", value: 3, duration: 2 },
   },
   {
     roll: 3,
-    name: "Soul Rend",
-    description: "Tears at the soul.",
+    name: "Curse",
+    description: "Places a curse on a hero.",
+    damage: 4,
+    target: "single",
+    debuff: { type: "weakness", value: 2, duration: 3 },
+  },
+  {
+    roll: 4,
+    name: "Ghost Touch",
+    description: "A chilling ghostly touch.",
+    damage: 6,
+    target: "single",
+    debuff: { type: "ice", value: 2, duration: 2 },
+  },
+  {
+    roll: 5,
+    name: "Spirit Drain",
+    description: "Drains life energy.",
+    damage: 8,
+    target: "single",
+  },
+  {
+    roll: 6,
+    name: "Summon Spirits",
+    description: "Calls spirits to attack all.",
+    damage: 6,
+    target: "all",
+    debuff: { type: "weakness", value: 1, duration: 2 },
+  },
+];
+
+// FORTUNETELLER - Mystical seer
+const fortunetellerAbilities: MonsterAbility[] = [
+  {
+    roll: 1,
+    name: "Read Fate",
+    description: "Glimpses the future.",
+    damage: 0,
+    target: "all",
+    debuff: { type: "accuracy", value: 2, duration: 2 },
+  },
+  {
+    roll: 2,
+    name: "Crystal Shard",
+    description: "Throws a crystal shard.",
+    damage: 6,
+    target: "single",
+  },
+  {
+    roll: 3,
+    name: "Hex",
+    description: "Places a hex on a hero.",
+    damage: 4,
+    target: "single",
+    debuff: { type: "poison", value: 2, duration: 3 },
+  },
+  {
+    roll: 4,
+    name: "Mind Blast",
+    description: "A psychic attack.",
+    damage: 8,
+    target: "single",
+  },
+  {
+    roll: 5,
+    name: "Doom Prediction",
+    description: "Predicts doom for a hero.",
+    damage: 5,
+    target: "single",
+    debuff: { type: "weakness", value: 3, duration: 2 },
+  },
+  {
+    roll: 6,
+    name: "Fate Storm",
+    description: "Reality warps around all heroes.",
+    damage: 7,
+    target: "all",
+  },
+];
+
+// SEER - All-seeing mystic
+const seerAbilities: MonsterAbility[] = [
+  {
+    roll: 1,
+    name: "Third Eye",
+    description: "Opens the third eye to see weakness.",
+    damage: 0,
+    target: "all",
+    debuff: { type: "weakness", value: 2, duration: 2 },
+  },
+  {
+    roll: 2,
+    name: "Vision Strike",
+    description: "Strikes at a predicted location.",
+    damage: 9,
+    target: "single",
+  },
+  {
+    roll: 3,
+    name: "Blinding Light",
+    description: "Emits blinding light.",
+    damage: 5,
+    target: "all",
+    debuff: { type: "accuracy", value: 3, duration: 2 },
+  },
+  {
+    roll: 4,
+    name: "Psychic Scream",
+    description: "A mental assault.",
+    damage: 8,
+    target: "all",
+  },
+  {
+    roll: 5,
+    name: "Future Sight",
+    description: "Attacks with foreknowledge.",
+    damage: 12,
+    target: "single",
+  },
+  {
+    roll: 6,
+    name: "Reality Tear",
+    description: "Tears at the fabric of reality.",
+    damage: 10,
+    target: "all",
+    debuff: { type: "stun", value: 1, duration: 1 },
+  },
+];
+
+// ============================================
+// NATURE MONSTERS
+// ============================================
+
+// BIG BROOT - Giant tree creature
+const bigBrootAbilities: MonsterAbility[] = [
+  {
+    roll: 1,
+    name: "Root",
+    description: "Takes root to heal.",
+    damage: -12,
+    target: "single",
+  },
+  {
+    roll: 2,
+    name: "Branch Whip",
+    description: "Whips with a branch.",
+    damage: 9,
+    target: "single",
+  },
+  {
+    roll: 3,
+    name: "Root Grab",
+    description: "Roots grab at heroes.",
+    damage: 7,
+    target: "single",
+    debuff: { type: "stun", value: 1, duration: 1 },
+  },
+  {
+    roll: 4,
+    name: "Leaf Storm",
+    description: "Sends leaves flying.",
+    damage: 6,
+    target: "all",
+  },
+  {
+    roll: 5,
+    name: "Crushing Grasp",
+    description: "Crushes a hero in branches.",
+    damage: 14,
+    target: "single",
+  },
+  {
+    roll: 6,
+    name: "Nature's Wrath",
+    description: "Unleashes nature's fury.",
+    damage: 10,
+    target: "all",
+    debuff: { type: "poison", value: 2, duration: 2 },
+  },
+];
+
+// BUPLING - Small plant creature
+const buplingAbilities: MonsterAbility[] = [
+  {
+    roll: 1,
+    name: "Sprout",
+    description: "Sprouts new leaves.",
+    damage: -5,
+    target: "single",
+  },
+  {
+    roll: 2,
+    name: "Seed Shot",
+    description: "Shoots seeds at a hero.",
+    damage: 4,
+    target: "single",
+  },
+  {
+    roll: 3,
+    name: "Pollen Cloud",
+    description: "Releases itchy pollen.",
+    damage: 3,
+    target: "all",
+    debuff: { type: "accuracy", value: 1, duration: 2 },
+  },
+  {
+    roll: 4,
+    name: "Vine Whip",
+    description: "Whips with a small vine.",
+    damage: 5,
+    target: "single",
+  },
+  {
+    roll: 5,
+    name: "Toxic Nectar",
+    description: "Sprays toxic nectar.",
+    damage: 4,
+    target: "single",
+    debuff: { type: "poison", value: 2, duration: 2 },
+  },
+  {
+    roll: 6,
+    name: "Overgrowth",
+    description: "Causes rapid plant growth.",
+    damage: 4,
+    target: "all",
+    debuff: { type: "stun", value: 1, duration: 1 },
+  },
+];
+
+// BUTTERFLY - Mystical butterfly
+const butterflyAbilities: MonsterAbility[] = [
+  {
+    roll: 1,
+    name: "Dazzle",
+    description: "Dazzles with beautiful wings.",
+    damage: 0,
+    target: "all",
+    debuff: { type: "accuracy", value: 2, duration: 2 },
+  },
+  {
+    roll: 2,
+    name: "Wing Dust",
+    description: "Scatters magical dust.",
+    damage: 4,
+    target: "single",
+    debuff: { type: "poison", value: 1, duration: 2 },
+  },
+  {
+    roll: 3,
+    name: "Flutter Strike",
+    description: "A quick flutter attack.",
+    damage: 5,
+    target: "single",
+  },
+  {
+    roll: 4,
+    name: "Sleep Powder",
+    description: "Releases sleep-inducing powder.",
+    damage: 0,
+    target: "single",
+    debuff: { type: "stun", value: 1, duration: 1 },
+  },
+  {
+    roll: 5,
+    name: "Mystic Scales",
+    description: "Scales cause burning.",
+    damage: 6,
+    target: "single",
+    debuff: { type: "burn", value: 2, duration: 2 },
+  },
+  {
+    roll: 6,
+    name: "Chaos Wings",
+    description: "Wings cause reality distortion.",
+    damage: 5,
+    target: "all",
+    debuff: { type: "weakness", value: 2, duration: 2 },
+  },
+];
+
+// ============================================
+// OUTLAW MONSTERS
+// ============================================
+
+// BERSERKER - Rage-filled warrior
+const berserkerAbilities: MonsterAbility[] = [
+  {
+    roll: 1,
+    name: "War Cry",
+    description: "Roars with battle rage.",
+    damage: 0,
+    target: "all",
+    debuff: { type: "weakness", value: 1, duration: 2 },
+  },
+  {
+    roll: 2,
+    name: "Axe Swing",
+    description: "A wild axe swing.",
+    damage: 10,
+    target: "single",
+  },
+  {
+    roll: 3,
+    name: "Rage Strike",
+    description: "Attacks in a fury.",
     damage: 12,
     target: "single",
   },
   {
     roll: 4,
-    name: "Curse",
-    description: "Places a dark curse.",
+    name: "Whirlwind",
+    description: "Spins with axe extended.",
     damage: 8,
-    target: "single",
-    debuff: { type: "poison", value: 4, duration: 3 },
+    target: "all",
   },
   {
     roll: 5,
-    name: "Infernal Charge",
-    description: "Charges through heroes.",
-    damage: 10,
-    target: "all",
+    name: "Blood Frenzy",
+    description: "Enters a blood rage.",
+    damage: 14,
+    target: "single",
   },
   {
     roll: 6,
-    name: "Apocalypse",
-    description: "Unleashes hellish fury.",
-    damage: 16,
+    name: "Rampage",
+    description: "Goes on a destructive rampage.",
+    damage: 10,
     target: "all",
-    debuff: { type: "burn", value: 4, duration: 2 },
+    debuff: { type: "burn", value: 2, duration: 2 },
+  },
+];
+
+// BRAWLER - Street fighter
+const brawlerAbilities: MonsterAbility[] = [
+  {
+    roll: 1,
+    name: "Taunt",
+    description: "Taunts the heroes.",
+    damage: 0,
+    target: "all",
+    debuff: { type: "accuracy", value: 1, duration: 2 },
+  },
+  {
+    roll: 2,
+    name: "Punch",
+    description: "A solid punch.",
+    damage: 7,
+    target: "single",
+  },
+  {
+    roll: 3,
+    name: "Kick",
+    description: "A powerful kick.",
+    damage: 8,
+    target: "single",
+  },
+  {
+    roll: 4,
+    name: "Headbutt",
+    description: "A stunning headbutt.",
+    damage: 6,
+    target: "single",
+    debuff: { type: "stun", value: 1, duration: 1 },
+  },
+  {
+    roll: 5,
+    name: "Combo",
+    description: "A series of punches.",
+    damage: 11,
+    target: "single",
+  },
+  {
+    roll: 6,
+    name: "Haymaker",
+    description: "A devastating haymaker.",
+    damage: 13,
+    target: "single",
+  },
+];
+
+// SCOUNDREL - Sneaky thief
+const scoundrelAbilities: MonsterAbility[] = [
+  {
+    roll: 1,
+    name: "Vanish",
+    description: "Disappears into shadows.",
+    damage: 0,
+    target: "single",
+  },
+  {
+    roll: 2,
+    name: "Quick Stab",
+    description: "A quick dagger stab.",
+    damage: 6,
+    target: "single",
+  },
+  {
+    roll: 3,
+    name: "Poison Blade",
+    description: "Attacks with a poisoned blade.",
+    damage: 5,
+    target: "single",
+    debuff: { type: "poison", value: 3, duration: 2 },
+  },
+  {
+    roll: 4,
+    name: "Backstab",
+    description: "Strikes from behind.",
+    damage: 12,
+    target: "random",
+  },
+  {
+    roll: 5,
+    name: "Dirty Trick",
+    description: "Throws dirt in eyes.",
+    damage: 4,
+    target: "single",
+    debuff: { type: "accuracy", value: 3, duration: 2 },
+  },
+  {
+    roll: 6,
+    name: "Assassinate",
+    description: "A deadly precise strike.",
+    damage: 14,
+    target: "single",
+    debuff: { type: "poison", value: 2, duration: 2 },
   },
 ];
 
 // ============================================
-// WRAITH (High evasion, drains life)
+// UNDEAD MONSTERS
 // ============================================
-const wraithAbilities: MonsterAbility[] = [
+
+// ECTOSKULL - Flying skull ghost
+const ectoskullAbilities: MonsterAbility[] = [
+  {
+    roll: 1,
+    name: "Haunt",
+    description: "Haunts the heroes.",
+    damage: 0,
+    target: "all",
+    debuff: { type: "weakness", value: 1, duration: 2 },
+  },
+  {
+    roll: 2,
+    name: "Skull Bash",
+    description: "Rams with its skull.",
+    damage: 6,
+    target: "single",
+  },
+  {
+    roll: 3,
+    name: "Ghostly Wail",
+    description: "A terrifying wail.",
+    damage: 5,
+    target: "all",
+    debuff: { type: "accuracy", value: 2, duration: 2 },
+  },
+  {
+    roll: 4,
+    name: "Soul Drain",
+    description: "Drains soul energy.",
+    damage: 7,
+    target: "single",
+  },
+  {
+    roll: 5,
+    name: "Ethereal Bite",
+    description: "Bites with spectral teeth.",
+    damage: 8,
+    target: "single",
+    debuff: { type: "ice", value: 2, duration: 2 },
+  },
+  {
+    roll: 6,
+    name: "Death Screech",
+    description: "A deadly screech.",
+    damage: 7,
+    target: "all",
+  },
+];
+
+// FALLEN WARRIOR - Undead knight
+const fallenWarriorAbilities: MonsterAbility[] = [
+  {
+    roll: 1,
+    name: "Undying Will",
+    description: "Draws on undeath to heal.",
+    damage: -8,
+    target: "single",
+  },
+  {
+    roll: 2,
+    name: "Rusted Blade",
+    description: "Slashes with a rusted sword.",
+    damage: 9,
+    target: "single",
+    debuff: { type: "poison", value: 1, duration: 2 },
+  },
+  {
+    roll: 3,
+    name: "Shield Slam",
+    description: "Slams with a battered shield.",
+    damage: 7,
+    target: "single",
+    debuff: { type: "stun", value: 1, duration: 1 },
+  },
+  {
+    roll: 4,
+    name: "Death Strike",
+    description: "A powerful undead strike.",
+    damage: 12,
+    target: "single",
+  },
+  {
+    roll: 5,
+    name: "Cursed Touch",
+    description: "Spreads undeath.",
+    damage: 6,
+    target: "single",
+    debuff: { type: "weakness", value: 2, duration: 3 },
+  },
+  {
+    roll: 6,
+    name: "Grave Cleave",
+    description: "Cleaves through all heroes.",
+    damage: 8,
+    target: "all",
+  },
+];
+
+// SPECTRE - Ghostly apparition
+const spectreAbilities: MonsterAbility[] = [
   {
     roll: 1,
     name: "Phase",
@@ -868,262 +1266,105 @@ const wraithAbilities: MonsterAbility[] = [
 ];
 
 // ============================================
-// LICH KING (Boss - Undead master)
+// BOSS MONSTERS
 // ============================================
-const lichKingAbilities: MonsterAbility[] = [
+
+// JEFFREY - Giant demon boss
+const jeffreyAbilities: MonsterAbility[] = [
   {
     roll: 1,
-    name: "Raise Dead",
-    description: "Summons undead energy.",
+    name: "Demonic Presence",
+    description: "Aura of dread weakens all.",
     damage: 0,
-    target: "all",
-    debuff: { type: "weakness", value: 2, duration: 2 },
-  },
-  {
-    roll: 2,
-    name: "Frost Bolt",
-    description: "A bolt of freezing death.",
-    damage: 12,
-    target: "single",
-    debuff: { type: "ice", value: 3, duration: 2 },
-  },
-  {
-    roll: 3,
-    name: "Death Coil",
-    description: "Dark energy coil.",
-    damage: 14,
-    target: "single",
-  },
-  {
-    roll: 4,
-    name: "Plague",
-    description: "Spreads a deadly plague.",
-    damage: 8,
-    target: "all",
-    debuff: { type: "poison", value: 4, duration: 3 },
-  },
-  {
-    roll: 5,
-    name: "Soul Freeze",
-    description: "Freezes souls solid.",
-    damage: 10,
-    target: "all",
-    debuff: { type: "stun", value: 1, duration: 1 },
-  },
-  {
-    roll: 6,
-    name: "Army of the Dead",
-    description: "Unleashes undead fury.",
-    damage: 15,
     target: "all",
     debuff: { type: "weakness", value: 3, duration: 2 },
   },
-];
-
-// ============================================
-// DEMON LORD (Boss - Ultimate demon)
-// ============================================
-const demonLordAbilities: MonsterAbility[] = [
-  {
-    roll: 1,
-    name: "Hellgate",
-    description: "Opens a gate to hell.",
-    damage: 0,
-    target: "all",
-    debuff: { type: "burn", value: 3, duration: 3 },
-  },
   {
     roll: 2,
-    name: "Doom Blade",
-    description: "A blade of pure doom.",
-    damage: 18,
+    name: "Claw Rend",
+    description: "Massive claws tear flesh.",
+    damage: 16,
     target: "single",
   },
   {
     roll: 3,
-    name: "Corruption",
-    description: "Corrupts body and soul.",
+    name: "Hellfire Breath",
+    description: "Breathes hellfire on all.",
     damage: 12,
-    target: "single",
-    debuff: { type: "poison", value: 5, duration: 3 },
-  },
-  {
-    roll: 4,
-    name: "Inferno Wave",
-    description: "A wave of hellfire.",
-    damage: 14,
     target: "all",
     debuff: { type: "burn", value: 4, duration: 2 },
-  },
-  {
-    roll: 5,
-    name: "Soul Crush",
-    description: "Crushes the soul.",
-    damage: 20,
-    target: "random",
-    debuff: { type: "stun", value: 1, duration: 1 },
-  },
-  {
-    roll: 6,
-    name: "Armageddon",
-    description: "Brings forth armageddon.",
-    damage: 16,
-    target: "all",
-    debuff: { type: "burn", value: 5, duration: 3 },
-  },
-];
-
-// ============================================
-// ANCIENT DRAGON (Final Boss)
-// ============================================
-const dragonAbilities: MonsterAbility[] = [
-  {
-    roll: 1,
-    name: "Terrifying Roar",
-    description: "A deafening roar that shakes the very ground.",
-    damage: 0,
-    target: "all",
-    debuff: { type: "weakness", value: 3, duration: 2 },
-  },
-  {
-    roll: 2,
-    name: "Claw Swipe",
-    description: "Massive claws tear through armor.",
-    damage: 18,
-    target: "single",
-  },
-  {
-    roll: 3,
-    name: "Dragon Breath",
-    description: "A torrent of flames engulfs all heroes.",
-    damage: 12,
-    target: "all",
-    debuff: { type: "burn", value: 5, duration: 3 },
   },
   {
     roll: 4,
     name: "Tail Sweep",
-    description: "The dragon sweeps its massive tail.",
+    description: "Sweeps with massive tail.",
     damage: 10,
     target: "all",
     debuff: { type: "stun", value: 1, duration: 1 },
   },
   {
     roll: 5,
-    name: "Inferno",
-    description: "The dragon unleashes a devastating inferno.",
-    damage: 15,
-    target: "all",
-    debuff: { type: "burn", value: 4, duration: 2 },
-  },
-  {
-    roll: 6,
-    name: "Apocalyptic Fury",
-    description: "The dragon enters a berserker rage!",
-    damage: 25,
+    name: "Soul Crush",
+    description: "Crushes a hero's soul.",
+    damage: 20,
     target: "random",
-    debuff: { type: "burn", value: 6, duration: 3 },
-  },
-];
-
-// ============================================
-// ORC WARLORD (Round 2 Boss)
-// ============================================
-const orcWarlordAbilities: MonsterAbility[] = [
-  {
-    roll: 1,
-    name: "War Cry",
-    description: "A rallying cry that intimidates heroes.",
-    damage: 0,
-    target: "all",
     debuff: { type: "weakness", value: 2, duration: 2 },
   },
   {
+    roll: 6,
+    name: "Apocalypse",
+    description: "Brings forth apocalyptic fury.",
+    damage: 15,
+    target: "all",
+    debuff: { type: "burn", value: 5, duration: 3 },
+  },
+];
+
+// TOWER KNIGHT - Massive armored knight boss
+const towerKnightAbilities: MonsterAbility[] = [
+  {
+    roll: 1,
+    name: "Raise Shield",
+    description: "Takes a defensive stance.",
+    damage: -20,
+    target: "single",
+  },
+  {
     roll: 2,
-    name: "Axe Slash",
-    description: "A brutal axe attack.",
-    damage: 12,
+    name: "Colossal Slash",
+    description: "A massive sword slash.",
+    damage: 18,
     target: "single",
   },
   {
     roll: 3,
-    name: "Shield Bash",
-    description: "Bashes with a massive shield.",
-    damage: 8,
-    target: "single",
+    name: "Shield Charge",
+    description: "Charges with shield forward.",
+    damage: 12,
+    target: "all",
     debuff: { type: "stun", value: 1, duration: 1 },
   },
   {
     roll: 4,
-    name: "Whirlwind",
-    description: "Spins with axes extended.",
-    damage: 9,
+    name: "Ground Slam",
+    description: "Slams sword into ground.",
+    damage: 14,
     target: "all",
   },
   {
     roll: 5,
     name: "Execute",
     description: "A devastating finishing blow.",
+    damage: 22,
+    target: "single",
+  },
+  {
+    roll: 6,
+    name: "Devastation",
+    description: "Unleashes full power.",
     damage: 16,
-    target: "single",
-  },
-  {
-    roll: 6,
-    name: "Blood Frenzy",
-    description: "Goes into a blood-crazed frenzy.",
-    damage: 11,
     target: "all",
-  },
-];
-
-// ============================================
-// DARK KNIGHT (Round 1 Mini-Boss)
-// ============================================
-const darkKnightAbilities: MonsterAbility[] = [
-  {
-    roll: 1,
-    name: "Dark Aura",
-    description: "Emanates a weakening darkness.",
-    damage: 0,
-    target: "all",
-    debuff: { type: "weakness", value: 1, duration: 2 },
-  },
-  {
-    roll: 2,
-    name: "Sword Strike",
-    description: "A precise sword attack.",
-    damage: 10,
-    target: "single",
-  },
-  {
-    roll: 3,
-    name: "Shadow Blade",
-    description: "Strikes with dark energy.",
-    damage: 8,
-    target: "single",
-    debuff: { type: "poison", value: 2, duration: 2 },
-  },
-  {
-    roll: 4,
-    name: "Dark Shield",
-    description: "Absorbs damage and retaliates.",
-    damage: 6,
-    target: "single",
-  },
-  {
-    roll: 5,
-    name: "Soul Drain",
-    description: "Drains life force.",
-    damage: 12,
-    target: "single",
-  },
-  {
-    roll: 6,
-    name: "Darkness Falls",
-    description: "Engulfs all in shadow.",
-    damage: 7,
-    target: "all",
-    debuff: { type: "accuracy", value: 2, duration: 2 },
+    debuff: { type: "weakness", value: 3, duration: 2 },
   },
 ];
 
@@ -1133,201 +1374,246 @@ const darkKnightAbilities: MonsterAbility[] = [
 export const MONSTER_TEMPLATES: MonsterTemplate[] = [
   // Tier 1 - Early game (Rounds 1-2)
   {
-    id: "goblin",
-    name: "Goblin",
-    icon: "👺",
-    baseHp: 30,
-    baseGoldReward: 5,
-    baseXPReward: 15,
-    abilities: goblinAbilities,
-  },
-  {
-    id: "skeleton",
-    name: "Skeleton",
-    icon: "💀",
-    baseHp: 40,
-    baseGoldReward: 7,
-    baseXPReward: 20,
-    abilities: skeletonAbilities,
-  },
-  {
-    id: "imp",
-    name: "Imp",
-    icon: "😈",
+    id: "bat",
+    name: "Bat",
+    icon: "\uD83E\uDD87",
     baseHp: 25,
-    baseGoldReward: 6,
+    baseGoldReward: 5,
     baseXPReward: 12,
-    abilities: impAbilities,
+    abilities: batAbilities,
   },
   {
-    id: "slime",
-    name: "Slime",
-    icon: "🟢",
-    baseHp: 50,
-    baseGoldReward: 8,
-    baseXPReward: 25,
-    abilities: slimeAbilities,
+    id: "bupling",
+    name: "Bupling",
+    icon: "\uD83C\uDF31",
+    baseHp: 30,
+    baseGoldReward: 6,
+    baseXPReward: 15,
+    abilities: buplingAbilities,
   },
   {
-    id: "wraith",
-    name: "Wraith",
-    icon: "👻",
+    id: "mushroom",
+    name: "Mushroom",
+    icon: "\uD83C\uDF44",
+    baseHp: 35,
+    baseGoldReward: 7,
+    baseXPReward: 18,
+    abilities: mushroomAbilities,
+  },
+  {
+    id: "soldier",
+    name: "Soldier",
+    icon: "\u2694\uFE0F",
     baseHp: 40,
-    baseGoldReward: 10,
-    baseXPReward: 22,
-    abilities: wraithAbilities,
+    baseGoldReward: 8,
+    baseXPReward: 20,
+    abilities: soldierAbilities,
+  },
+  {
+    id: "ectoskull",
+    name: "Ectoskull",
+    icon: "\uD83D\uDC80",
+    baseHp: 30,
+    baseGoldReward: 7,
+    baseXPReward: 16,
+    abilities: ectoskullAbilities,
   },
 
   // Tier 2 - Mid game (Rounds 2-3)
   {
-    id: "werewolf",
-    name: "Werewolf",
-    icon: "🐺",
-    baseHp: 60,
-    baseGoldReward: 15,
-    baseXPReward: 40,
-    abilities: werewolfAbilities,
-  },
-  {
-    id: "necromancer",
-    name: "Necromancer",
-    icon: "🧙",
-    baseHp: 60,
-    baseGoldReward: 16,
-    baseXPReward: 45,
-    abilities: necromancerAbilities,
-  },
-  {
-    id: "gargoyle",
-    name: "Gargoyle",
-    icon: "🗿",
-    baseHp: 80,
-    baseGoldReward: 18,
-    baseXPReward: 50,
-    abilities: gargoyleAbilities,
-  },
-  {
-    id: "banshee",
-    name: "Banshee",
-    icon: "👰",
-    baseHp: 55,
-    baseGoldReward: 14,
-    baseXPReward: 38,
-    abilities: bansheeAbilities,
-  },
-  {
-    id: "mimic",
-    name: "Mimic",
-    icon: "📦",
-    baseHp: 70,
+    id: "direwolf",
+    name: "Direwolf",
+    icon: "\uD83D\uDC3A",
+    baseHp: 50,
     baseGoldReward: 12,
     baseXPReward: 35,
-    abilities: mimicAbilities,
+    abilities: direwolfAbilities,
+  },
+  {
+    id: "whollySpider",
+    name: "Wholly Spider",
+    icon: "\uD83D\uDD77\uFE0F",
+    baseHp: 45,
+    baseGoldReward: 11,
+    baseXPReward: 32,
+    abilities: whollySpiderAbilities,
+  },
+  {
+    id: "butterfly",
+    name: "Mystic Butterfly",
+    icon: "\uD83E\uDD8B",
+    baseHp: 40,
+    baseGoldReward: 10,
+    baseXPReward: 28,
+    abilities: butterflyAbilities,
+  },
+  {
+    id: "scoundrel",
+    name: "Scoundrel",
+    icon: "\uD83D\uDDE1\uFE0F",
+    baseHp: 45,
+    baseGoldReward: 14,
+    baseXPReward: 38,
+    abilities: scoundrelAbilities,
+  },
+  {
+    id: "fallenWarrior",
+    name: "Fallen Warrior",
+    icon: "\u2620\uFE0F",
+    baseHp: 55,
+    baseGoldReward: 13,
+    baseXPReward: 40,
+    abilities: fallenWarriorAbilities,
   },
 
   // Tier 3 - Late game (Rounds 3-4)
   {
-    id: "troll",
-    name: "Troll",
-    icon: "🧌",
-    baseHp: 80,
-    baseGoldReward: 22,
-    baseXPReward: 60,
-    abilities: trollAbilities,
-  },
-  {
-    id: "vampire",
-    name: "Vampire",
-    icon: "🧛",
+    id: "berserker",
+    name: "Berserker",
+    icon: "\uD83D\uDCA2",
     baseHp: 70,
-    baseGoldReward: 20,
+    baseGoldReward: 18,
     baseXPReward: 55,
-    abilities: vampireAbilities,
+    abilities: berserkerAbilities,
   },
   {
-    id: "elemental",
-    name: "Elemental",
-    icon: "🌀",
+    id: "brawler",
+    name: "Brawler",
+    icon: "\uD83E\uDD4A",
+    baseHp: 75,
+    baseGoldReward: 17,
+    baseXPReward: 50,
+    abilities: brawlerAbilities,
+  },
+  {
+    id: "rockman",
+    name: "Rockman",
+    icon: "\uD83E\uDEA8",
     baseHp: 90,
-    baseGoldReward: 24,
-    baseXPReward: 70,
-    abilities: elementalAbilities,
+    baseGoldReward: 20,
+    baseXPReward: 60,
+    abilities: rockmanAbilities,
   },
   {
-    id: "dark-knight",
-    name: "Dark Knight",
-    icon: "⚔️",
-    baseHp: 100,
-    baseGoldReward: 25,
-    baseXPReward: 75,
-    abilities: darkKnightAbilities,
+    id: "spectre",
+    name: "Spectre",
+    icon: "\uD83D\uDC7B",
+    baseHp: 60,
+    baseGoldReward: 16,
+    baseXPReward: 45,
+    abilities: spectreAbilities,
   },
 
   // Tier 4 - Elite (Rounds 4-5)
   {
-    id: "hydra",
-    name: "Hydra",
-    icon: "🐍",
-    baseHp: 120,
-    baseGoldReward: 35,
-    baseXPReward: 100,
-    abilities: hydraAbilities,
+    id: "archmage",
+    name: "Archmage",
+    icon: "\uD83E\uDDD9",
+    baseHp: 80,
+    baseGoldReward: 25,
+    baseXPReward: 80,
+    abilities: archmageAbilities,
   },
   {
-    id: "demon",
-    name: "Demon",
-    icon: "👿",
-    baseHp: 150,
-    baseGoldReward: 40,
-    baseXPReward: 120,
-    abilities: demonAbilities,
+    id: "glimmershell",
+    name: "Glimmershell",
+    icon: "\uD83D\uDC22",
+    baseHp: 100,
+    baseGoldReward: 22,
+    baseXPReward: 70,
+    abilities: glimmershellAbilities,
   },
   {
-    id: "cerberus",
-    name: "Cerberus",
-    icon: "🐕",
+    id: "slugmancer",
+    name: "Slugmancer",
+    icon: "\uD83D\uDC0C",
+    baseHp: 85,
+    baseGoldReward: 24,
+    baseXPReward: 75,
+    abilities: slugmancerAbilities,
+  },
+  {
+    id: "bigBroot",
+    name: "Big Broot",
+    icon: "\uD83C\uDF33",
     baseHp: 120,
-    baseGoldReward: 32,
+    baseGoldReward: 28,
     baseXPReward: 90,
-    abilities: cerberusAbilities,
+    abilities: bigBrootAbilities,
   },
   {
-    id: "orc-warlord",
-    name: "Orc Warlord",
-    icon: "👹",
-    baseHp: 150,
-    baseGoldReward: 38,
-    baseXPReward: 110,
-    abilities: orcWarlordAbilities,
+    id: "captain",
+    name: "Captain",
+    icon: "\uD83C\uDFC5",
+    baseHp: 90,
+    baseGoldReward: 26,
+    baseXPReward: 85,
+    abilities: captainAbilities,
+  },
+  {
+    id: "arbalist",
+    name: "Arbalist",
+    icon: "\uD83C\uDFF9",
+    baseHp: 70,
+    baseGoldReward: 23,
+    baseXPReward: 72,
+    abilities: arbalistAbilities,
+  },
+  {
+    id: "channeler",
+    name: "Channeler",
+    icon: "\uD83D\uDD2E",
+    baseHp: 75,
+    baseGoldReward: 24,
+    baseXPReward: 78,
+    abilities: channelerAbilities,
+  },
+  {
+    id: "fortuneteller",
+    name: "Fortuneteller",
+    icon: "\uD83C\uDFB4",
+    baseHp: 65,
+    baseGoldReward: 22,
+    baseXPReward: 68,
+    abilities: fortunetellerAbilities,
+  },
+  {
+    id: "seer",
+    name: "Seer",
+    icon: "\uD83D\uDC41\uFE0F",
+    baseHp: 70,
+    baseGoldReward: 23,
+    baseXPReward: 74,
+    abilities: seerAbilities,
   },
 
-  // Bosses (Rounds 4, 5, 6)
+  // Bosses
   {
-    id: "lich-king",
-    name: "Lich King",
-    icon: "👑",
-    baseHp: 200,
-    baseGoldReward: 60,
-    baseXPReward: 200,
-    abilities: lichKingAbilities,
+    id: "theBoulder",
+    name: "The Boulder",
+    icon: "\uD83E\uDEA8",
+    baseHp: 180,
+    baseGoldReward: 50,
+    baseXPReward: 150,
+    abilities: theBoulderAbilities,
   },
   {
-    id: "demon-lord",
-    name: "Demon Lord",
-    icon: "😡",
-    baseHp: 280,
+    id: "jeffrey",
+    name: "Jeffrey the Demon",
+    icon: "\uD83D\uDC7F",
+    baseHp: 250,
     baseGoldReward: 80,
-    baseXPReward: 300,
-    abilities: demonLordAbilities,
+    baseXPReward: 250,
+    abilities: jeffreyAbilities,
   },
   {
-    id: "dragon",
-    name: "Ancient Dragon",
-    icon: "🐉",
+    id: "towerKnight",
+    name: "Tower Knight",
+    icon: "\uD83D\uDEE1\uFE0F",
     baseHp: 300,
     baseGoldReward: 100,
-    baseXPReward: 500,
-    abilities: dragonAbilities,
+    baseXPReward: 350,
+    abilities: towerKnightAbilities,
   },
 ];
 
@@ -1335,11 +1621,11 @@ export const MONSTER_TEMPLATES: MonsterTemplate[] = [
 // MONSTER TIERS FOR RANDOM SELECTION
 // ============================================
 export const MONSTER_TIERS = {
-  tier1: ["goblin", "skeleton", "imp", "slime", "wraith"],
-  tier2: ["werewolf", "necromancer", "gargoyle", "banshee", "mimic"],
-  tier3: ["troll", "vampire", "elemental", "dark-knight"],
-  tier4: ["hydra", "demon", "cerberus", "orc-warlord"],
-  bosses: ["lich-king", "demon-lord", "dragon"],
+  tier1: ["bat", "bupling", "mushroom", "soldier", "ectoskull"],
+  tier2: ["direwolf", "whollySpider", "butterfly", "scoundrel", "fallenWarrior"],
+  tier3: ["berserker", "brawler", "rockman", "spectre"],
+  tier4: ["archmage", "glimmershell", "slugmancer", "bigBroot", "captain", "arbalist", "channeler", "fortuneteller", "seer"],
+  bosses: ["theBoulder", "jeffrey", "towerKnight"],
 };
 
 // ============================================
@@ -1459,10 +1745,10 @@ export const ROUNDS: RoundConfig[] = [
     round: 1,
     name: "The Dark Passage",
     descriptions: [
-      "Goblins lurk in the shadows...",
-      "Undead rise from the depths...",
       "Creatures stir in the darkness...",
       "Something moves in the gloom...",
+      "The dungeon awakens...",
+      "Danger lurks ahead...",
     ],
     monsterTiers: ["tier1"],
     monsterCount: 2,
@@ -1499,23 +1785,23 @@ export const ROUNDS: RoundConfig[] = [
   },
   {
     round: 4,
-    name: "The Lich King's Crypt",
+    name: "The Boulder's Den",
     descriptions: [
-      "The Lich King rises with his skeleton army!",
-      "Undead legions answer their master's call!",
-      "Death itself awaits in this cursed place!",
+      "The ground trembles with immense weight!",
+      "A massive stone creature awakens!",
+      "The very earth rises against you!",
     ],
     monsterTiers: ["tier3"],
     monsterCount: 1,
     level: 2,
     isBoss: true,
-    bossPool: ["lich-king"],
+    bossPool: ["theBoulder"],
   },
   {
     round: 5,
     name: "The Demon Gate",
     descriptions: [
-      "A Demon Lord commands his lesser demons!",
+      "Jeffrey the Demon awaits!",
       "Hellfire burns as demons pour forth!",
       "The gates of hell have opened!",
     ],
@@ -1523,21 +1809,21 @@ export const ROUNDS: RoundConfig[] = [
     monsterCount: 1,
     level: 3,
     isBoss: true,
-    bossPool: ["demon-lord"],
+    bossPool: ["jeffrey"],
   },
   {
     round: 6,
-    name: "The Dragon's Lair",
+    name: "The Tower Knight's Arena",
     descriptions: [
-      "The Ancient Dragon awaits in its evolved form!",
+      "The Tower Knight awaits in its domain!",
       "Face the ultimate challenge... if you dare!",
-      "The most powerful creature in the dungeon!",
+      "The mightiest warrior guards the exit!",
     ],
     monsterTiers: [],
     monsterCount: 0,
     level: 4,
     isBoss: true,
-    bossPool: ["dragon"],
+    bossPool: ["towerKnight"],
   },
 ];
 
@@ -1555,7 +1841,7 @@ export const getMonstersForRound = (round: number): Monster[] => {
   const roundConfig = ROUNDS.find((r) => r.round === round);
   if (!roundConfig) {
     // Default fallback
-    return [createMonster("goblin", 1)];
+    return [createMonster("bat", 1)];
   }
 
   const monsters: Monster[] = [];

@@ -91,7 +91,8 @@ export type ScreenType =
   | "questIntro"
   | "questComplete"
   | "campaignVictory"
-  | "campaignDefeat";
+  | "campaignDefeat"
+  | "devTools";
 
 // ============================================
 // EFFECT
@@ -320,6 +321,7 @@ export interface Environment {
     secondaryColor: string;
   };
   effects: EnvironmentEffect[];
+  backgroundImage?: string;
 }
 
 // ============================================

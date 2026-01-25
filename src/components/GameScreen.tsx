@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useGameStore } from "../store/gameStore";
 import { HelpModal } from "./HelpModal";
 import {
@@ -15,6 +15,14 @@ import {
 } from "./game";
 import { BattleStage } from "./game/pixi/BattleStage";
 import { useMusic } from "../hooks/useMusic";
+import {
+  useGameUI,
+  useGameEntities,
+  useBattleInfo,
+  useMultiplayerState,
+  useGameActions,
+} from "../hooks/game";
+import { DEFAULT_BACKGROUND } from "../assets/backgrounds";
 
 export function GameScreen() {
   const [showHelp, setShowHelp] = useState(false);
@@ -27,77 +35,64 @@ export function GameScreen() {
   // Background music
   const { isMuted, toggleMute } = useMusic("forest", { volume: 0.25, loop: true });
 
-  // Game state from store
-  const phase = useGameStore((state) => state.phase);
-  const players = useGameStore((state) => state.players);
-  const monsters = useGameStore((state) => state.monsters);
-  const currentPlayerIndex = useGameStore((state) => state.currentPlayerIndex);
-  const turn = useGameStore((state) => state.turn);
-  const round = useGameStore((state) => state.round);
-  const maxRounds = useGameStore((state) => state.maxRounds);
-  const selectedCardId = useGameStore((state) => state.selectedCardId);
-  const selectedTargetId = useGameStore((state) => state.selectedTargetId);
-  const log = useGameStore((state) => state.log);
-  const animation = useGameStore((state) => state.animation);
-  const gameSpeed = useGameStore((state) => state.gameSpeed);
-  const skipAnimations = useGameStore((state) => state.skipAnimations);
-  const enhanceMode = useGameStore((state) => state.enhanceMode);
-  const environment = useGameStore((state) => state.environment);
+  // Game hooks
+  const {
+    phase,
+    turn,
+    round,
+    maxRounds,
+    gameSpeed,
+    skipAnimations,
+    enhanceMode,
+    animation,
+    environment,
+    setGameSpeed,
+    toggleSkipAnimations,
+    setEnhanceMode,
+    setAnimation,
+  } = useGameUI();
 
-  // Actions from store
-  const selectCard = useGameStore((state) => state.selectCard);
-  const selectTarget = useGameStore((state) => state.selectTarget);
-  const confirmTarget = useGameStore((state) => state.confirmTarget);
-  const startDiceRoll = useGameStore((state) => state.startDiceRoll);
-  const setAnimation = useGameStore((state) => state.setAnimation);
-  const setGameSpeed = useGameStore((state) => state.setGameSpeed);
-  const toggleSkipAnimations = useGameStore(
-    (state) => state.toggleSkipAnimations
-  );
-  const useSpecialAbility = useGameStore((state) => state.useSpecialAbility);
-  const setEnhanceMode = useGameStore((state) => state.setEnhanceMode);
-  const resetGame = useGameStore((state) => state.resetGame);
+  const {
+    players,
+    monsters,
+    currentPlayerIndex,
+    selectedCardId,
+    selectedTargetId,
+    currentPlayer,
+    selectCard,
+    selectTarget,
+    needsTarget,
+    targetType,
+    canEnhanceCard,
+    canUseSpecialAbility,
+    highestAggroPlayerId,
+  } = useGameEntities();
 
-  // Computed values
-  const needsTargetSelection = useGameStore(
-    (state) => state.needsTargetSelection
-  );
-  const getTargetType = useGameStore((state) => state.getTargetType);
-  const canUseSpecialAbility = useGameStore(
-    (state) => state.canUseSpecialAbility
-  );
-  const canEnhanceCard = useGameStore((state) => state.canEnhanceCard);
+  const { log } = useBattleInfo();
 
-  // Online multiplayer state
-  const isOnline = useGameStore((state) => state.isOnline);
-  const localPlayerIndex = useGameStore((state) => state.localPlayerIndex);
-  const playerSelections = useGameStore((state) => state.playerSelections);
-  const subscribeToGameState = useGameStore(
-    (state) => state.subscribeToGameState
-  );
-  const unsubscribeFromGameState = useGameStore(
-    (state) => state.unsubscribeFromGameState
-  );
-  const setPlayerSelection = useGameStore((state) => state.setPlayerSelection);
-  const setPlayerReady = useGameStore((state) => state.setPlayerReady);
+  const {
+    isOnline,
+    playerSelections,
+    subscribeToGameState,
+    unsubscribeFromGameState,
+    setPlayerSelection,
+    setPlayerReady,
+    localPlayer,
+    isLocalPlayerTurn,
+    localPlayerSelection,
+  } = useMultiplayerState();
 
-  const currentPlayer = players[currentPlayerIndex];
-  const localPlayer = isOnline ? players[localPlayerIndex] : currentPlayer;
-  const isLocalPlayerTurn =
-    !isOnline || localPlayerIndex === currentPlayerIndex;
-  const needsTarget = needsTargetSelection();
-  const targetType = getTargetType();
+  const {
+    confirmTarget,
+    startDiceRoll,
+    useSpecialAbility,
+    resetGame,
+  } = useGameActions();
 
   const [battleLogOpenRound, setBattleLogOpenRound] = useState<number | null>(
     () => null
   );
   const showBattleLog = battleLogOpenRound === round;
-
-  // Get local player's selection state (for simultaneous play)
-  const localPlayerSelection =
-    isOnline && localPlayer
-      ? playerSelections.find((sel) => sel.playerId === localPlayer.id)
-      : null;
 
   // Subscribe to game state changes when online
   useEffect(() => {
@@ -127,26 +122,6 @@ export function GameScreen() {
 
     return () => clearInterval(cleanup);
   }, [animation.actionMessages, setAnimation]);
-
-  // Calculate who has highest aggro (monster target)
-  const getHighestAggroPlayer = () => {
-    const alivePlayers = players.filter((p) => p.isAlive);
-    if (alivePlayers.length === 0) return null;
-
-    const tauntPlayer = alivePlayers.find((p) => p.hasTaunt);
-    if (tauntPlayer) return tauntPlayer.id;
-
-    const visiblePlayers = alivePlayers.filter((p) => !p.isStealth);
-    if (visiblePlayers.length === 0) return alivePlayers[0]?.id;
-
-    return visiblePlayers.reduce((highest, p) => {
-      const pAggro = p.baseAggro + p.diceAggro;
-      const hAggro = highest.baseAggro + highest.diceAggro;
-      return pAggro > hAggro ? p : highest;
-    }, visiblePlayers[0])?.id;
-  };
-
-  const highestAggroPlayerId = getHighestAggroPlayer();
 
   // Handler for confirm button - either go to target select or roll aggro
   const handleConfirmCard = () => {
@@ -220,8 +195,24 @@ export function GameScreen() {
     }
   };
 
+  // Get background image from environment or use default
+  const backgroundImage = useMemo(() => {
+    return environment?.backgroundImage || DEFAULT_BACKGROUND;
+  }, [environment]);
+
   return (
-    <div className="h-screen bg-gradient-to-b from-stone-900 via-stone-800 to-stone-900 overflow-hidden flex flex-col">
+    <div
+      className="h-screen overflow-hidden flex flex-col relative"
+      style={{
+        backgroundImage: `url(${backgroundImage})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+      }}
+    >
+      {/* Dark overlay for better UI readability */}
+      <div className="absolute inset-0 bg-black/40 pointer-events-none z-0" />
+
       {/* Top Controls */}
       <div className="relative z-20 p-2">
         <TopControls
@@ -262,7 +253,7 @@ export function GameScreen() {
       />
 
       {/* Desktop Layout */}
-      <div className="hidden lg:flex flex-col flex-1 min-h-0 overflow-hidden">
+      <div className="hidden lg:flex flex-col flex-1 min-h-0 overflow-hidden relative z-10">
         {/* Game Header */}
         <div className="px-4">
           <GameHeader
@@ -295,8 +286,8 @@ export function GameScreen() {
             targetType={targetType}
             monsters={monsters}
             players={players}
-            canUseSpecialAbility={canUseSpecialAbility()}
-            canEnhanceCard={canEnhanceCard()}
+            canUseSpecialAbility={canUseSpecialAbility}
+            canEnhanceCard={canEnhanceCard}
             isOnline={isOnline}
             isLocalPlayerTurn={isLocalPlayerTurn}
             playerSelections={playerSelections}
@@ -321,7 +312,7 @@ export function GameScreen() {
       </div>
 
       {/* Mobile Layout - Tabbed interface */}
-      <div className="lg:hidden flex-1 flex flex-col min-h-0 overflow-hidden pb-16">
+      <div className="lg:hidden flex-1 flex flex-col min-h-0 overflow-hidden pb-16 relative z-10">
         {/* Party Tab - Shows detailed PlayerCards */}
         {activeTab === "party" && (
           <div className="flex-1 overflow-y-auto px-2">
@@ -379,8 +370,8 @@ export function GameScreen() {
                 targetType={targetType}
                 monsters={monsters}
                 players={players}
-                canUseSpecialAbility={canUseSpecialAbility()}
-                canEnhanceCard={canEnhanceCard()}
+                canUseSpecialAbility={canUseSpecialAbility}
+                canEnhanceCard={canEnhanceCard}
                 isOnline={isOnline}
                 isLocalPlayerTurn={isLocalPlayerTurn}
                 playerSelections={playerSelections}
@@ -407,7 +398,9 @@ export function GameScreen() {
       </div>
 
       {/* Mobile Tab Bar */}
-      <MobileTabBar activeTab={activeTab} onTabChange={setActiveTab} />
+      <div className="relative z-20">
+        <MobileTabBar activeTab={activeTab} onTabChange={setActiveTab} />
+      </div>
 
       {/* Floating Damage Numbers - React fallback (Pixi also renders them) */}
       <FloatingDamageNumbers damageNumbers={animation.damageNumbers} />

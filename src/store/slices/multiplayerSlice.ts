@@ -2,6 +2,7 @@ import type { StateCreator } from "zustand";
 import type { GameStore } from "../types";
 import { isSupabaseConfigured, getSupabase } from "../../lib/supabase";
 import type { RealtimeChannel } from "@supabase/supabase-js";
+import { normalizeError, logSupabaseError } from "../../lib/supabaseHelpers";
 
 let gameStateChannel: RealtimeChannel | null = null;
 
@@ -144,8 +145,9 @@ export const createMultiplayerSlice: StateCreator<
         set({ players });
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Sync failed";
-      set({ syncError: message, isSyncing: false });
+      const normalizedError = normalizeError(error);
+      logSupabaseError("syncState", normalizedError);
+      set({ syncError: normalizedError.message, isSyncing: false });
     }
   },
 
@@ -189,8 +191,9 @@ export const createMultiplayerSlice: StateCreator<
 
       return true;
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Action failed";
-      set({ syncError: message });
+      const normalizedError = normalizeError(error);
+      logSupabaseError("submitAction", normalizedError, { actionType });
+      set({ syncError: normalizedError.message });
       return false;
     }
   },
@@ -238,15 +241,17 @@ export const createMultiplayerSlice: StateCreator<
         .eq("game_id", currentGameId);
 
       if (error) {
-        console.error("Failed to sync game state:", error);
-        set({ isSyncing: false });
+        const normalizedError = normalizeError(error);
+        logSupabaseError("syncGameStateToSupabase", normalizedError, { currentGameId });
+        set({ syncError: normalizedError.message, isSyncing: false });
         return;
       }
 
-      set({ lastSyncedVersion: lastSyncedVersion + 1, isSyncing: false });
+      set({ lastSyncedVersion: lastSyncedVersion + 1, isSyncing: false, syncError: null });
     } catch (error) {
-      console.error("Failed to sync game state:", error);
-      set({ isSyncing: false });
+      const normalizedError = normalizeError(error);
+      logSupabaseError("syncGameStateToSupabase", normalizedError, { currentGameId });
+      set({ syncError: normalizedError.message, isSyncing: false });
     }
   },
 
