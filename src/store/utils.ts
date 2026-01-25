@@ -587,6 +587,24 @@ export function applyEffect(
         }
 
         // ============================================
+        // ROGUE - Stealth damage bonus
+        // +50% damage when attacking from stealth
+        // ============================================
+        if (currentCaster?.class === "rogue" && currentCaster.isStealth) {
+          const stealthBonus = Math.floor(damage * 0.5);
+          damage += stealthBonus;
+          logs.push(
+            createLogEntry(
+              turn,
+              "PLAYER_ACTION",
+              `Sneak Attack! ${caster.name} deals +${stealthBonus} bonus damage from stealth!`,
+              "damage",
+              true
+            )
+          );
+        }
+
+        // ============================================
         // CRIT CALCULATION - Class-specific mechanics
         // ============================================
         let isCrit = false;
@@ -1038,6 +1056,8 @@ export function applyEffect(
 
     case "heal": {
       const targets = getTargets();
+      const currentCasterForHeal = updatedPlayers.find((p) => p.id === caster.id);
+
       for (const target of targets) {
         const idx = updatedPlayers.findIndex((p) => p.id === target.id);
         if (idx === -1) continue;
@@ -1046,6 +1066,24 @@ export function applyEffect(
         // Apply stat scaling based on caster's WIS
         healAmount = calculateScaledHeal(healAmount, caster.attributes);
         healAmount = applyEnvironmentModifier(healAmount, "heal", environment);
+
+        // Paladin Faith scaling: +5% healing per Faith stack
+        if (currentCasterForHeal?.class === "paladin") {
+          const faithBonus = Math.floor(healAmount * (currentCasterForHeal.resource * 0.05));
+          if (faithBonus > 0) {
+            healAmount += faithBonus;
+            logs.push(
+              createLogEntry(
+                turn,
+                "PLAYER_ACTION",
+                `Divine Faith! ${caster.name}'s healing is enhanced by +${faithBonus}!`,
+                "buff",
+                true
+              )
+            );
+          }
+        }
+
         const newHp = Math.min(target.maxHp, target.hp + healAmount);
 
         updatedPlayers[idx] = {

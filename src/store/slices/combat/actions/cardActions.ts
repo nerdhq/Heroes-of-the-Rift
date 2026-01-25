@@ -363,6 +363,16 @@ export const createCardActions = (set: SetState, get: GetState) => ({
       case "archer":
         resourceGain = ARCHER_FOCUS_GAIN;
         break;
+      case "mage":
+        // Mage gains 1 mana per spell cast (damage or effect card)
+        resourceGain = 1;
+        break;
+      case "barbarian":
+        // Barbarian gains Fury from dealing or taking damage
+        if (totalDamageDealt > 0) {
+          resourceGain = Math.min(3, Math.ceil(totalDamageDealt / 10));
+        }
+        break;
     }
 
     if (resourceGain > 0 && !isEnhanced) {
