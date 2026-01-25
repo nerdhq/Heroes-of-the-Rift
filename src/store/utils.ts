@@ -683,6 +683,29 @@ export function applyEffect(
           }
         }
 
+        // Check for executeBonus effect (bonus damage if target below HP threshold)
+        // This is passed via card context - we check if monster HP % is below threshold
+        const monsterHpPercent = (monster.hp / monster.maxHp) * 100;
+        if (card) {
+          const executeBonusEffect = card.effects.find((e) => e.type === "executeBonus");
+          if (executeBonusEffect) {
+            const threshold = executeBonusEffect.duration || 50; // HP threshold %
+            const bonusDamage = executeBonusEffect.value || 0;
+            if (monsterHpPercent <= threshold) {
+              damage += bonusDamage;
+              logs.push(
+                createLogEntry(
+                  turn,
+                  "PLAYER_ACTION",
+                  `Execute bonus! ${monster.name} is below ${threshold}% HP - +${bonusDamage} damage!`,
+                  "damage",
+                  true
+                )
+              );
+            }
+          }
+        }
+
         if (monster.damageReduction) {
           const reducedAmount = Math.floor(damage * monster.damageReduction);
           damage = damage - reducedAmount;
@@ -699,7 +722,11 @@ export function applyEffect(
 
         let remainingDamage = damage;
         let newShield = monster.shield;
-        if (newShield > 0) {
+
+        // Check for ignoreShield buff
+        const ignoreShieldBuff = currentCaster?.buffs.find((b) => b.type === "ignoreShield");
+
+        if (newShield > 0 && !ignoreShieldBuff) {
           if (newShield >= remainingDamage) {
             newShield -= remainingDamage;
             remainingDamage = 0;
@@ -707,10 +734,22 @@ export function applyEffect(
             remainingDamage -= newShield;
             newShield = 0;
           }
+        } else if (ignoreShieldBuff) {
+          // Ignore shield entirely - damage goes straight to HP
+          logs.push(
+            createLogEntry(
+              turn,
+              "PLAYER_ACTION",
+              `Armor Piercing! ${caster.name}'s attack ignores shields!`,
+              "damage",
+              true
+            )
+          );
         }
 
         const newHp = Math.max(0, monster.hp - remainingDamage);
         const isAlive = newHp > 0;
+        const actualDamageDealt = monster.hp - newHp;
 
         updatedMonsters[idx] = {
           ...monster,
@@ -878,12 +917,37 @@ export function applyEffect(
       if (effect.target === "self" && effect.value) {
         const idx = updatedPlayers.findIndex((p) => p.id === caster.id);
         if (idx !== -1) {
-          const newHp = Math.max(0, updatedPlayers[idx].hp - effect.value);
-          updatedPlayers[idx] = {
-            ...updatedPlayers[idx],
-            hp: newHp,
-            isAlive: newHp > 0,
-          };
+          let newHp = Math.max(0, updatedPlayers[idx].hp - effect.value);
+          let isAlive = newHp > 0;
+
+          // Check for surviveLethal buff
+          const surviveLethalBuff = updatedPlayers[idx].buffs.find((b) => b.type === "surviveLethal");
+          if (!isAlive && surviveLethalBuff) {
+            newHp = 1;
+            isAlive = true;
+            // Remove the buff after it triggers
+            updatedPlayers[idx] = {
+              ...updatedPlayers[idx],
+              hp: newHp,
+              isAlive,
+              buffs: updatedPlayers[idx].buffs.filter((b) => b.type !== "surviveLethal"),
+            };
+            logs.push(
+              createLogEntry(
+                turn,
+                "PLAYER_ACTION",
+                `Death's Door! ${caster.name} survives at 1 HP!`,
+                "heal",
+                true
+              )
+            );
+          } else {
+            updatedPlayers[idx] = {
+              ...updatedPlayers[idx],
+              hp: newHp,
+              isAlive,
+            };
+          }
           logs.push(
             createLogEntry(
               turn,
@@ -894,6 +958,81 @@ export function applyEffect(
           );
         }
       }
+
+      // Handle lifesteal and healPerHit buffs after all damage is dealt
+      const casterIdxForHealing = updatedPlayers.findIndex((p) => p.id === caster.id);
+      if (casterIdxForHealing !== -1) {
+        const casterForHealing = updatedPlayers[casterIdxForHealing];
+
+        // Lifesteal: heal for percentage of damage dealt
+        const lifestealBuff = casterForHealing.buffs.find((b) => b.type === "lifesteal");
+        if (lifestealBuff && effect.target !== "self") {
+          const totalDamageDealt = monsterTargets.reduce((sum, m) => {
+            const monster = updatedMonsters.find((mon) => mon.id === m.id);
+            const originalMonster = monsters.find((mon) => mon.id === m.id);
+            if (monster && originalMonster) {
+              return sum + Math.max(0, originalMonster.hp - monster.hp);
+            }
+            return sum;
+          }, 0);
+
+          const healAmount = Math.floor(totalDamageDealt * (lifestealBuff.value / 100));
+          if (healAmount > 0) {
+            const newHp = Math.min(casterForHealing.maxHp, casterForHealing.hp + healAmount);
+            updatedPlayers[casterIdxForHealing] = {
+              ...casterForHealing,
+              hp: newHp,
+            };
+            logs.push(
+              createLogEntry(
+                turn,
+                "PLAYER_ACTION",
+                `Lifesteal! ${caster.name} heals for ${healAmount} HP!`,
+                "heal",
+                true
+              )
+            );
+          }
+        }
+
+        // HealPerHit: heal X per enemy hit
+        const healPerHitBuff = casterForHealing.buffs.find((b) => b.type === "healPerHit");
+        if (healPerHitBuff && effect.target === "allMonsters") {
+          const enemiesHit = monsterTargets.filter((m) => {
+            const monster = updatedMonsters.find((mon) => mon.id === m.id);
+            return monster && monster.isAlive;
+          }).length;
+
+          const healAmount = healPerHitBuff.value * Math.max(1, enemiesHit);
+          if (healAmount > 0) {
+            const currentCasterHp = updatedPlayers[casterIdxForHealing].hp;
+            const newHp = Math.min(updatedPlayers[casterIdxForHealing].maxHp, currentCasterHp + healAmount);
+            updatedPlayers[casterIdxForHealing] = {
+              ...updatedPlayers[casterIdxForHealing],
+              hp: newHp,
+            };
+            logs.push(
+              createLogEntry(
+                turn,
+                "PLAYER_ACTION",
+                `Vampiric! ${caster.name} heals for ${healAmount} HP (${enemiesHit} enemies hit)!`,
+                "heal",
+                true
+              )
+            );
+          }
+        }
+
+        // Remove ignoreShield buff after use (single use)
+        const ignoreShieldBuff = casterForHealing.buffs.find((b) => b.type === "ignoreShield");
+        if (ignoreShieldBuff) {
+          updatedPlayers[casterIdxForHealing] = {
+            ...updatedPlayers[casterIdxForHealing],
+            buffs: updatedPlayers[casterIdxForHealing].buffs.filter((b) => b.type !== "ignoreShield"),
+          };
+        }
+      }
+
       break;
     }
 
@@ -1093,6 +1232,169 @@ export function applyEffect(
             )
           );
         }
+      }
+      break;
+    }
+
+    // ============================================
+    // NEW CLASS MECHANIC EFFECTS
+    // ============================================
+
+    case "gainResource": {
+      // Gain class resource (Aim, Fury, Mana, etc.)
+      const casterIdx = updatedPlayers.findIndex((p) => p.id === caster.id);
+      if (casterIdx !== -1) {
+        const player = updatedPlayers[casterIdx];
+        const newResource = Math.min(
+          player.maxResource,
+          player.resource + (effect.value || 1)
+        );
+        updatedPlayers[casterIdx] = {
+          ...player,
+          resource: newResource,
+        };
+        logs.push(
+          createLogEntry(
+            turn,
+            "PLAYER_ACTION",
+            `${player.name} gains +${effect.value} ${player.class === "archer" ? "Aim" : player.class === "barbarian" ? "Fury" : "resource"}!`,
+            "buff"
+          )
+        );
+      }
+      break;
+    }
+
+    case "manaRestore": {
+      // Mage-specific: restore mana
+      const casterIdx = updatedPlayers.findIndex((p) => p.id === caster.id);
+      if (casterIdx !== -1) {
+        const player = updatedPlayers[casterIdx];
+        const newResource = Math.min(
+          player.maxResource,
+          player.resource + (effect.value || 1)
+        );
+        updatedPlayers[casterIdx] = {
+          ...player,
+          resource: newResource,
+        };
+        logs.push(
+          createLogEntry(
+            turn,
+            "PLAYER_ACTION",
+            `${player.name} restores ${effect.value} mana!`,
+            "buff"
+          )
+        );
+      }
+      break;
+    }
+
+    case "empowered": {
+      // Grant empowered buff (bonus damage to next spell)
+      const casterIdx = updatedPlayers.findIndex((p) => p.id === caster.id);
+      if (casterIdx !== -1) {
+        const player = updatedPlayers[casterIdx];
+        const newBuff: StatusEffect = {
+          type: "strength", // Use strength as the underlying mechanic
+          value: effect.value || 10,
+          duration: effect.duration || 1,
+          source: "Empowered",
+        };
+        updatedPlayers[casterIdx] = {
+          ...player,
+          buffs: [...player.buffs, newBuff],
+        };
+        logs.push(
+          createLogEntry(
+            turn,
+            "PLAYER_ACTION",
+            `${player.name}'s next spell is Empowered (+${effect.value}% damage)!`,
+            "buff"
+          )
+        );
+      }
+      break;
+    }
+
+    case "execute": {
+      // Kill target if below HP threshold
+      const threshold = effect.value || 20; // HP percentage threshold
+      const monsterTargets = getMonsterTargets();
+      for (const monster of monsterTargets) {
+        const idx = updatedMonsters.findIndex((m) => m.id === monster.id);
+        if (idx === -1 || !updatedMonsters[idx].isAlive) continue;
+
+        const hpPercent = (updatedMonsters[idx].hp / updatedMonsters[idx].maxHp) * 100;
+        if (hpPercent <= threshold) {
+          const xpReward = updatedMonsters[idx].xpReward || 0;
+          updatedMonsters[idx] = {
+            ...updatedMonsters[idx],
+            hp: 0,
+            isAlive: false,
+          };
+          logs.push(
+            createLogEntry(
+              turn,
+              "PLAYER_ACTION",
+              `EXECUTE! ${monster.name} is finished off!`,
+              "damage",
+              true
+            )
+          );
+          if (xpReward > 0 && caster.championId) {
+            xpEarned.set(caster.championId, (xpEarned.get(caster.championId) || 0) + xpReward);
+          }
+        }
+      }
+      break;
+    }
+
+    case "executeBonus": {
+      // Bonus damage if target below HP threshold (duration field = threshold %)
+      // This is handled in the damage case above, this is just a marker
+      break;
+    }
+
+    case "lifesteal":
+    case "surviveLethal":
+    case "ignoreShield":
+    case "healPerHit":
+    case "repeatOnKill": {
+      // These are buff-type effects that modify other actions
+      const targets = getTargets();
+      for (const target of targets) {
+        const idx = updatedPlayers.findIndex((p) => p.id === target.id);
+        if (idx === -1) continue;
+
+        const newBuff: StatusEffect = {
+          type: effect.type,
+          value: effect.value || 1,
+          duration: effect.duration || 1,
+          source: caster.name,
+        };
+
+        updatedPlayers[idx] = {
+          ...target,
+          buffs: [...target.buffs, newBuff],
+        };
+
+        const effectName = {
+          lifesteal: "Lifesteal",
+          surviveLethal: "Death's Door",
+          ignoreShield: "Armor Piercing",
+          healPerHit: "Vampiric",
+          repeatOnKill: "Bloodlust",
+        }[effect.type] || effect.type;
+
+        logs.push(
+          createLogEntry(
+            turn,
+            "PLAYER_ACTION",
+            `${target.name} gains ${effectName}!`,
+            "buff"
+          )
+        );
       }
       break;
     }

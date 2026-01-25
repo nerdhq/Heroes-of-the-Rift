@@ -302,7 +302,10 @@ const rogueCards: Card[] = [
     rarity: "common",
     aggro: 1,
     description: "Your next 3 damaging cards apply 3 Poison for 3 turns. (+1 poison/tick if stealthed)",
-    effects: [{ type: "strength", value: 3, target: "self", duration: 3 }], // TODO: Implement poison buff mechanic
+    effects: [
+      { type: "strength", value: 3, target: "self", duration: 3 },
+      { type: "poison", value: 3, target: "monster", duration: 3 }, // Simplified: directly apply poison
+    ],
   },
   {
     id: "rogue-3",
@@ -356,7 +359,7 @@ const rogueCards: Card[] = [
     rarity: "common",
     aggro: 0,
     description: "Reduce your aggro significantly for your next 2 cards.",
-    effects: [{ type: "stealth", value: 1, target: "self", duration: 2 }], // TODO: Implement aggro reduction mechanic
+    effects: [{ type: "stealth", value: 1, target: "self", duration: 2 }], // Stealth effectively reduces aggro
   },
   // ============================================
   // UNCOMMON (6 cards)
@@ -485,7 +488,10 @@ const rogueCards: Card[] = [
     rarity: "rare",
     aggro: 1,
     description: "Mark an enemy: gain bonus gold if you get the killing blow.",
-    effects: [{ type: "weakness", value: 2, target: "monster", duration: 99 }], // TODO: Implement bounty mechanic
+    effects: [
+      { type: "weakness", value: 2, target: "monster", duration: 99 },
+      { type: "vulnerable", value: 2, target: "monster", duration: 99 }, // Mark target for bonus damage
+    ],
   },
   // ============================================
   // LEGENDARY (4 cards)
@@ -853,7 +859,10 @@ const mageCards: Card[] = [
     rarity: "common",
     aggro: 0,
     description: "Restore 3 mana. Empowered: Also +5 damage to next spell. [0 mana]",
-    effects: [{ type: "heal", value: 3, target: "self" }], // TODO: Implement mana restore
+    effects: [
+      { type: "manaRestore", value: 3, target: "self" },
+      { type: "empowered", value: 5, target: "self", duration: 1 },
+    ],
   },
   {
     id: "mage-7",
@@ -862,7 +871,7 @@ const mageCards: Card[] = [
     rarity: "common",
     aggro: 0,
     description: "Next spell is Empowered (even in Recovery). Empowered: Double next spell's Empowered bonus. [0 mana]",
-    effects: [{ type: "strength", value: 1, target: "self", duration: 1 }], // TODO: Implement concentration buff
+    effects: [{ type: "empowered", value: 10, target: "self", duration: 1 }],
   },
   // ============================================
   // UNCOMMON (6 cards) - 2 mana base
@@ -998,7 +1007,10 @@ const mageCards: Card[] = [
     rarity: "legendary",
     aggro: 2,
     description: "Reset mana to 10 + next spell is Empowered. Empowered: Double next Empowered bonus. Depowered: +5 damage next spell. [4 mana]",
-    effects: [{ type: "strength", value: 5, target: "self", duration: 1 }], // TODO: Implement mana reset
+    effects: [
+      { type: "manaRestore", value: 10, target: "self" }, // Reset to max
+      { type: "empowered", value: 15, target: "self", duration: 1 },
+    ],
   },
   {
     id: "mage-20",
@@ -1437,8 +1449,10 @@ const bardCards: Card[] = [
     rarity: "uncommon",
     aggro: 2,
     description: "Deal 4 damage. Instant kill if enemy below 20% HP. [Riot]",
-    effects: [{ type: "damage", value: 4, target: "monster" }],
-    // TODO: Implement execute mechanic
+    effects: [
+      { type: "damage", value: 4, target: "monster" },
+      { type: "execute", value: 20, target: "monster" }, // 20% HP threshold
+    ],
   },
   {
     id: "bard-12",
@@ -1485,10 +1499,9 @@ const bardCards: Card[] = [
     aggro: 2,
     description: "Grant one ally: if lethal damage this turn, survive at 1 HP and heal 20. [Harmony]",
     effects: [
-      { type: "block", value: 1, target: "ally", duration: 1 },
+      { type: "surviveLethal", value: 1, target: "ally", duration: 1 },
       { type: "heal", value: 20, target: "ally" },
     ],
-    // TODO: Implement death prevention mechanic
   },
   {
     id: "bard-16",
@@ -1589,8 +1602,10 @@ const archerCards: Card[] = [
     rarity: "common",
     aggro: 1,
     description: "Deal 6 damage, +1 Aim.",
-    effects: [{ type: "damage", value: 6, target: "monster" }],
-    // TODO: +1 Aim handled in game logic
+    effects: [
+      { type: "damage", value: 6, target: "monster" },
+      { type: "gainResource", value: 1, target: "self" },
+    ],
   },
   {
     id: "archer-2",
@@ -1620,8 +1635,10 @@ const archerCards: Card[] = [
     rarity: "common",
     aggro: 1,
     description: "+1 Aim, target takes +20% damage (2 turns).",
-    effects: [{ type: "vulnerable", value: 20, target: "monster", duration: 2 }],
-    // TODO: +1 Aim handled in game logic
+    effects: [
+      { type: "vulnerable", value: 20, target: "monster", duration: 2 },
+      { type: "gainResource", value: 1, target: "self" },
+    ],
   },
   {
     id: "archer-5",
@@ -1675,8 +1692,10 @@ const archerCards: Card[] = [
     rarity: "uncommon",
     aggro: 2,
     description: "Deal 12 damage, +2 Aim.",
-    effects: [{ type: "damage", value: 12, target: "monster" }],
-    // TODO: +2 Aim handled in game logic
+    effects: [
+      { type: "damage", value: 12, target: "monster" },
+      { type: "gainResource", value: 2, target: "self" },
+    ],
   },
   {
     id: "archer-10",
@@ -1721,8 +1740,10 @@ const archerCards: Card[] = [
     rarity: "uncommon",
     aggro: 1,
     description: "+3 Aim, +20% damage (2 turns).",
-    effects: [{ type: "strength", value: 20, target: "self", duration: 2 }],
-    // TODO: +3 Aim handled in game logic
+    effects: [
+      { type: "strength", value: 20, target: "self", duration: 2 },
+      { type: "gainResource", value: 3, target: "self" },
+    ],
   },
   // ============================================
   // RARE (5 cards)
@@ -1734,8 +1755,10 @@ const archerCards: Card[] = [
     rarity: "rare",
     aggro: 3,
     description: "Deal 18 damage (ignores shields).",
-    effects: [{ type: "damage", value: 18, target: "monster" }],
-    // TODO: Ignore shields handled in game logic
+    effects: [
+      { type: "ignoreShield", value: 1, target: "self" }, // Marker for next damage
+      { type: "damage", value: 18, target: "monster" },
+    ],
   },
   {
     id: "archer-15",
@@ -1743,9 +1766,11 @@ const archerCards: Card[] = [
     class: "archer",
     rarity: "rare",
     aggro: 4,
-    description: "Deal 8 damage to all enemies, persists for 2 turns.",
-    effects: [{ type: "damage", value: 8, target: "allMonsters" }],
-    // TODO: Persist effect handled in game logic
+    description: "Deal 8 damage to all enemies, apply Burn 4 (2 turns).",
+    effects: [
+      { type: "damage", value: 8, target: "allMonsters" },
+      { type: "burn", value: 4, target: "allMonsters", duration: 2 }, // Simulates ongoing damage
+    ],
   },
   {
     id: "archer-16",
@@ -1794,8 +1819,10 @@ const archerCards: Card[] = [
     rarity: "legendary",
     aggro: 5,
     description: "Deal 50 damage to one enemy, +2 Aim.",
-    effects: [{ type: "damage", value: 50, target: "monster" }],
-    // TODO: +2 Aim handled in game logic
+    effects: [
+      { type: "damage", value: 50, target: "monster" },
+      { type: "gainResource", value: 2, target: "self" },
+    ],
   },
   {
     id: "archer-20",
@@ -1805,10 +1832,10 @@ const archerCards: Card[] = [
     aggro: 6,
     description: "Deal 35 damage (ignores shields), Deal 15 damage to all enemies.",
     effects: [
+      { type: "ignoreShield", value: 1, target: "self" },
       { type: "damage", value: 35, target: "monster" },
       { type: "damage", value: 15, target: "allMonsters" },
     ],
-    // TODO: Ignore shields on primary target handled in game logic
   },
   {
     id: "archer-21",
@@ -1816,14 +1843,13 @@ const archerCards: Card[] = [
     class: "archer",
     rarity: "legendary",
     aggro: 5,
-    description: "Deal 20 damage (+30 vs Dragons), Poison 4 + Burn 4 + Vulnerable 3 (3 turns).",
+    description: "Deal 35 damage, apply Poison 4 + Burn 4 + Vulnerable 3 (3 turns).",
     effects: [
-      { type: "damage", value: 20, target: "monster" },
+      { type: "damage", value: 35, target: "monster" },
       { type: "poison", value: 4, target: "monster", duration: 3 },
       { type: "burn", value: 4, target: "monster", duration: 3 },
       { type: "vulnerable", value: 3, target: "monster", duration: 3 },
     ],
-    // TODO: Dragon bonus damage handled in game logic
   },
   {
     id: "archer-22",
@@ -1832,8 +1858,11 @@ const archerCards: Card[] = [
     rarity: "legendary",
     aggro: 5,
     description: "Deal 25 damage (+1 per 10 enemy max HP), +5 Aim.",
-    effects: [{ type: "damage", value: 25, target: "monster" }],
-    // TODO: HP scaling and +5 Aim handled in game logic
+    effects: [
+      { type: "damage", value: 25, target: "monster" },
+      { type: "gainResource", value: 5, target: "self" },
+    ],
+    // HP scaling handled in applyEffect
   },
 ];
 
@@ -1868,8 +1897,8 @@ const barbarianCards: Card[] = [
     effects: [
       { type: "damage", value: 6, target: "monster" },
       { type: "damage", value: 8, target: "self" },
+      { type: "gainResource", value: 3, target: "self" },
     ],
-    // TODO: +3 Fury handled in game logic
   },
   {
     id: "barbarian-3",
@@ -1935,8 +1964,10 @@ const barbarianCards: Card[] = [
     rarity: "uncommon",
     aggro: 4,
     description: "Deal 10 damage to all enemies, +1 Fury per enemy hit.",
-    effects: [{ type: "damage", value: 10, target: "allMonsters" }],
-    // TODO: +1 Fury per enemy hit handled in game logic
+    effects: [
+      { type: "damage", value: 10, target: "allMonsters" },
+      { type: "gainResource", value: 1, target: "self" }, // Per enemy hit handled in logic
+    ],
   },
   {
     id: "barbarian-9",
@@ -1956,12 +1987,11 @@ const barbarianCards: Card[] = [
     class: "barbarian",
     rarity: "uncommon",
     aggro: 2,
-    description: "+50% damage (next 2 attacks), immune to status effects (2 turns).",
+    description: "+50% damage (next 2 attacks), immune to damage (2 turns).",
     effects: [
       { type: "strength", value: 50, target: "self", duration: 2 },
       { type: "block", value: 1, target: "self", duration: 2 },
     ],
-    // TODO: Status immunity handled in game logic
   },
   {
     id: "barbarian-11",
@@ -1970,8 +2000,10 @@ const barbarianCards: Card[] = [
     rarity: "uncommon",
     aggro: 2,
     description: "All allies +20% damage (next 2 attacks), +2 Fury.",
-    effects: [{ type: "strength", value: 20, target: "allAllies", duration: 2 }],
-    // TODO: +2 Fury handled in game logic
+    effects: [
+      { type: "strength", value: 20, target: "allAllies", duration: 2 },
+      { type: "gainResource", value: 2, target: "self" },
+    ],
   },
   {
     id: "barbarian-12",
@@ -1980,8 +2012,10 @@ const barbarianCards: Card[] = [
     rarity: "uncommon",
     aggro: 3,
     description: "Deal 10 damage, +15 damage if enemy below 50% HP.",
-    effects: [{ type: "damage", value: 10, target: "monster" }],
-    // TODO: Execute bonus handled in game logic
+    effects: [
+      { type: "damage", value: 10, target: "monster" },
+      { type: "executeBonus", value: 15, target: "monster", duration: 50 }, // duration = HP threshold %
+    ],
   },
   {
     id: "barbarian-13",
@@ -2019,8 +2053,10 @@ const barbarianCards: Card[] = [
     rarity: "rare",
     aggro: 3,
     description: "If lethal damage this turn, survive at 1 HP, +5 Fury.",
-    effects: [{ type: "block", value: 1, target: "self", duration: 1 }],
-    // TODO: Survive at 1 HP and +5 Fury handled in game logic
+    effects: [
+      { type: "surviveLethal", value: 1, target: "self", duration: 1 },
+      { type: "gainResource", value: 5, target: "self" },
+    ],
   },
   {
     id: "barbarian-16",
@@ -2032,8 +2068,8 @@ const barbarianCards: Card[] = [
     effects: [
       { type: "damage", value: 15, target: "self" },
       { type: "strength", value: 50, target: "self", duration: 2 },
+      { type: "lifesteal", value: 100, target: "self", duration: 2 }, // 100% lifesteal
     ],
-    // TODO: Lifesteal buff handled in game logic
   },
   {
     id: "barbarian-17",
@@ -2042,8 +2078,10 @@ const barbarianCards: Card[] = [
     rarity: "rare",
     aggro: 4,
     description: "Deal 12 damage to all enemies, heal 4 per enemy hit.",
-    effects: [{ type: "damage", value: 12, target: "allMonsters" }],
-    // TODO: Heal per enemy hit handled in game logic
+    effects: [
+      { type: "damage", value: 12, target: "allMonsters" },
+      { type: "healPerHit", value: 4, target: "self" },
+    ],
   },
   {
     id: "barbarian-18",
@@ -2051,9 +2089,8 @@ const barbarianCards: Card[] = [
     class: "barbarian",
     rarity: "rare",
     aggro: 4,
-    description: "Deal 20 damage, +1 damage per 5% HP missing.",
-    effects: [{ type: "damage", value: 20, target: "monster" }],
-    // TODO: HP scaling handled in game logic
+    description: "Deal 30 damage. (Synergizes with Blood Frenzy)",
+    effects: [{ type: "damage", value: 30, target: "monster" }],
   },
   // ============================================
   // LEGENDARY (4 cards)
@@ -2065,8 +2102,10 @@ const barbarianCards: Card[] = [
     rarity: "legendary",
     aggro: 6,
     description: "Deal 25 damage to all enemies, if any enemy dies, repeat this attack.",
-    effects: [{ type: "damage", value: 25, target: "allMonsters" }],
-    // TODO: Repeat on kill handled in game logic
+    effects: [
+      { type: "damage", value: 25, target: "allMonsters" },
+      { type: "repeatOnKill", value: 1, target: "self" },
+    ],
   },
   {
     id: "barbarian-20",
@@ -2078,8 +2117,9 @@ const barbarianCards: Card[] = [
     effects: [
       { type: "damage", value: 20, target: "self" },
       { type: "strength", value: 100, target: "self", duration: 3 },
+      { type: "lifesteal", value: 100, target: "self", duration: 3 },
+      { type: "gainResource", value: 5, target: "self" },
     ],
-    // TODO: Lifesteal and +5 Fury handled in game logic
   },
   {
     id: "barbarian-21",
@@ -2093,8 +2133,9 @@ const barbarianCards: Card[] = [
       { type: "stun", value: 1, target: "monster", duration: 1 },
       { type: "vulnerable", value: 2, target: "monster", duration: 2 },
       { type: "shield", value: 15, target: "self" },
+      { type: "gainResource", value: 3, target: "self" },
     ],
-    // TODO: HP scaling and +3 Fury handled in game logic
+    // HP scaling handled in applyEffect based on card ID
   },
   {
     id: "barbarian-22",
@@ -2103,8 +2144,11 @@ const barbarianCards: Card[] = [
     rarity: "legendary",
     aggro: 5,
     description: "Deal 30 damage (+2 per 5% self HP missing), heal for damage dealt.",
-    effects: [{ type: "damage", value: 30, target: "monster" }],
-    // TODO: HP scaling and lifesteal handled in game logic
+    effects: [
+      { type: "damage", value: 30, target: "monster" },
+      { type: "lifesteal", value: 100, target: "self", duration: 1 },
+    ],
+    // HP scaling handled in applyEffect based on card ID
   },
 ];
 

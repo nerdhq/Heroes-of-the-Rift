@@ -34,7 +34,19 @@ export type EffectType =
   | "taunt"
   | "disable"
   | "accuracy"
-  | "vulnerable";
+  | "vulnerable"
+  | "regen"
+  // New effect types for class mechanics
+  | "gainResource"    // Gain class resource (Aim, Fury, etc.)
+  | "execute"         // Kill if enemy below X% HP
+  | "executeBonus"    // Bonus damage if enemy below X% HP
+  | "lifesteal"       // Heal for percentage of damage dealt
+  | "manaRestore"     // Restore mana for Mage
+  | "empowered"       // Buff next spell damage
+  | "surviveLethal"   // Survive lethal damage at 1 HP
+  | "ignoreShield"    // Damage ignores shields (marker)
+  | "healPerHit"      // Heal X per enemy hit
+  | "repeatOnKill";   // Repeat attack if enemy dies
 
 // Target Types
 export type TargetType =

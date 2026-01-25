@@ -42,14 +42,35 @@ export const createDebuffActions = (set: SetState, get: GetState) => ({
       }
 
       if (totalDotDamage > 0) {
-        const newHp = Math.max(0, player.hp - totalDotDamage);
-        const isAlive = newHp > 0;
+        let newHp = Math.max(0, player.hp - totalDotDamage);
+        let isAlive = newHp > 0;
 
-        updatedPlayers[i] = {
-          ...player,
-          hp: newHp,
-          isAlive,
-        };
+        // Check for surviveLethal buff
+        const surviveLethalBuff = player.buffs.find((b) => b.type === "surviveLethal");
+        if (!isAlive && surviveLethalBuff) {
+          newHp = 1;
+          isAlive = true;
+          updatedPlayers[i] = {
+            ...player,
+            hp: newHp,
+            isAlive,
+            buffs: player.buffs.filter((b) => b.type !== "surviveLethal"),
+          };
+          logs.push(
+            createLogEntry(
+              turn,
+              "DEBUFF_RESOLUTION",
+              `Death's Door! ${player.name} survives at 1 HP!`,
+              "heal"
+            )
+          );
+        } else {
+          updatedPlayers[i] = {
+            ...player,
+            hp: newHp,
+            isAlive,
+          };
+        }
 
         logs.push(
           createLogEntry(
