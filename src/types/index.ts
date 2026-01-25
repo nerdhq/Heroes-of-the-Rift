@@ -128,6 +128,11 @@ export interface StatusEffect {
 }
 
 // ============================================
+// BARD SONG TYPES
+// ============================================
+export type BardSongType = "harmony" | "riot" | null;
+
+// ============================================
 // PLAYER
 // ============================================
 export interface Player {
@@ -144,7 +149,7 @@ export interface Player {
   deck: Card[];
   discard: Card[];
   hand: Card[];
-  resource: number; // class-specific meter
+  resource: number; // class-specific meter (for Bard: song stacks 0-5)
   maxResource: number;
   gold: number; // gold earned from defeating monsters
   isAlive: boolean;
@@ -156,6 +161,9 @@ export interface Player {
   // Champion link (for progression system)
   championId?: string;
   attributes?: CharacterAttributes;
+
+  // Bard-specific: current song type (Harmony or Riot)
+  bardSongType?: BardSongType;
 }
 
 // ============================================

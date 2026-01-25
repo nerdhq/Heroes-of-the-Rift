@@ -3,7 +3,7 @@
  */
 
 import type { SetState, GetState, CardEffectResult } from "../types";
-import type { LogEntry, ActionMessage } from "../../../../types";
+import type { LogEntry, ActionMessage, Card, BardSongType } from "../../../../types";
 import { CLASS_CONFIGS } from "../../../../data/classes";
 import {
   rollD20,
@@ -18,6 +18,16 @@ import {
   BARD_INSPIRATION_GAIN,
   ARCHER_FOCUS_GAIN,
 } from "../../../../constants";
+
+/**
+ * Detect Bard song type from card description
+ * Cards are tagged with [Harmony] or [Riot] in their descriptions
+ */
+function getBardSongType(card: Card): BardSongType {
+  if (card.description.includes("[Harmony]")) return "harmony";
+  if (card.description.includes("[Riot]")) return "riot";
+  return null;
+}
 
 export const createCardActions = (set: SetState, get: GetState) => ({
   selectCard: (cardId: string) => {
@@ -324,11 +334,32 @@ export const createCardActions = (set: SetState, get: GetState) => ({
       case "cleric":
         if (totalHealing > 0) resourceGain = HEALER_RESOURCE_GAIN;
         break;
-      case "bard":
-        if (selectedCard.effects.some((e) => ["strength", "shield", "block"].includes(e.type))) {
-          resourceGain = BARD_INSPIRATION_GAIN;
+      case "bard": {
+        const cardSongType = getBardSongType(selectedCard);
+        if (cardSongType) {
+          const currentSongType = currentPlayer.bardSongType;
+          if (!currentSongType || currentSongType === cardSongType) {
+            // Same song or no song: add 1 stack
+            resourceGain = BARD_INSPIRATION_GAIN;
+            // Update song type if not set
+            if (!currentSongType) {
+              updatedPlayers[playerIndex] = {
+                ...updatedPlayers[playerIndex],
+                bardSongType: cardSongType,
+              };
+            }
+          } else {
+            // Different song: switch type, reset to 1 stack
+            updatedPlayers[playerIndex] = {
+              ...updatedPlayers[playerIndex],
+              bardSongType: cardSongType,
+              resource: 0, // Reset to 0, will add 1 below
+            };
+            resourceGain = BARD_INSPIRATION_GAIN;
+          }
         }
         break;
+      }
       case "archer":
         resourceGain = ARCHER_FOCUS_GAIN;
         break;
@@ -423,7 +454,29 @@ export const createCardActions = (set: SetState, get: GetState) => ({
     let finalMonsters = [...monsters];
     const logs: LogEntry[] = [];
 
-    for (const effect of config.specialAbility.effects) {
+    // Filter effects for Bard's Crescendo based on current song type
+    let effectsToApply = config.specialAbility.effects;
+    if (player.class === "bard") {
+      const songType = player.bardSongType;
+      if (songType === "harmony") {
+        // Harmony: only apply ally buffs (strength)
+        effectsToApply = effectsToApply.filter(
+          (e) => e.target === "allAllies" || e.target === "self" || e.target === "ally"
+        );
+      } else if (songType === "riot") {
+        // Riot: only apply enemy debuffs (vulnerable, weakness)
+        effectsToApply = effectsToApply.filter(
+          (e) => e.target === "allMonsters" || e.target === "monster"
+        );
+      }
+      // Reset song type after Crescendo
+      finalPlayers[currentPlayerIndex] = {
+        ...finalPlayers[currentPlayerIndex],
+        bardSongType: null,
+      };
+    }
+
+    for (const effect of effectsToApply) {
       const result = applyEffect(
         effect,
         player,

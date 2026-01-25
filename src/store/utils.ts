@@ -15,6 +15,17 @@ import {
   DODGE_CHANCE_PER_AGI,
   ACCURACY_MITIGATION_DIVISOR,
   DEFAULT_ATTRIBUTES,
+  // Class-specific mechanics
+  FIGHTER_PROC_CHANCE,
+  FIGHTER_CRIT_MULTIPLIER,
+  BARBARIAN_HP_THRESHOLD_75,
+  BARBARIAN_HP_THRESHOLD_50,
+  BARBARIAN_HP_THRESHOLD_25,
+  BARBARIAN_DAMAGE_BONUS_75,
+  BARBARIAN_DAMAGE_BONUS_50,
+  BARBARIAN_DAMAGE_BONUS_25,
+  ARCHER_CRIT_CHANCE_PER_AIM,
+  ARCHER_MAX_AIM_CRIT_MULTIPLIER,
 } from "../constants";
 
 // ============================================
@@ -207,6 +218,8 @@ export const createPlayer = (
     // Champion link
     championId: champion?.id,
     attributes: champion?.attributes,
+    // Bard-specific: start with no active song
+    bardSongType: classType === "bard" ? null : undefined,
   };
 };
 
@@ -519,6 +532,42 @@ export function applyEffect(
         damage = applyEnvironmentModifier(damage, "damage", environment);
 
         const currentCaster = updatedPlayers.find((p) => p.id === caster.id);
+
+        // ============================================
+        // BARBARIAN - Blood Frenzy HP scaling
+        // Lower HP = more damage
+        // ============================================
+        if (currentCaster?.class === "barbarian") {
+          const hpPercent = currentCaster.hp / currentCaster.maxHp;
+          let bloodFrenzyBonus = 0;
+          let bloodFrenzyTier = "";
+
+          if (hpPercent <= BARBARIAN_HP_THRESHOLD_25) {
+            bloodFrenzyBonus = BARBARIAN_DAMAGE_BONUS_25; // +100%
+            bloodFrenzyTier = "MAXIMUM";
+          } else if (hpPercent <= BARBARIAN_HP_THRESHOLD_50) {
+            bloodFrenzyBonus = BARBARIAN_DAMAGE_BONUS_50; // +50%
+            bloodFrenzyTier = "HIGH";
+          } else if (hpPercent <= BARBARIAN_HP_THRESHOLD_75) {
+            bloodFrenzyBonus = BARBARIAN_DAMAGE_BONUS_75; // +25%
+            bloodFrenzyTier = "RISING";
+          }
+
+          if (bloodFrenzyBonus > 0) {
+            const bonusDamage = Math.floor(damage * bloodFrenzyBonus);
+            damage += bonusDamage;
+            logs.push(
+              createLogEntry(
+                turn,
+                "PLAYER_ACTION",
+                `Blood Frenzy (${bloodFrenzyTier})! ${caster.name} deals +${Math.round(bloodFrenzyBonus * 100)}% damage (+${bonusDamage})!`,
+                "buff",
+                true
+              )
+            );
+          }
+        }
+
         const strengthBuff = currentCaster?.buffs.find(
           (b) => b.type === "strength"
         );
@@ -535,19 +584,82 @@ export function applyEffect(
           );
         }
 
-        // Roll for crit (based on LCK)
-        const critResult = rollCrit(caster.attributes);
-        if (critResult.isCrit) {
-          damage = Math.floor(damage * critResult.multiplier);
-          logs.push(
-            createLogEntry(
-              turn,
-              "PLAYER_ACTION",
-              `Critical hit! ${caster.name}'s damage is multiplied by ${critResult.multiplier.toFixed(2)}x!`,
-              "damage",
-              true
-            )
-          );
+        // ============================================
+        // CRIT CALCULATION - Class-specific mechanics
+        // ============================================
+        let isCrit = false;
+        let critMultiplier = 1;
+
+        // Archer - Aim-based crit (+10% per Aim stack, guaranteed 2.5x at 5)
+        if (currentCaster?.class === "archer") {
+          const aimStacks = currentCaster.resource || 0;
+          if (aimStacks >= 5) {
+            // Guaranteed empowered crit at max Aim
+            isCrit = true;
+            critMultiplier = ARCHER_MAX_AIM_CRIT_MULTIPLIER;
+            logs.push(
+              createLogEntry(
+                turn,
+                "PLAYER_ACTION",
+                `Perfect Shot! ${caster.name}'s maximum Aim guarantees a ${critMultiplier}x critical hit!`,
+                "damage",
+                true
+              )
+            );
+            // Reset Aim after empowered attack
+            const casterIdx = updatedPlayers.findIndex((p) => p.id === caster.id);
+            if (casterIdx !== -1) {
+              updatedPlayers[casterIdx] = {
+                ...updatedPlayers[casterIdx],
+                resource: 0,
+              };
+            }
+          } else {
+            // Normal crit chance based on Aim stacks
+            const aimCritChance = aimStacks * ARCHER_CRIT_CHANCE_PER_AIM;
+            const baseCrit = rollCrit(caster.attributes);
+            const totalCritChance = aimCritChance + (baseCrit.isCrit ? 1 : (BASE_CRIT_CHANCE + (caster.attributes?.LCK || 0) * CRIT_CHANCE_PER_LCK));
+
+            if (Math.random() < totalCritChance) {
+              isCrit = true;
+              critMultiplier = 2.0; // Standard Archer crit
+            }
+          }
+        }
+        // Fighter - Disciplined Strikes (10% crit chance as part of passive)
+        else if (currentCaster?.class === "fighter") {
+          // Fighter has separate 10% crit from passive, plus normal LCK-based crit
+          const fighterCrit = Math.random() < FIGHTER_PROC_CHANCE;
+          const lckCrit = rollCrit(caster.attributes);
+
+          if (fighterCrit || lckCrit.isCrit) {
+            isCrit = true;
+            critMultiplier = fighterCrit ? FIGHTER_CRIT_MULTIPLIER : lckCrit.multiplier;
+          }
+        }
+        // Default - LCK-based crit
+        else {
+          const critResult = rollCrit(caster.attributes);
+          if (critResult.isCrit) {
+            isCrit = true;
+            critMultiplier = critResult.multiplier;
+          }
+        }
+
+        if (isCrit) {
+          damage = Math.floor(damage * critMultiplier);
+          if (currentCaster?.class !== "archer" || (currentCaster?.resource || 0) < 5) {
+            // Don't double-log for Archer Perfect Shot
+            logs.push(
+              createLogEntry(
+                turn,
+                "PLAYER_ACTION",
+                `Critical hit! ${caster.name}'s damage is multiplied by ${critMultiplier.toFixed(2)}x!`,
+                "damage",
+                true
+              )
+            );
+          }
         }
 
         // Apply accuracy penalty with AGI mitigation
@@ -675,6 +787,72 @@ export function applyEffect(
                 turn,
                 "PLAYER_ACTION",
                 `${monster.name}'s curse afflicts ${caster.name} with ${randomDebuff}!`,
+                "debuff",
+                true
+              )
+            );
+          }
+        }
+
+        // ============================================
+        // FIGHTER - Disciplined Strikes passive procs
+        // 10% chance each for: stun, vulnerable, weakness
+        // ============================================
+        if (currentCaster?.class === "fighter" && updatedMonsters[idx].isAlive) {
+          const fighterProcs: string[] = [];
+
+          // 10% chance to stun
+          if (Math.random() < FIGHTER_PROC_CHANCE) {
+            updatedMonsters[idx] = {
+              ...updatedMonsters[idx],
+              debuffs: [
+                ...updatedMonsters[idx].debuffs,
+                { type: "stun" as EffectType, value: 1, duration: 1 },
+              ],
+            };
+            fighterProcs.push("Stunned");
+          }
+
+          // 10% chance to apply Vulnerable
+          if (Math.random() < FIGHTER_PROC_CHANCE) {
+            const existingVuln = updatedMonsters[idx].debuffs.find((d) => d.type === "vulnerable");
+            if (existingVuln) {
+              existingVuln.duration = Math.max(existingVuln.duration, 2);
+            } else {
+              updatedMonsters[idx] = {
+                ...updatedMonsters[idx],
+                debuffs: [
+                  ...updatedMonsters[idx].debuffs,
+                  { type: "vulnerable" as EffectType, value: 1, duration: 2 },
+                ],
+              };
+            }
+            fighterProcs.push("Vulnerable");
+          }
+
+          // 10% chance to apply Weakness
+          if (Math.random() < FIGHTER_PROC_CHANCE) {
+            const existingWeak = updatedMonsters[idx].debuffs.find((d) => d.type === "weakness");
+            if (existingWeak) {
+              existingWeak.duration = Math.max(existingWeak.duration, 2);
+            } else {
+              updatedMonsters[idx] = {
+                ...updatedMonsters[idx],
+                debuffs: [
+                  ...updatedMonsters[idx].debuffs,
+                  { type: "weakness" as EffectType, value: 20, duration: 2 },
+                ],
+              };
+            }
+            fighterProcs.push("Weakened");
+          }
+
+          if (fighterProcs.length > 0) {
+            logs.push(
+              createLogEntry(
+                turn,
+                "PLAYER_ACTION",
+                `Disciplined Strike! ${caster.name} finds weakpoints: ${fighterProcs.join(", ")}!`,
                 "debuff",
                 true
               )
