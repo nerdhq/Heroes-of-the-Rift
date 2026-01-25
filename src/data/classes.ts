@@ -31,7 +31,7 @@ export const CLASS_CONFIGS: Record<ClassType, ClassConfig> = {
     color: "#7c3aed", // purple
     specialAbility: {
       name: "Shadow Dance",
-      description: "At 5 Combo: Enter stealth for 2 turns. Your next attack deals +100% damage and is a guaranteed critical hit.",
+      description: "At 5 Combo: Enter stealth for 2 turns. Your next attack from stealth deals +100% damage.",
       effects: [
         { type: "stealth", value: 2, target: "self", duration: 2 },
         { type: "strength", value: 100, target: "self", duration: 1 },
