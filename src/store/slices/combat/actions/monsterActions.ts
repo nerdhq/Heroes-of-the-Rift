@@ -159,7 +159,7 @@ export const createMonsterActions = (set: SetState, get: GetState) => ({
             get().addDamageNumber(target.id, damage, "damage");
 
             const damagedPlayer = updatedPlayers[playerIndex];
-            if (damagedPlayer.class === "warrior" && damage > 0) {
+            if (damagedPlayer.class === "fighter" && damage > 0) {
               const rageGain = Math.min(WARRIOR_RAGE_DAMAGE_MAX_GAIN, Math.ceil(damage / WARRIOR_RAGE_DAMAGE_DIVISOR));
               updatedPlayers[playerIndex] = {
                 ...updatedPlayers[playerIndex],

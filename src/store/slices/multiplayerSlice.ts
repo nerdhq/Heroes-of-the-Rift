@@ -121,7 +121,7 @@ export const createMultiplayerSlice: StateCreator<
         const players = playerStates.map((ps) => ({
           id: ps.game_player_id,
           name: ps.game_players?.hero_name || `Player ${ps.game_players?.player_index + 1}`,
-          class: ps.game_players?.class_type || "warrior",
+          class: ps.game_players?.class_type || "fighter",
           hp: ps.hp,
           maxHp: ps.max_hp,
           shield: ps.shield,

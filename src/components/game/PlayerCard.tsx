@@ -121,7 +121,7 @@ export function PlayerCard({
 
   const getClassIcon = (playerClass: string) => {
     const icons: Record<string, string> = {
-      warrior: "⚔️",
+      fighter: "⚔️",
       rogue: "🗡️",
       paladin: "🛡️",
       mage: "🔮",

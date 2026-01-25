@@ -18,7 +18,7 @@ import type { Champion, ClassType } from "../types";
 
 const getClassIcon = (classType: ClassType): string => {
   const icons: Record<ClassType, string> = {
-    warrior: "⚔️",
+    fighter: "⚔️",
     rogue: "🗡️",
     paladin: "🛡️",
     mage: "🔮",
@@ -32,7 +32,7 @@ const getClassIcon = (classType: ClassType): string => {
 
 const getClassColor = (classType: ClassType): string => {
   const colors: Record<ClassType, string> = {
-    warrior: "from-red-700 to-red-600",
+    fighter: "from-red-700 to-red-600",
     rogue: "from-purple-700 to-purple-600",
     paladin: "from-yellow-600 to-yellow-500",
     mage: "from-blue-700 to-blue-600",

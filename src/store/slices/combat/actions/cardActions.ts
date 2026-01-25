@@ -138,12 +138,12 @@ export const createCardActions = (set: SetState, get: GetState) => ({
       ["poison", "burn", "ice", "stun", "weakness"].includes(e.type)
     );
 
-    // Mages and Priests cast spells, Archers shoot
-    if (player.class === "mage" || player.class === "priest" || player.class === "bard") {
+    // Mages and Clerics cast spells, Archers shoot
+    if (player.class === "mage" || player.class === "cleric" || player.class === "bard") {
       attackAnimation = "cast";
     } else if (player.class === "archer") {
       attackAnimation = "shoot";
-    } else if (player.class === "paladin" || player.class === "warrior") {
+    } else if (player.class === "paladin" || player.class === "fighter") {
       // Paladin heals are casts, attacks are slashes
       if (hasHeal && !hasDamage) {
         attackAnimation = "cast";
@@ -314,14 +314,14 @@ export const createCardActions = (set: SetState, get: GetState) => ({
     const currentPlayer = updatedPlayers[playerIndex];
     let resourceGain = 0;
     switch (currentPlayer.class) {
-      case "warrior":
+      case "fighter":
         if (totalDamageDealt > 0) resourceGain = Math.min(WARRIOR_RAGE_MAX_GAIN, Math.ceil(totalDamageDealt / WARRIOR_RAGE_DIVISOR));
         break;
       case "rogue":
         resourceGain = ROGUE_COMBO_GAIN;
         break;
       case "paladin":
-      case "priest":
+      case "cleric":
         if (totalHealing > 0) resourceGain = HEALER_RESOURCE_GAIN;
         break;
       case "bard":

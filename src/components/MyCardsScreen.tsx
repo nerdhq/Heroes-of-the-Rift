@@ -58,7 +58,7 @@ export function MyCardsScreen() {
   };
 
   const classes: (ClassType | "all")[] = [
-    "all", "warrior", "rogue", "paladin", "mage", "cleric", "bard", "archer", "barbarian"
+    "all", "fighter", "rogue", "paladin", "mage", "cleric", "bard", "archer", "barbarian"
   ];
   const rarities: (Rarity | "all")[] = ["all", "common", "uncommon", "rare", "legendary"];
 

@@ -4,7 +4,7 @@
 
 // Class Types
 export type ClassType =
-  | "warrior"
+  | "fighter"
   | "rogue"
   | "paladin"
   | "mage"

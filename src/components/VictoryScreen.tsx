@@ -14,7 +14,7 @@ export function VictoryScreen() {
 
   const getClassIcon = (classType: string): string => {
     const icons: Record<string, string> = {
-      warrior: "⚔️",
+      fighter: "⚔️",
       rogue: "🗡️",
       paladin: "🛡️",
       mage: "🔮",

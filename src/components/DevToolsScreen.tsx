@@ -35,11 +35,11 @@ type TabType = "heroes" | "cards" | "monsters" | "environments" | "battle";
 
 const getClassIcon = (classType: string): string => {
   const icons: Record<string, string> = {
-    warrior: "⚔️",
+    fighter: "⚔️",
     rogue: "🗡️",
     paladin: "🛡️",
     mage: "🔮",
-    priest: "✨",
+    cleric: "✨",
     bard: "🎵",
     archer: "🏹",
     barbarian: "🪓",
@@ -601,7 +601,7 @@ function MockBattleTab() {
     {
       id: "hero-1",
       name: "Hero 1",
-      classType: "warrior",
+      classType: "fighter",
       deckCardIds: [],
     },
   ]);
@@ -628,7 +628,7 @@ function MockBattleTab() {
       {
         id: newId,
         name: `Hero ${heroes.length + 1}`,
-        classType: "warrior",
+        classType: "fighter",
         deckCardIds: [],
       },
     ]);

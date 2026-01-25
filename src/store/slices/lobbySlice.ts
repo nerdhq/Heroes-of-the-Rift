@@ -462,8 +462,8 @@ export const createLobbySlice: StateCreator<
             }
             
             // Fall back to base cards (strip the unique suffix to find base card)
-            // Card IDs from champions look like "warrior-1-starter-abc123"
-            // Base card IDs look like "warrior-1"
+            // Card IDs from champions look like "fighter-1-starter-abc123"
+            // Base card IDs look like "fighter-1"
             const baseCardId = cardId.replace(/-starter-.*$/, '').replace(/-earned-.*$/, '');
             const baseCard = allCards.find((c: Card) => c.id === baseCardId);
             if (!baseCard) {

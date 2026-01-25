@@ -17,5 +17,9 @@
       "Bash(wc:*)",
       "Bash(done)"
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "chrome-devtools"
+  ],
+  "enableAllProjectMcpServers": true
 }

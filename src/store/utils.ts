@@ -108,7 +108,7 @@ export const calculateAccuracyMitigation = (
 
 // Determine if a card's damage is physical or magical based on class
 export const isPhysicalDamageClass = (classType: Player["class"]): boolean => {
-  const physicalClasses = ["warrior", "rogue", "barbarian", "archer"];
+  const physicalClasses = ["fighter", "rogue", "barbarian", "archer"];
   return physicalClasses.includes(classType);
 };
 

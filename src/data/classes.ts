@@ -1,20 +1,22 @@
 import type { ClassConfig, ClassType } from "../types";
 
 export const CLASS_CONFIGS: Record<ClassType, ClassConfig> = {
-  warrior: {
-    type: "warrior",
-    name: "Warrior",
-    description: "A disciplined martial fighter with high HP and tactical prowess.",
+  fighter: {
+    type: "fighter",
+    name: "Fighter",
+    description: "A disciplined master of combat. Each attack may find weakpoints: 10% stun, 10% crit (1.5x), 10% vulnerable, 10% weakness.",
     baseHp: 120,
     resourceName: "Discipline",
     maxResource: 10,
     color: "#dc2626", // red
     specialAbility: {
-      name: "Martial Supremacy",
-      description: "Deal 25 damage to all enemies. Enemies deal 20% less damage on their next card.",
+      name: "Action Surge",
+      description: "Deal 25 damage to all enemies. Your next attack triggers all proc effects (stun, crit, vulnerable, weakness).",
       effects: [
         { type: "damage", value: 25, target: "allMonsters" },
-        { type: "weakness", value: 20, target: "allMonsters", duration: 1 },
+        { type: "stun", value: 1, target: "allMonsters", duration: 1 },
+        { type: "vulnerable", value: 1, target: "allMonsters", duration: 1 },
+        { type: "weakness", value: 1, target: "allMonsters", duration: 1 },
       ],
     },
     enhanceBonus: { damageBonus: 8, healBonus: 0, shieldBonus: 5 },
@@ -97,57 +99,63 @@ export const CLASS_CONFIGS: Record<ClassType, ClassConfig> = {
   bard: {
     type: "bard",
     name: "Bard",
-    description: "A charismatic performer who buffs allies with songs.",
+    description: "A charismatic performer using Harmony to buff allies and Riot to debuff enemies. Build song stacks to unleash a powerful Crescendo.",
     baseHp: 85,
-    resourceName: "Melody",
-    maxResource: 6,
+    resourceName: "Song",
+    maxResource: 5,
     color: "#ec4899", // pink
     specialAbility: {
-      name: "Battle Hymn",
-      description: "Grant +5 strength to all allies for 3 turns",
+      name: "Crescendo",
+      description: "At 5 Song stacks: Harmony grants all allies +50% damage (2 turns). Riot applies Vulnerable 2 + Weakness 2 to all enemies (2 turns).",
       effects: [
-        { type: "strength", value: 5, target: "allAllies", duration: 3 },
+        // Effects depend on current song type - handled in game logic
+        { type: "strength", value: 50, target: "allAllies", duration: 2 },
+        { type: "vulnerable", value: 2, target: "allMonsters", duration: 2 },
+        { type: "weakness", value: 2, target: "allMonsters", duration: 2 },
       ],
     },
-    enhanceBonus: { damageBonus: 3, healBonus: 5, shieldBonus: 5 },
+    enhanceBonus: { damageBonus: 3, healBonus: 8, shieldBonus: 6 },
   },
   archer: {
     type: "archer",
     name: "Archer",
-    description: "A precise marksman who never misses their target.",
+    description: "A precise marksman building Aim for devastating critical hits. +10% crit per Aim stack. At 5 Aim: guaranteed 2.5x damage crit.",
     baseHp: 75,
-    resourceName: "Focus",
-    maxResource: 8,
+    resourceName: "Aim",
+    maxResource: 5,
     color: "#22c55e", // green
     specialAbility: {
-      name: "Piercing Shot",
-      description: "Deal 30 damage to all enemies (ignores shields)",
-      effects: [{ type: "damage", value: 30, target: "allMonsters" }],
+      name: "Perfect Shot",
+      description: "At 5 Aim: Next attack is a guaranteed critical hit dealing 2.5x damage. Resets Aim to 0.",
+      effects: [
+        // Handled in game logic - empowers next attack
+        { type: "strength", value: 150, target: "self", duration: 1 },
+      ],
     },
-    enhanceBonus: { damageBonus: 10, healBonus: 0, shieldBonus: 0 },
+    enhanceBonus: { damageBonus: 12, healBonus: 0, shieldBonus: 0 },
   },
   barbarian: {
     type: "barbarian",
     name: "Barbarian",
-    description: "A berserker who grows stronger as they take damage.",
+    description: "A berserker who grows stronger as HP drops. +25% damage at 75-50% HP, +50% at 50-25% HP, +100% below 25% HP.",
     baseHp: 130,
     resourceName: "Fury",
     maxResource: 10,
     color: "#f97316", // orange
     specialAbility: {
-      name: "Rampage",
-      description: "Deal 20 damage to all enemies and gain 10 HP",
+      name: "Bloodbath",
+      description: "At max Fury: Deal 30 damage to all enemies, heal for 50% of damage dealt. Resets Fury to 0.",
       effects: [
-        { type: "damage", value: 20, target: "allMonsters" },
-        { type: "heal", value: 10, target: "self" },
+        { type: "damage", value: 30, target: "allMonsters" },
+        { type: "heal", value: 15, target: "self" },
       ],
     },
-    enhanceBonus: { damageBonus: 8, healBonus: 5, shieldBonus: 0 },
+    enhanceBonus: { damageBonus: 10, healBonus: 5, shieldBonus: 0 },
   },
 };
 
 export const AVAILABLE_CLASSES: ClassType[] = [
-  "warrior",
+  "fighter",
   "rogue",
   "paladin",
   "mage",
