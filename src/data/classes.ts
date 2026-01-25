@@ -24,17 +24,17 @@ export const CLASS_CONFIGS: Record<ClassType, ClassConfig> = {
   rogue: {
     type: "rogue",
     name: "Rogue",
-    description: "A swift assassin who strikes from the shadows.",
+    description: "A swift assassin who strikes from the shadows. Builds Combo to empower devastating sneak attacks.",
     baseHp: 80,
     resourceName: "Combo",
     maxResource: 5,
     color: "#7c3aed", // purple
     specialAbility: {
-      name: "Assassinate",
-      description: "Deal 40 damage to one enemy and gain stealth",
+      name: "Shadow Dance",
+      description: "At 5 Combo: Enter stealth for 2 turns. Your next attack deals +100% damage and is a guaranteed critical hit.",
       effects: [
-        { type: "damage", value: 40, target: "monster" },
         { type: "stealth", value: 2, target: "self", duration: 2 },
+        { type: "strength", value: 100, target: "self", duration: 1 },
       ],
     },
     enhanceBonus: { damageBonus: 10, healBonus: 0, shieldBonus: 0 },
