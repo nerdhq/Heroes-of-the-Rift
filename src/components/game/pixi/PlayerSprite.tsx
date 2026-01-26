@@ -82,7 +82,7 @@ function getEffectInfo(effect: StatusEffect, isBuff: boolean): {
       return { color: 0x22c55e, emoji: "☠️", name: "poison", bgColor: 0x14532d };
     case "burn":
       return { color: 0xf97316, emoji: "🔥", name: "burn", bgColor: 0x7c2d12 };
-    case "ice":
+    case "frost":
       return { color: 0x38bdf8, emoji: "❄️", name: "frozen", bgColor: 0x0c4a6e };
     case "stun":
       return { color: 0xfbbf24, emoji: "⚡", name: "stun", bgColor: 0x78350f };

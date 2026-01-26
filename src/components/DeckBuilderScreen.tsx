@@ -3,7 +3,7 @@ import { useGameStore } from "../store/gameStore";
 import { CLASS_CONFIGS } from "../data/classes";
 import { Check, ArrowLeft, HelpCircle, Shuffle, Star } from "lucide-react";
 import { HelpModal } from "./HelpModal";
-import { getRarityColor, getRarityTextColor } from "../utils/cardHelpers";
+import { getRarityColor, getRarityTextColor, parseFaithBonuses, hasFaithScaling, hasManaScaling, parseManaModifiers } from "../utils/cardHelpers";
 
 export function DeckBuilderScreen() {
   const [showHelp, setShowHelp] = useState(false);
@@ -20,6 +20,8 @@ export function DeckBuilderScreen() {
   const confirmDeck = useGameStore((state) => state.confirmDeck);
   const setScreen = useGameStore((state) => state.setScreen);
   const activeChampion = useGameStore((state) => state.activeChampion);
+  const localCoopChampions = useGameStore((state) => state.localCoopChampions);
+  const clearLocalCoopChampions = useGameStore((state) => state.clearLocalCoopChampions);
 
   const currentClass = selectedClasses[deckBuildingPlayerIndex];
   const classConfig = currentClass ? CLASS_CONFIGS[currentClass] : null;
@@ -41,13 +43,30 @@ export function DeckBuilderScreen() {
     );
   }
 
+  // Check if in local co-op mode
+  const isLocalCoopMode = localCoopChampions.length > 0;
+  const currentCoopChampion = isLocalCoopMode ? localCoopChampions[deckBuildingPlayerIndex] : null;
+
   // Check if playing as champion (solo mode with active champion's class)
   const isChampionMode =
+    !isLocalCoopMode &&
     activeChampion &&
     selectedClasses.length === 1 &&
     selectedClasses[0] === activeChampion.class;
   const heroName =
     heroNames[deckBuildingPlayerIndex] || `Hero ${deckBuildingPlayerIndex + 1}`;
+
+  // Handle back button for co-op mode
+  const handleBack = () => {
+    if (isLocalCoopMode) {
+      clearLocalCoopChampions();
+      setScreen("gameChampionSelect");
+    } else if (isChampionMode) {
+      setScreen("gameChampionSelect");
+    } else {
+      setScreen("classSelect");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-stone-900 via-stone-800 to-stone-900 p-8 relative">
@@ -64,18 +83,33 @@ export function DeckBuilderScreen() {
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <button
-          onClick={() => setScreen(isChampionMode ? "title" : "classSelect")}
+          onClick={handleBack}
           className="flex items-center gap-2 text-stone-400 hover:text-amber-400 transition-colors mb-8"
         >
           <ArrowLeft className="w-5 h-5" />
-          {isChampionMode ? "Back to Title" : "Back to Class Selection"}
+          {isLocalCoopMode ? "Cancel Co-op" : isChampionMode ? "Back to Title" : "Back to Class Selection"}
         </button>
 
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-amber-100 mb-2">
             Build {heroName}'s Deck
           </h1>
-          {isChampionMode && activeChampion ? (
+          {isLocalCoopMode && currentCoopChampion ? (
+            <div className="flex items-center justify-center gap-3 text-stone-400">
+              <span className="text-green-400">
+                Player {deckBuildingPlayerIndex + 1} of {localCoopChampions.length}
+              </span>
+              <span className="text-stone-600">•</span>
+              <div className="flex items-center gap-1 text-amber-400">
+                <Star className="w-4 h-4" />
+                <span>Level {currentCoopChampion.level}</span>
+              </div>
+              <span className="text-stone-600">•</span>
+              <span style={{ color: classConfig.color }} className="font-bold">
+                {classConfig.name}
+              </span>
+            </div>
+          ) : isChampionMode && activeChampion ? (
             <div className="flex items-center justify-center gap-3 text-stone-400">
               <div className="flex items-center gap-1 text-amber-400">
                 <Star className="w-4 h-4" />
@@ -154,10 +188,49 @@ export function DeckBuilderScreen() {
                   {card.rarity}
                 </p>
 
-                {/* Description */}
-                <p className="text-stone-300 text-sm mb-3">
-                  {card.description}
-                </p>
+                {/* Description - with faith bonus formatting for Paladin, mana scaling for Mage */}
+                {hasFaithScaling(card.description) ? (
+                  <div className="text-sm mb-3 space-y-1">
+                    {(() => {
+                      const bonuses = parseFaithBonuses(card.description);
+                      return (
+                        <>
+                          <p className="text-stone-300">{bonuses.baseEffect}</p>
+                          {bonuses.faith50Bonus && (
+                            <p className="text-yellow-400 text-xs">
+                              <span className="text-yellow-500 font-semibold">50% Faith:</span> {bonuses.faith50Bonus}
+                            </p>
+                          )}
+                          {bonuses.faith100Bonus && (
+                            <p className="text-amber-400 text-xs">
+                              <span className="text-amber-500 font-semibold">100% Faith:</span> {bonuses.faith100Bonus}
+                            </p>
+                          )}
+                        </>
+                      );
+                    })()}
+                  </div>
+                ) : hasManaScaling(card.description) ? (
+                  <div className="text-sm mb-3 space-y-1">
+                    {(() => {
+                      const modifiers = parseManaModifiers(card.description);
+                      return (
+                        <>
+                          <p className="text-stone-300">{modifiers.baseEffect}</p>
+                          {modifiers.empoweredBonus && (
+                            <p className="text-cyan-400 text-xs">
+                              <span className="text-cyan-500 font-semibold">Empowered:</span> {modifiers.empoweredBonus}
+                            </p>
+                          )}
+                        </>
+                      );
+                    })()}
+                  </div>
+                ) : (
+                  <p className="text-stone-300 text-sm mb-3">
+                    {card.description}
+                  </p>
+                )}
 
                 {/* Aggro */}
                 <div className="flex items-center justify-between text-sm">

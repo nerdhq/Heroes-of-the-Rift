@@ -261,12 +261,6 @@ Reworking all 8 classes with unique mechanics, thematic cards, and balanced game
 - Apply this to: damage buffs, strength, weakness, vulnerability, any persistent effect
 - Affects: Warrior, Rogue, Paladin, Mage, Cleric, Bard, Archer, Barbarian
 
-### Priority System Discussion
-Need to discuss how action order/priority works in combat. This affects:
-- When buffs/debuffs apply
-- Order of card resolution
-- Turn structure
-
 ### Rogue Special Ability Update
 Change from: "Assassinate - 40 damage to one enemy + stealth"
 Change to: Stealth + next attack bonus (specifics TBD)

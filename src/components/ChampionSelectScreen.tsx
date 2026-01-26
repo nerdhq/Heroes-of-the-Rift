@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useGameStore } from "../store/gameStore";
 import { CLASS_CONFIGS } from "../data/classes";
 import {
@@ -13,8 +13,11 @@ import {
   Zap,
   Brain,
   Clover,
+  Pencil,
 } from "lucide-react";
 import type { Champion, ClassType } from "../types";
+import { ConfirmModal } from "./ui/ConfirmModal";
+import { InputModal } from "./ui/InputModal";
 
 const getClassIcon = (classType: ClassType): string => {
   const icons: Record<ClassType, string> = {
@@ -46,116 +49,123 @@ const getClassColor = (classType: ClassType): string => {
 
 function ChampionCard({
   champion,
-  isActive,
   onSelect,
+  onEdit,
   onDelete,
 }: {
   champion: Champion;
-  isActive: boolean;
   onSelect: () => void;
+  onEdit: () => void;
   onDelete: () => void;
 }) {
   const config = CLASS_CONFIGS[champion.class];
   const xpPercent = (champion.xp / champion.xpToNextLevel) * 100;
 
   return (
-    <div
-      onClick={onSelect}
-      className={`relative bg-gradient-to-br ${getClassColor(
-        champion.class
-      )} rounded-xl p-4 cursor-pointer transition-all hover:scale-105 border-2 ${
-        isActive ? "border-amber-400 shadow-lg shadow-amber-500/30" : "border-transparent"
-      }`}
-    >
-      {isActive && (
-        <div className="absolute -top-2 -right-2 bg-amber-500 text-black px-2 py-0.5 rounded-full text-xs font-bold">
-          ACTIVE
-        </div>
-      )}
-
-      <div className="flex items-start justify-between mb-3">
-        <div>
-          <div className="text-3xl mb-1">{getClassIcon(champion.class)}</div>
-          <h3 className="text-xl font-bold text-white">{champion.name}</h3>
-          <p className="text-sm text-white/70">{config.name}</p>
-        </div>
-        <div className="text-right">
-          <div className="flex items-center gap-1 text-amber-300">
-            <Star className="w-4 h-4" />
-            <span className="font-bold">Lv. {champion.level}</span>
-          </div>
-          {champion.unspentStatPoints > 0 && (
-            <div className="text-xs text-green-300 mt-1">
-              +{champion.unspentStatPoints} pts
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* XP Bar */}
-      <div className="mb-3">
-        <div className="flex justify-between text-xs text-white/60 mb-1">
-          <span>XP</span>
-          <span>
-            {champion.xp} / {champion.xpToNextLevel}
-          </span>
-        </div>
-        <div className="h-2 bg-black/30 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-gradient-to-r from-amber-400 to-amber-300"
-            style={{ width: `${xpPercent}%` }}
-          />
-        </div>
-      </div>
-
-      {/* Stats preview */}
-      <div className="grid grid-cols-3 gap-2 text-xs mb-3">
-        <div className="flex items-center gap-1 text-white/80">
-          <Swords className="w-3 h-3" />
-          <span>{champion.attributes.STR}</span>
-        </div>
-        <div className="flex items-center gap-1 text-white/80">
-          <Zap className="w-3 h-3" />
-          <span>{champion.attributes.AGI}</span>
-        </div>
-        <div className="flex items-center gap-1 text-white/80">
-          <Heart className="w-3 h-3" />
-          <span>{champion.attributes.CON}</span>
-        </div>
-        <div className="flex items-center gap-1 text-white/80">
-          <Brain className="w-3 h-3" />
-          <span>{champion.attributes.INT}</span>
-        </div>
-        <div className="flex items-center gap-1 text-white/80">
-          <Shield className="w-3 h-3" />
-          <span>{champion.attributes.WIS}</span>
-        </div>
-        <div className="flex items-center gap-1 text-white/80">
-          <Clover className="w-3 h-3" />
-          <span>{champion.attributes.LCK}</span>
-        </div>
-      </div>
-
-      {/* Gold and Cards */}
-      <div className="flex justify-between text-sm">
-        <div className="flex items-center gap-1 text-yellow-300">
-          <Coins className="w-4 h-4" />
-          <span>{champion.gold}</span>
-        </div>
-        <div className="text-white/60">{champion.ownedCards.length} cards</div>
-      </div>
-
-      {/* Delete button */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onDelete();
-        }}
-        className="absolute bottom-2 right-2 p-1 text-white/40 hover:text-red-400 transition-colors"
-        title="Delete Champion"
+    <div className="flex flex-col">
+      {/* Card */}
+      <div
+        onClick={onSelect}
+        className={`relative bg-gradient-to-br ${getClassColor(
+          champion.class
+        )} rounded-xl p-4 cursor-pointer transition-all hover:scale-105 border-2 border-transparent hover:border-white/30`}
       >
-        <Trash2 className="w-4 h-4" />
-      </button>
+        <div className="flex items-start justify-between mb-3">
+          <div>
+            <div className="text-3xl mb-1">{getClassIcon(champion.class)}</div>
+            <h3 className="text-xl font-bold text-white">{champion.name}</h3>
+            <p className="text-sm text-white/70">{config.name}</p>
+          </div>
+          <div className="text-right">
+            <div className="flex items-center gap-1 text-amber-300">
+              <Star className="w-4 h-4" />
+              <span className="font-bold">Lv. {champion.level}</span>
+            </div>
+            {champion.unspentStatPoints > 0 && (
+              <div className="text-xs text-green-300 mt-1">
+                +{champion.unspentStatPoints} pts
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* XP Bar */}
+        <div className="mb-3">
+          <div className="flex justify-between text-xs text-white/60 mb-1">
+            <span>XP</span>
+            <span>
+              {champion.xp} / {champion.xpToNextLevel}
+            </span>
+          </div>
+          <div className="h-2 bg-black/30 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-amber-400 to-amber-300"
+              style={{ width: `${xpPercent}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Stats preview */}
+        <div className="grid grid-cols-3 gap-2 text-xs mb-3">
+          <div className="flex items-center gap-1 text-white/80">
+            <Swords className="w-3 h-3" />
+            <span>{champion.attributes.STR}</span>
+          </div>
+          <div className="flex items-center gap-1 text-white/80">
+            <Zap className="w-3 h-3" />
+            <span>{champion.attributes.AGI}</span>
+          </div>
+          <div className="flex items-center gap-1 text-white/80">
+            <Heart className="w-3 h-3" />
+            <span>{champion.attributes.CON}</span>
+          </div>
+          <div className="flex items-center gap-1 text-white/80">
+            <Brain className="w-3 h-3" />
+            <span>{champion.attributes.INT}</span>
+          </div>
+          <div className="flex items-center gap-1 text-white/80">
+            <Shield className="w-3 h-3" />
+            <span>{champion.attributes.WIS}</span>
+          </div>
+          <div className="flex items-center gap-1 text-white/80">
+            <Clover className="w-3 h-3" />
+            <span>{champion.attributes.LCK}</span>
+          </div>
+        </div>
+
+        {/* Gold and Cards */}
+        <div className="flex justify-between text-sm">
+          <div className="flex items-center gap-1 text-yellow-300">
+            <Coins className="w-4 h-4" />
+            <span>{champion.gold}</span>
+          </div>
+          <div className="text-white/60">{champion.ownedCards.length} cards</div>
+        </div>
+      </div>
+
+      {/* Action buttons below card */}
+      <div className="flex justify-center gap-2 mt-2">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onEdit();
+          }}
+          className="flex items-center gap-1 px-3 py-1.5 bg-stone-700 hover:bg-stone-600 text-stone-300 hover:text-white rounded-lg text-sm transition-colors"
+        >
+          <Pencil className="w-3.5 h-3.5" />
+          Edit
+        </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+          className="flex items-center gap-1 px-3 py-1.5 bg-stone-700 hover:bg-red-900 text-stone-300 hover:text-red-300 rounded-lg text-sm transition-colors"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+          Delete
+        </button>
+      </div>
     </div>
   );
 }
@@ -164,31 +174,51 @@ export function ChampionSelectScreen() {
   const setScreen = useGameStore((state) => state.setScreen);
   const setReturnScreen = useGameStore((state) => state.setReturnScreen);
   const playerAccount = useGameStore((state) => state.playerAccount);
-  const activeChampion = useGameStore((state) => state.activeChampion);
   const loadProgression = useGameStore((state) => state.loadProgression);
   const selectChampion = useGameStore((state) => state.selectChampion);
   const deleteChampion = useGameStore((state) => state.deleteChampion);
+  const updateChampionName = useGameStore((state) => state.updateChampionName);
+
+  // Modal state
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; championId: string; championName: string }>({
+    isOpen: false,
+    championId: "",
+    championName: "",
+  });
+  const [editModal, setEditModal] = useState<{ isOpen: boolean; championId: string; currentName: string }>({
+    isOpen: false,
+    championId: "",
+    currentName: "",
+  });
 
   useEffect(() => {
     loadProgression();
   }, [loadProgression]);
 
-  const handleDelete = (championId: string, championName: string) => {
-    if (
-      window.confirm(
-        `Delete ${championName}? This will permanently remove the champion and all their gold/cards.`
-      )
-    ) {
-      deleteChampion(championId);
-    }
+  // Handle selecting a champion as active
+  const handleSelectChampion = async (championId: string) => {
+    await selectChampion(championId);
+    setScreen("title");
   };
 
-  const startChampionGame = useGameStore((state) => state.startChampionGame);
+  const handleDeleteClick = (championId: string, championName: string) => {
+    setDeleteModal({ isOpen: true, championId, championName });
+  };
 
-  const handlePlay = () => {
-    if (activeChampion) {
-      startChampionGame();
+  const handleDeleteConfirm = () => {
+    deleteChampion(deleteModal.championId);
+    setDeleteModal({ isOpen: false, championId: "", championName: "" });
+  };
+
+  const handleEditClick = (championId: string, currentName: string) => {
+    setEditModal({ isOpen: true, championId, currentName });
+  };
+
+  const handleEditConfirm = (newName: string) => {
+    if (newName !== editModal.currentName) {
+      updateChampionName(editModal.championId, newName);
     }
+    setEditModal({ isOpen: false, championId: "", currentName: "" });
   };
 
   const canCreateMore =
@@ -212,7 +242,7 @@ export function ChampionSelectScreen() {
             Your Champions
           </h1>
           <p className="text-stone-400">
-            Select a champion to play or create a new one
+            Click a champion to set them as your active champion
           </p>
         </div>
 
@@ -230,9 +260,9 @@ export function ChampionSelectScreen() {
             <ChampionCard
               key={champion.id}
               champion={champion}
-              isActive={activeChampion?.id === champion.id}
-              onSelect={() => selectChampion(champion.id)}
-              onDelete={() => handleDelete(champion.id, champion.name)}
+              onSelect={() => handleSelectChampion(champion.id)}
+              onEdit={() => handleEditClick(champion.id, champion.name)}
+              onDelete={() => handleDeleteClick(champion.id, champion.name)}
             />
           ))}
 
@@ -251,32 +281,6 @@ export function ChampionSelectScreen() {
           )}
         </div>
 
-        {/* Action buttons */}
-        <div className="flex justify-center gap-4">
-          {activeChampion && (
-            <>
-              <button
-                onClick={() => setScreen("statAllocation")}
-                className={`font-bold py-3 px-8 rounded-lg transition-all ${
-                  activeChampion.unspentStatPoints > 0
-                    ? "bg-gradient-to-r from-green-700 to-green-600 hover:from-green-600 hover:to-green-500 text-white"
-                    : "bg-stone-700 hover:bg-stone-600 text-stone-200"
-                }`}
-              >
-                {activeChampion.unspentStatPoints > 0
-                  ? `Allocate Stats (+${activeChampion.unspentStatPoints})`
-                  : "View Stats"}
-              </button>
-              <button
-                onClick={handlePlay}
-                className="bg-gradient-to-r from-amber-700 to-amber-600 hover:from-amber-600 hover:to-amber-500 text-amber-100 font-bold py-3 px-8 rounded-lg text-xl transition-all"
-              >
-                Play as {activeChampion.name}
-              </button>
-            </>
-          )}
-        </div>
-
         {/* Empty state */}
         {(!playerAccount || playerAccount.champions.length === 0) && (
           <div className="text-center py-12">
@@ -292,6 +296,32 @@ export function ChampionSelectScreen() {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={deleteModal.isOpen}
+        title="Delete Champion"
+        message={`Are you sure you want to delete ${deleteModal.championName}?\n\nThis will permanently remove the champion and all their gold, cards, and progress. This cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        confirmVariant="danger"
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setDeleteModal({ isOpen: false, championId: "", championName: "" })}
+      />
+
+      {/* Edit Name Modal */}
+      <InputModal
+        isOpen={editModal.isOpen}
+        title="Edit Champion"
+        label="Champion Name"
+        placeholder="Enter champion name"
+        initialValue={editModal.currentName}
+        maxLength={20}
+        confirmText="Save"
+        cancelText="Cancel"
+        onConfirm={handleEditConfirm}
+        onCancel={() => setEditModal({ isOpen: false, championId: "", currentName: "" })}
+      />
     </div>
   );
 }

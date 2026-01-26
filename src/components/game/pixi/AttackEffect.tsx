@@ -15,7 +15,7 @@ interface Particle {
   rotation: number;
 }
 
-export type AttackType = "slash" | "cast" | "shoot" | "thrust" | "heal" | "fire" | "ice" | "poison";
+export type AttackType = "slash" | "cast" | "shoot" | "thrust" | "heal" | "fire" | "frost" | "poison";
 
 interface AttackEffectProps {
   startX: number;
@@ -34,7 +34,7 @@ const ATTACK_COLORS: Record<AttackType, number[]> = {
   thrust: [0x6b7280, 0x9ca3af, 0xffffff],
   heal: [0x22c55e, 0x86efac, 0xffffff],
   fire: [0xef4444, 0xf97316, 0xfbbf24],
-  ice: [0x38bdf8, 0x7dd3fc, 0xe0f2fe],
+  frost: [0x38bdf8, 0x7dd3fc, 0xe0f2fe],
   poison: [0x22c55e, 0xa855f7, 0x86efac],
 };
 
@@ -265,7 +265,7 @@ export function AttackEffect({
                 g.fill({ color: 0xfbbf24 });
                 g.circle(0, 0, 5);
                 g.fill({ color: 0xffffff, alpha: 0.8 });
-              } else if (type === "ice") {
+              } else if (type === "frost") {
                 // Ice shard
                 g.poly([20, 0, -10, -12, -5, 0, -10, 12]);
                 g.fill({ color: 0x7dd3fc, alpha: 0.9 });

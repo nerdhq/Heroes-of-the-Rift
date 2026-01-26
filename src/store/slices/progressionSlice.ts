@@ -29,9 +29,9 @@ import {
   STARTING_XP_TO_LEVEL,
   MAX_CHAMPION_SLOTS,
   STARTER_CARDS_COMMON_COUNT,
-  STARTER_CARDS_UNCOMMON_SLOTS,
-  STARTER_CARDS_UNCOMMON_CHANCE,
-  STARTER_CARDS_RARE_CHANCE,
+  STARTER_CARDS_UNCOMMON_COUNT,
+  STARTER_CARDS_RARE_COUNT,
+  STARTER_CARDS_LEGENDARY_COUNT,
   DEFAULT_ATTRIBUTES,
 } from "../../constants";
 import { storage, STORAGE_KEYS } from "../../lib/storage";
@@ -67,10 +67,11 @@ const DEFAULT_STATS: ChampionStats = {
 };
 
 // Generate starter cards for a specific class
-// Rules: 8 cards total
-// - 5 guaranteed common cards
-// - 2 cards with 50% chance of being uncommon (otherwise common)
-// - 1 card with 5% chance of being rare (otherwise common)
+// Rules: 11 cards total
+// - All 7 common cards for the class
+// - 2 random uncommon cards
+// - 1 random rare card
+// - 1 random legendary card
 const generateStarterCardsForClass = (classType: ClassType): Card[] => {
   const classCards = getCardsByClass(classType);
 
@@ -78,6 +79,7 @@ const generateStarterCardsForClass = (classType: ClassType): Card[] => {
   const commonCards = classCards.filter((card: Card) => card.rarity === "common");
   const uncommonCards = classCards.filter((card: Card) => card.rarity === "uncommon");
   const rareCards = classCards.filter((card: Card) => card.rarity === "rare");
+  const legendaryCards = classCards.filter((card: Card) => card.rarity === "legendary");
 
   const starterCards: Card[] = [];
   const usedCardNames = new Set<string>();
@@ -97,27 +99,24 @@ const generateStarterCardsForClass = (classType: ClassType): Card[] => {
     return true;
   };
 
-  // 1. Add guaranteed common cards
+  // 1. Add ALL common cards (7 total)
   for (let i = 0; i < STARTER_CARDS_COMMON_COUNT; i++) {
     addCardFromPool(commonCards);
   }
 
-  // 2. Add cards with chance of being uncommon (otherwise common)
-  for (let i = 0; i < STARTER_CARDS_UNCOMMON_SLOTS; i++) {
-    const isUncommon = Math.random() < STARTER_CARDS_UNCOMMON_CHANCE;
-    if (isUncommon && uncommonCards.filter((c) => !usedCardNames.has(c.name)).length > 0) {
-      addCardFromPool(uncommonCards);
-    } else {
-      addCardFromPool(commonCards);
-    }
+  // 2. Add guaranteed uncommon cards (2 random)
+  for (let i = 0; i < STARTER_CARDS_UNCOMMON_COUNT; i++) {
+    addCardFromPool(uncommonCards);
   }
 
-  // 3. Add 1 card with chance of being rare (otherwise common)
-  const isRare = Math.random() < STARTER_CARDS_RARE_CHANCE;
-  if (isRare && rareCards.filter((c) => !usedCardNames.has(c.name)).length > 0) {
+  // 3. Add guaranteed rare card (1 random)
+  for (let i = 0; i < STARTER_CARDS_RARE_COUNT; i++) {
     addCardFromPool(rareCards);
-  } else {
-    addCardFromPool(commonCards);
+  }
+
+  // 4. Add guaranteed legendary card (1 random)
+  for (let i = 0; i < STARTER_CARDS_LEGENDARY_COUNT; i++) {
+    addCardFromPool(legendaryCards);
   }
 
   return starterCards;
@@ -409,8 +408,113 @@ export const createProgressionSlice: SliceCreator<ProgressionActions> = (
     }
   },
 
+  updateChampionName: async (championId: string, newName: string): Promise<boolean> => {
+    const { playerAccount, user } = get();
+    if (!playerAccount) return false;
+
+    const champion = playerAccount.champions.find((c) => c.id === championId);
+    if (!champion) return false;
+
+    // Validate name
+    const trimmedName = newName.trim();
+    if (trimmedName.length === 0 || trimmedName.length > 20) return false;
+
+    // If authenticated, update in Supabase
+    if (user) {
+      try {
+        const { error } = await getSupabase()
+          .from("champions")
+          .update({ name: trimmedName })
+          .eq("id", championId)
+          .eq("user_id", user.id);
+
+        if (error) throw error;
+      } catch (error) {
+        logSupabaseError("updateChampionName", normalizeError(error));
+        return false;
+      }
+    }
+
+    const updatedChampion: Champion = {
+      ...champion,
+      name: trimmedName,
+    };
+
+    const updatedChampions = playerAccount.champions.map((c) =>
+      c.id === championId ? updatedChampion : c
+    );
+
+    const isActive = get().activeChampion?.id === championId;
+    set({
+      playerAccount: { ...playerAccount, champions: updatedChampions },
+      activeChampion: isActive ? updatedChampion : get().activeChampion,
+    });
+
+    if (!user) {
+      get().saveProgression();
+    }
+
+    return true;
+  },
+
   getActiveChampion: (): Champion | null => {
     return get().activeChampion;
+  },
+
+  // ============================================
+  // LOCAL CO-OP CHAMPION SELECTION
+  // ============================================
+
+  toggleLocalCoopChampion: (championId: string) => {
+    const { playerAccount, localCoopChampions } = get();
+    if (!playerAccount) return;
+
+    const champion = playerAccount.champions.find((c) => c.id === championId);
+    if (!champion) return;
+
+    // Check if already selected
+    const isSelected = localCoopChampions.some((c) => c.id === championId);
+
+    if (isSelected) {
+      // Remove from selection
+      set({
+        localCoopChampions: localCoopChampions.filter((c) => c.id !== championId),
+      });
+    } else if (localCoopChampions.length < 5) {
+      // Add to selection (max 5)
+      set({
+        localCoopChampions: [...localCoopChampions, champion],
+      });
+    }
+  },
+
+  clearLocalCoopChampions: () => {
+    set({ localCoopChampions: [] });
+  },
+
+  startLocalCoopGame: () => {
+    const { localCoopChampions } = get();
+    if (localCoopChampions.length === 0) return;
+
+    // Set up selected classes and hero names from co-op champions
+    const selectedClasses = localCoopChampions.map((c) => c.class);
+    const heroNames = localCoopChampions.map((c) => c.name);
+
+    // Reset game state for local co-op
+    set({
+      selectedClasses,
+      heroNames,
+      players: [],
+      monsters: [],
+      isOnline: false,
+      turn: 1,
+      level: 1,
+      round: 1,
+      phase: "DRAW",
+    });
+
+    // Trigger class confirmation flow (which leads to deck building)
+    get().confirmClassSelection();
   },
 
   // ============================================
@@ -874,4 +978,5 @@ export const createProgressionSlice: SliceCreator<ProgressionActions> = (
 export const initialProgressionState: ProgressionState = {
   playerAccount: null,
   activeChampion: null,
+  localCoopChampions: [],
 };

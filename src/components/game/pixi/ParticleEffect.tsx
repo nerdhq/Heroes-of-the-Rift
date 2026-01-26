@@ -17,7 +17,7 @@ interface Particle {
 interface ParticleEffectProps {
   x: number;
   y: number;
-  type: "hit" | "heal" | "fire" | "ice" | "poison";
+  type: "hit" | "heal" | "fire" | "frost" | "poison";
   isActive: boolean;
   onComplete?: () => void;
 }
@@ -26,7 +26,7 @@ const PARTICLE_COLORS = {
   hit: [0xef4444, 0xfbbf24, 0xffffff],
   heal: [0x22c55e, 0x86efac, 0xffffff],
   fire: [0xf97316, 0xfbbf24, 0xef4444],
-  ice: [0x38bdf8, 0x7dd3fc, 0xffffff],
+  frost: [0x38bdf8, 0x7dd3fc, 0xffffff],
   poison: [0x22c55e, 0x86efac, 0xa855f7],
 };
 

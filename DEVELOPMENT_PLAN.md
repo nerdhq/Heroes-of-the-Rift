@@ -437,27 +437,7 @@ After defeating a boss, player chooses ONE of three options:
 
 ---
 
-## Phase 5: Passive Class Abilities
-
-### Concept
-- Earned through progression (not available at start)
-- Relatively powerful effects
-- Synergize with card types
-
-### Examples (conceptual)
-- **Paladin**: "Whenever you cast a healing spell, gain X shield"
-- **Hunter/Archer**: "Whenever you summon a creature/pet, gain X"
-- **Necromancer**: "Whenever a creature dies, gain X"
-- **Rogue**: "Attack cards deal +X damage while in Stealth"
-
-### Implementation Notes
-- May need multiple passive options per class (choice/build variety)
-- Unlock timing TBD (level up? campaign milestone? achievement?)
-- Balance carefully - should be impactful but not overwhelming
-
----
-
-## Phase 6: Ability Animations
+## Phase 5: Ability Animations
 
 ### Concept
 Add visually impactful animations for card/ability usage.
@@ -478,18 +458,13 @@ Add visually impactful animations for card/ability usage.
 
 ---
 
-## Phase 7: Avatar & Cosmetics System
-
-### Base Avatars
-- Each class has a default avatar
-- Choose between male/female variants at character creation
-- Simple but recognizable silhouettes/portraits
+## Phase 6: Cosmetics System
 
 ### Cosmetic Drops
 - Bosses drop cosmetic items for your class when defeated
 - Cosmetics are account-bound (or champion-bound TBD)
 - Types of cosmetics:
-  - **Portraits/Avatars**: Different art for your character
+  - **Sprite Skins**: Different sprite art for your character
   - **Card Backs**: Visual flair for your deck
   - **Ability Effects**: Alternate colors/styles for animations
   - **Frames/Borders**: Player card decoration
@@ -506,7 +481,7 @@ Add visually impactful animations for card/ability usage.
 
 ---
 
-## Phase 8: UI/UX Improvements
+## Phase 7: UI/UX Improvements
 
 ### Resource System Explanation
 - Add tooltip/info icon next to resource bar explaining:
@@ -530,14 +505,12 @@ Add visually impactful animations for card/ability usage.
 
 ## Open Questions
 - [ ] What card types to use?
-- [ ] How many passive options per class?
-- [ ] When/how are passives unlocked?
 - [ ] What are the upgrade values for cards?
 - [ ] What are the improved rarity odds for boss card rewards?
 - [ ] Animation tech: CSS, Lottie, canvas, or library like Framer Motion?
-- [ ] Art style for avatars: pixel art, illustrated, simple icons?
 - [ ] Cosmetics champion-bound or account-wide?
 - [ ] Which bosses drop which cosmetics?
+- [ ] Priority system - How should action order work in combat? (when buffs/debuffs apply, card resolution order, turn structure)
 
 ---
 

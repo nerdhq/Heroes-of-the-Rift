@@ -28,20 +28,30 @@ export const createPlayersSlice: SliceCreator<PlayersActions> = (set, get) => ({
   },
 
   confirmClassSelection: () => {
-    const { selectedClasses, userData, activeChampion } = get();
+    const { selectedClasses, userData, activeChampion, localCoopChampions } = get();
     if (selectedClasses.length === 0) return;
 
     const firstClass = selectedClasses[0];
 
+    // Check if we're in local co-op mode (multiple champions selected)
+    const isLocalCoop = localCoopChampions.length > 0;
+
     // Check if we're playing with the active champion (solo mode)
-    const isChampionSolo = activeChampion &&
+    const isChampionSolo = !isLocalCoop && activeChampion &&
       selectedClasses.length === 1 &&
       selectedClasses[0] === activeChampion.class;
 
-    // Get owned cards for this class from champion or legacy userData
-    const ownedClassCards = isChampionSolo
-      ? activeChampion.ownedCards.filter((card) => card.class === firstClass)
-      : (userData?.ownedCards ?? []).filter((card) => card.class === firstClass);
+    // Get owned cards for this class from the appropriate champion
+    let ownedClassCards;
+    if (isLocalCoop) {
+      // In co-op mode, use the first co-op champion's cards
+      const coopChampion = localCoopChampions[0];
+      ownedClassCards = coopChampion.ownedCards.filter((card) => card.class === firstClass);
+    } else if (isChampionSolo) {
+      ownedClassCards = activeChampion.ownedCards.filter((card) => card.class === firstClass);
+    } else {
+      ownedClassCards = (userData?.ownedCards ?? []).filter((card) => card.class === firstClass);
+    }
 
     // Use owned cards as the available cards for deck building
     const availableCards = [...ownedClassCards];
@@ -75,6 +85,7 @@ export const createPlayersSlice: SliceCreator<PlayersActions> = (set, get) => ({
       selectedDeckCards,
       players,
       activeChampion,
+      localCoopChampions,
       userData,
     } = get();
 
@@ -84,6 +95,24 @@ export const createPlayersSlice: SliceCreator<PlayersActions> = (set, get) => ({
     const heroName =
       heroNames[deckBuildingPlayerIndex] ||
       `Hero ${deckBuildingPlayerIndex + 1}`;
+
+    // Determine which champion this player is linked to (needed for legendary replacement)
+    const isLocalCoop = localCoopChampions.length > 0;
+    let linkedChampion;
+
+    if (isLocalCoop) {
+      // In co-op mode, link each player to their corresponding champion
+      linkedChampion = localCoopChampions[deckBuildingPlayerIndex];
+    } else {
+      // Solo mode - link first player to active champion if class matches
+      const isChampionPlayer =
+        deckBuildingPlayerIndex === 0 &&
+        activeChampion &&
+        selectedClasses[0] === activeChampion.class;
+      linkedChampion = isChampionPlayer ? activeChampion : undefined;
+    }
+
+    // Build initial deck from selected cards
     const deck = availableCards
       .filter((card) => selectedDeckCards.includes(card.id))
       .map((card) => ({
@@ -91,19 +120,12 @@ export const createPlayersSlice: SliceCreator<PlayersActions> = (set, get) => ({
         id: `${card.id}-${deckBuildingPlayerIndex}-${generateId()}`,
       }));
 
-    // Check if this player is the active champion (for stat scaling and gold sync)
-    // Link champion to first player if their class matches
-    const isChampionPlayer =
-      deckBuildingPlayerIndex === 0 &&
-      activeChampion &&
-      selectedClasses[0] === activeChampion.class;
-
     const newPlayer = createPlayer(
       `player-${deckBuildingPlayerIndex}`,
       heroName,
       classType,
       deck,
-      isChampionPlayer ? activeChampion : undefined
+      linkedChampion
     );
 
     const updatedPlayers = [...players, newPlayer];
@@ -112,15 +134,19 @@ export const createPlayersSlice: SliceCreator<PlayersActions> = (set, get) => ({
     if (nextIndex < selectedClasses.length) {
       const nextClass = selectedClasses[nextIndex];
 
-      // Get owned cards for this class - check if it matches a champion
-      const isNextChampion =
-        activeChampion &&
-        selectedClasses.length === 1 &&
-        nextClass === activeChampion.class;
-
-      const ownedClassCards = isNextChampion
-        ? activeChampion.ownedCards.filter((card) => card.class === nextClass)
-        : (userData?.ownedCards ?? []).filter((card) => card.class === nextClass);
+      // Get owned cards for the next player's champion
+      let ownedClassCards;
+      if (isLocalCoop && localCoopChampions[nextIndex]) {
+        // In co-op mode, use the next champion's cards
+        ownedClassCards = localCoopChampions[nextIndex].ownedCards.filter(
+          (card) => card.class === nextClass
+        );
+      } else {
+        // Fallback to userData (legacy or non-champion mode)
+        ownedClassCards = (userData?.ownedCards ?? []).filter(
+          (card) => card.class === nextClass
+        );
+      }
 
       const nextAvailableCards = [...ownedClassCards];
 
@@ -135,7 +161,7 @@ export const createPlayersSlice: SliceCreator<PlayersActions> = (set, get) => ({
         players: updatedPlayers,
         currentScreen: "game",
       });
-      
+
       // Save deck to campaign progress if in campaign mode and deck not yet saved
       const { campaignProgress } = get();
       if (campaignProgress && campaignProgress.savedDeck.length === 0) {
@@ -143,16 +169,16 @@ export const createPlayersSlice: SliceCreator<PlayersActions> = (set, get) => ({
         const originalCardIds = availableCards
           .filter((card) => selectedDeckCards.includes(card.id))
           .map((card) => card.id);
-        
+
         const updatedProgress = {
           ...campaignProgress,
           savedDeck: originalCardIds,
         };
-        
+
         set({ campaignProgress: updatedProgress });
         localStorage.setItem("campaignProgress", JSON.stringify(updatedProgress));
       }
-      
+
       // Use campaign round start if in campaign mode, otherwise regular game start
       if (get().campaignProgress) {
         get().startCampaignRound();
