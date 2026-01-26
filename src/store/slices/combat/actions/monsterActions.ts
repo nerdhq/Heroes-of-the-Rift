@@ -40,6 +40,24 @@ export const createMonsterActions = (set: SetState, get: GetState) => ({
             ),
           ],
         });
+
+        // Decrement action-tracked debuffs (monster spent an action opportunity)
+        const currentMonsters = get().monsters;
+        const monsterIdx = currentMonsters.findIndex((m) => m.id === monster.id);
+        if (monsterIdx !== -1) {
+          const currentMonster = currentMonsters[monsterIdx];
+          const updatedDebuffs = currentMonster.debuffs
+            .map((d) => d.useActionTracking ? { ...d, duration: d.duration - 1 } : d)
+            .filter((d) => d.duration > 0);
+
+          const updatedMonsters = [...currentMonsters];
+          updatedMonsters[monsterIdx] = {
+            ...currentMonster,
+            debuffs: updatedDebuffs,
+          };
+          set({ monsters: updatedMonsters });
+        }
+
         syncNow();
         await delay(1500);
         continue;
@@ -159,7 +177,7 @@ export const createMonsterActions = (set: SetState, get: GetState) => ({
             get().addDamageNumber(target.id, damage, "damage");
 
             const damagedPlayer = updatedPlayers[playerIndex];
-            if (damagedPlayer.class === "warrior" && damage > 0) {
+            if (damagedPlayer.class === "fighter" && damage > 0) {
               const rageGain = Math.min(WARRIOR_RAGE_DAMAGE_MAX_GAIN, Math.ceil(damage / WARRIOR_RAGE_DAMAGE_DIVISOR));
               updatedPlayers[playerIndex] = {
                 ...updatedPlayers[playerIndex],
@@ -178,7 +196,7 @@ export const createMonsterActions = (set: SetState, get: GetState) => ({
             const damageMsg = `${target.name} takes ${damage} damage!${
               !isAlive ? " 💀" : ""
             }`;
-            get().addActionMessage(damageMsg, "damage", monster.id);
+            get().addActionMessage(damageMsg, "damage", target.id);
             set({
               players: updatedPlayers,
               log: [
@@ -232,16 +250,36 @@ export const createMonsterActions = (set: SetState, get: GetState) => ({
             );
             if (playerIndex === -1) continue;
 
-            const newDebuff: StatusEffect = {
-              type: ability.debuff.type,
-              value: ability.debuff.value,
-              duration: ability.debuff.duration,
-              source: monster.name,
-            };
+            // Stun uses action-based tracking (duration = actions missed)
+            const useActionTracking = ability.debuff.type === "stun";
+
+            // Check if debuff of this type already exists - stack by extending duration
+            const currentDebuffs = [...updatedPlayers[playerIndex].debuffs];
+            const existingDebuffIdx = currentDebuffs.findIndex(d => d.type === ability.debuff!.type);
+
+            if (existingDebuffIdx !== -1) {
+              // Stack: extend duration and take higher value
+              const existing = currentDebuffs[existingDebuffIdx];
+              currentDebuffs[existingDebuffIdx] = {
+                ...existing,
+                duration: existing.duration + ability.debuff.duration,
+                value: Math.max(existing.value, ability.debuff.value),
+              };
+            } else {
+              // New debuff
+              const newDebuff: StatusEffect = {
+                type: ability.debuff.type,
+                value: ability.debuff.value,
+                duration: ability.debuff.duration,
+                source: monster.name,
+                useActionTracking,
+              };
+              currentDebuffs.push(newDebuff);
+            }
 
             updatedPlayers[playerIndex] = {
               ...updatedPlayers[playerIndex],
-              debuffs: [...updatedPlayers[playerIndex].debuffs, newDebuff],
+              debuffs: currentDebuffs,
               isStunned:
                 ability.debuff.type === "stun" ||
                 updatedPlayers[playerIndex].isStunned,
@@ -255,7 +293,7 @@ export const createMonsterActions = (set: SetState, get: GetState) => ({
             get().addActionMessage(
               `${target.name} is ${formatDebuffMessage(ability.debuff!.type)}!`,
               "debuff",
-              monster.id
+              target.id
             );
             set({
               players: updatedPlayers,
@@ -271,6 +309,23 @@ export const createMonsterActions = (set: SetState, get: GetState) => ({
             });
             await delay(1500);
           }
+        }
+
+        // Decrement action-tracked debuffs (monster took an action)
+        const monstersAfterAction = get().monsters;
+        const monsterIdx = monstersAfterAction.findIndex((m) => m.id === monster.id);
+        if (monsterIdx !== -1) {
+          const currentMonster = monstersAfterAction[monsterIdx];
+          const updatedDebuffs = currentMonster.debuffs
+            .map((d) => d.useActionTracking ? { ...d, duration: d.duration - 1 } : d)
+            .filter((d) => d.duration > 0);
+
+          const updatedMonsters = [...monstersAfterAction];
+          updatedMonsters[monsterIdx] = {
+            ...currentMonster,
+            debuffs: updatedDebuffs,
+          };
+          set({ monsters: updatedMonsters });
         }
       }
 

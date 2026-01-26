@@ -3,6 +3,8 @@
     "allow": [
       "Bash(npm run build:*)",
       "Bash(grep:*)",
+      "Bash(./node_modules/.bin/tsc:*)",
+      "Bash(npm run lint:*)",
       "WebFetch(domain:www.youtube.com)",
       "WebFetch(domain:pixijs.io)",
       "WebFetch(domain:react.pixijs.io)",
@@ -15,5 +17,9 @@
       "Bash(wc:*)",
       "Bash(done)"
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "chrome-devtools"
+  ],
+  "enableAllProjectMcpServers": true
 }

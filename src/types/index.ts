@@ -4,11 +4,11 @@
 
 // Class Types
 export type ClassType =
-  | "warrior"
+  | "fighter"
   | "rogue"
   | "paladin"
   | "mage"
-  | "priest"
+  | "cleric"
   | "bard"
   | "archer"
   | "barbarian";
@@ -28,12 +28,37 @@ export type EffectType =
   | "revive"
   | "poison"
   | "burn"
-  | "ice"
+  | "frost"
   | "weakness"
   | "stun"
   | "taunt"
   | "disable"
-  | "accuracy";
+  | "accuracy"
+  | "vulnerable"
+  | "regen"
+  // New effect types for class mechanics
+  | "gainResource"    // Gain class resource (Aim, Fury, etc.)
+  | "execute"         // Kill if enemy below X% HP
+  | "executeBonus"    // Bonus damage if enemy below X% HP
+  | "lifesteal"       // Heal for percentage of damage dealt
+  | "manaRestore"     // Restore mana for Mage
+  | "empowered"       // Buff next spell damage (legacy)
+  | "forceEmpowered"  // Force next spell to be treated as Empowered
+  | "doubleEmpowered" // Next spell's Empowered bonus is doubled
+  | "spellDamageBonus"// Next spell deals +X damage
+  | "manaSurge"       // Spend all mana, fire missile per mana spent
+  | "surviveLethal"   // Survive lethal damage at 1 HP
+  | "ignoreShield"    // Damage ignores shields (marker)
+  | "healPerHit"      // Heal X per enemy hit
+  | "repeatOnKill"    // Repeat attack if enemy dies
+  // New effect types for card description implementations
+  | "removeShield"    // Remove all shields from target
+  | "stunImmunity"    // Cannot be stunned
+  | "priority"        // Card acts first in turn order
+  | "transferDebuffs" // Transfer debuffs from self to target
+  | "aggroReduction"  // Reduce aggro generation
+  | "bountyMark"      // Mark for bonus gold on kill
+  | "poisonCoating";  // Next X attacks apply poison
 
 // Target Types
 export type TargetType =
@@ -42,7 +67,8 @@ export type TargetType =
   | "monster"
   | "all"
   | "allAllies"
-  | "allMonsters";
+  | "allMonsters"
+  | "lowestAlly";  // Target the ally with lowest HP
 
 // Game Phases
 export type GamePhase =
@@ -53,7 +79,7 @@ export type GamePhase =
   | "PLAYER_ACTION"
   | "RESOLVE" // All players' actions resolve simultaneously
   | "MONSTER_ACTION"
-  | "DEBUFF_RESOLUTION"
+  | "STATUS_RESOLUTION"
   | "END_TURN";
 
 // Player Selection (for simultaneous action selection)
@@ -73,6 +99,7 @@ export type ScreenType =
   | "waitingRoom"
   | "onlineChampionSelect"
   | "championSelect"
+  | "gameChampionSelect"
   | "championCreate"
   | "statAllocation"
   | "classSelect"
@@ -101,6 +128,23 @@ export interface Effect {
   value?: number;
   target: TargetType;
   duration?: number; // for buffs/debuffs
+  // Rogue stealth bonuses
+  stealthBonus?: number;       // Bonus value if stealthed (damage/poison)
+  stealthOnly?: boolean;       // Effect only applies if stealthed
+  stealthDurationBonus?: number; // Bonus duration if stealthed
+  // Rogue/Fighter stun bonus
+  stunBonus?: number;          // Bonus damage if target is stunned
+  // Mage elemental combo bonuses
+  burnBonus?: number;          // Bonus damage if target has Burn
+  frostBonus?: number;         // Bonus damage if target has Frost
+  burnBonusTick?: number;      // Increase existing Burn tick damage by this amount
+  frostBonusTick?: number;     // Increase existing Frost tick damage by this amount
+  consumeDebuff?: boolean;     // Consume the debuff after applying bonus (e.g., Shattering Lance)
+  doubleDamageIfDebuff?: EffectType; // Double damage if target has this debuff type
+  // Attack consumption tracking
+  consumeOnAttack?: boolean;   // Buff is consumed per attack, not per turn
+  // Percentage-based buffs (for "+X% damage" cards)
+  isPercentage?: boolean;      // If true, strength value is percentage (50 = +50% damage)
 }
 
 // ============================================
@@ -122,9 +166,26 @@ export interface Card {
 export interface StatusEffect {
   type: EffectType;
   value: number;
-  duration: number; // turns remaining
+  duration: number; // turns remaining (legacy) or actions remaining if useActionTracking
   source?: string; // who applied it
+  consumeOnAttack?: boolean; // Consumed per attack instead of per turn
+  attacksRemaining?: number; // For consumeOnAttack buffs
+  isPercentage?: boolean; // If true, value is a percentage (e.g., 50 = +50% damage)
+  // Action-based tracking: duration counts actions instead of turns
+  // For stun: decremented when the stunned entity's action opportunity passes
+  // For buffs: decremented when the buffed entity takes an action (plays a card)
+  useActionTracking?: boolean;
 }
+
+// ============================================
+// BARD SONG TYPES
+// ============================================
+export type BardSongType = "harmony" | "riot" | null;
+
+// ============================================
+// CLERIC MODE TYPES
+// ============================================
+export type ClericMode = "judgment" | "benediction";
 
 // ============================================
 // PLAYER
@@ -143,7 +204,7 @@ export interface Player {
   deck: Card[];
   discard: Card[];
   hand: Card[];
-  resource: number; // class-specific meter
+  resource: number; // class-specific meter (for Bard: song stacks 0-5)
   maxResource: number;
   gold: number; // gold earned from defeating monsters
   isAlive: boolean;
@@ -155,6 +216,17 @@ export interface Player {
   // Champion link (for progression system)
   championId?: string;
   attributes?: CharacterAttributes;
+
+  // Bard-specific: current song type (Harmony or Riot)
+  bardSongType?: BardSongType;
+
+  // Cleric-specific: current prayer mode (Judgment or Benediction)
+  clericMode?: ClericMode;
+
+  // Mage-specific: separate mana pool for Empowered/Depowered scaling
+  // Distinct from resource (Resonance) which powers the special ability
+  mana?: number;
+  maxMana?: number;
 }
 
 // ============================================

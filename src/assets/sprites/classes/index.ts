@@ -15,11 +15,11 @@ const spriteCache: Partial<Record<ClassType, SpriteLoadState>> = {};
 
 // Pre-load all sprites on module initialization
 const CLASS_TYPES: ClassType[] = [
-  "warrior",
+  "fighter",
   "rogue",
   "paladin",
   "mage",
-  "priest",
+  "cleric",
   "bard",
   "archer",
   "barbarian",

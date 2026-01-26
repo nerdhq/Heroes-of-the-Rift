@@ -32,15 +32,20 @@ export const createSimultaneousActions = (set: SetState, get: GetState) => ({
 
     let deck = [...player.deck];
     let discard = [...player.discard];
-    const hand: typeof player.hand = [];
+    // Keep existing cards in hand, only draw to fill up to hand size
+    const hand: typeof player.hand = [...player.hand];
+    const cardsToDraw = CARDS_DRAWN_PER_TURN - hand.length;
+    const newlyDrawn: typeof player.hand = [];
 
-    for (let i = 0; i < CARDS_DRAWN_PER_TURN; i++) {
+    for (let i = 0; i < cardsToDraw; i++) {
       if (deck.length === 0 && discard.length > 0) {
         deck = shuffleArray(discard);
         discard = [];
       }
       if (deck.length > 0) {
-        hand.push(deck.pop()!);
+        const drawnCard = deck.pop()!;
+        hand.push(drawnCard);
+        newlyDrawn.push(drawnCard);
       }
     }
 
@@ -52,17 +57,17 @@ export const createSimultaneousActions = (set: SetState, get: GetState) => ({
       hand,
     };
 
+    // Log message shows what was drawn (or that hand was kept)
+    const logMessage = newlyDrawn.length > 0
+      ? `${player.name} draws ${newlyDrawn.map((c) => c.name).join(", ")}`
+      : `${player.name} keeps their hand`;
+
     set({
       players: updatedPlayers,
       phase: "SELECT",
       log: [
         ...get().log,
-        createLogEntry(
-          turn,
-          phase,
-          `${player.name} draws ${hand.map((c) => c.name).join(", ")}`,
-          "info"
-        ),
+        createLogEntry(turn, phase, logMessage, "info"),
       ],
     });
 
@@ -96,9 +101,11 @@ export const createSimultaneousActions = (set: SetState, get: GetState) => ({
 
       let deck = [...player.deck];
       let discard = [...player.discard];
-      const hand: typeof player.hand = [];
+      // Keep existing cards in hand, only draw to fill up to hand size
+      const hand: typeof player.hand = [...player.hand];
+      const cardsToDraw = CARDS_DRAWN_PER_TURN - hand.length;
 
-      for (let j = 0; j < CARDS_DRAWN_PER_TURN; j++) {
+      for (let j = 0; j < cardsToDraw; j++) {
         if (deck.length === 0 && discard.length > 0) {
           deck = shuffleArray(discard);
           discard = [];
@@ -281,6 +288,30 @@ export const createSimultaneousActions = (set: SetState, get: GetState) => ({
       if (player.isStunned) {
         get().addActionMessage(`${player.name} is stunned!`, "debuff", player.id);
         logs.push(createLogEntry(turn, "RESOLVE", `${player.name} is stunned and cannot act!`, "debuff"));
+
+        // Decrement action-tracked debuffs (player's action opportunity passed)
+        const updatedDebuffsAfterStun = player.debuffs
+          .map((d) => d.useActionTracking ? { ...d, duration: d.duration - 1 } : d)
+          .filter((d) => d.duration > 0);
+
+        // Log expired action-tracked debuffs
+        const expiredStunDebuffs = player.debuffs.filter(
+          (d) => d.useActionTracking && d.duration === 1
+        );
+        for (const debuff of expiredStunDebuffs) {
+          logs.push(createLogEntry(turn, "RESOLVE", `${player.name}'s ${debuff.type} wore off!`, "info"));
+        }
+
+        // Update player with decremented debuffs
+        const hasStunAfter = updatedDebuffsAfterStun.some((d) => d.type === "stun");
+        const playersAfterStunDecrement = get().players.map((p, idx) =>
+          idx === playerIndex
+            ? { ...p, debuffs: updatedDebuffsAfterStun, isStunned: hasStunAfter }
+            : p
+        );
+        set({ players: playersAfterStunDecrement });
+        syncNow();
+
         continue;
       }
 

@@ -15,6 +15,17 @@ import {
   DODGE_CHANCE_PER_AGI,
   ACCURACY_MITIGATION_DIVISOR,
   DEFAULT_ATTRIBUTES,
+  // Class-specific mechanics
+  FIGHTER_PROC_CHANCE,
+  FIGHTER_CRIT_MULTIPLIER,
+  BARBARIAN_HP_THRESHOLD_75,
+  BARBARIAN_HP_THRESHOLD_50,
+  BARBARIAN_HP_THRESHOLD_25,
+  BARBARIAN_DAMAGE_BONUS_75,
+  BARBARIAN_DAMAGE_BONUS_50,
+  BARBARIAN_DAMAGE_BONUS_25,
+  ARCHER_CRIT_CHANCE_PER_AIM,
+  ARCHER_MAX_AIM_CRIT_MULTIPLIER,
 } from "../constants";
 
 // ============================================
@@ -108,7 +119,7 @@ export const calculateAccuracyMitigation = (
 
 // Determine if a card's damage is physical or magical based on class
 export const isPhysicalDamageClass = (classType: Player["class"]): boolean => {
-  const physicalClasses = ["warrior", "rogue", "barbarian", "archer"];
+  const physicalClasses = ["fighter", "rogue", "barbarian", "archer"];
   return physicalClasses.includes(classType);
 };
 
@@ -207,6 +218,13 @@ export const createPlayer = (
     // Champion link
     championId: champion?.id,
     attributes: champion?.attributes,
+    // Bard-specific: start with no active song
+    bardSongType: classType === "bard" ? null : undefined,
+    // Cleric-specific: start in Judgment mode
+    clericMode: classType === "cleric" ? "judgment" : undefined,
+    // Mage-specific: separate mana pool for Empowered/Depowered scaling
+    mana: classType === "mage" ? 0 : undefined,
+    maxMana: classType === "mage" ? 10 : undefined,
   };
 };
 
@@ -317,7 +335,7 @@ export const applyEnvironmentModifier = (
   for (const envEffect of environment.effects) {
     switch (envEffect.type) {
       case "frostBonus":
-        if (effectType === "ice") {
+        if (effectType === "frost") {
           modifier *= envEffect.value;
         }
         break;
@@ -479,6 +497,14 @@ export function applyEffect(
         return updatedPlayers
           .filter((p) => p.isAlive && p.id !== caster.id)
           .slice(0, 1);
+      case "lowestAlly":
+        // Target the ally with the lowest HP (including self)
+        const aliveAllies = updatedPlayers.filter((p) => p.isAlive);
+        if (aliveAllies.length === 0) return [];
+        const lowestHpAlly = aliveAllies.reduce((lowest, p) =>
+          (p.hp / p.maxHp) < (lowest.hp / lowest.maxHp) ? p : lowest
+        );
+        return [lowestHpAlly];
       case "allAllies":
         return updatedPlayers.filter((p) => p.isAlive);
       default:
@@ -505,6 +531,15 @@ export function applyEffect(
 
   switch (effect.type) {
     case "damage": {
+      // Check if this damage effect requires stealth
+      if (effect.stealthOnly) {
+        const currentCaster = updatedPlayers.find((p) => p.id === caster.id);
+        if (!currentCaster?.isStealth) {
+          // Skip this damage effect if not stealthed
+          break;
+        }
+      }
+
       const monsterTargets = getMonsterTargets();
       for (const monster of monsterTargets) {
         const idx = updatedMonsters.findIndex((m) => m.id === monster.id);
@@ -519,35 +554,265 @@ export function applyEffect(
         damage = applyEnvironmentModifier(damage, "damage", environment);
 
         const currentCaster = updatedPlayers.find((p) => p.id === caster.id);
+
+        // ============================================
+        // BARBARIAN - Blood Frenzy HP scaling
+        // Lower HP = more damage
+        // ============================================
+        if (currentCaster?.class === "barbarian") {
+          const hpPercent = currentCaster.hp / currentCaster.maxHp;
+          let bloodFrenzyBonus = 0;
+          let bloodFrenzyTier = "";
+
+          if (hpPercent <= BARBARIAN_HP_THRESHOLD_25) {
+            bloodFrenzyBonus = BARBARIAN_DAMAGE_BONUS_25; // +100%
+            bloodFrenzyTier = "MAXIMUM";
+          } else if (hpPercent <= BARBARIAN_HP_THRESHOLD_50) {
+            bloodFrenzyBonus = BARBARIAN_DAMAGE_BONUS_50; // +50%
+            bloodFrenzyTier = "HIGH";
+          } else if (hpPercent <= BARBARIAN_HP_THRESHOLD_75) {
+            bloodFrenzyBonus = BARBARIAN_DAMAGE_BONUS_75; // +25%
+            bloodFrenzyTier = "RISING";
+          }
+
+          if (bloodFrenzyBonus > 0) {
+            const bonusDamage = Math.floor(damage * bloodFrenzyBonus);
+            damage += bonusDamage;
+            logs.push(
+              createLogEntry(
+                turn,
+                "PLAYER_ACTION",
+                `Blood Frenzy (${bloodFrenzyTier})! ${caster.name} deals +${Math.round(bloodFrenzyBonus * 100)}% damage (+${bonusDamage})!`,
+                "buff",
+                true
+              )
+            );
+          }
+        }
+
+        // NOTE: Paladin Faith bonuses are card-specific and applied via applyFaithBonuses()
+        // See cardHelpers.ts for parsing logic
+
         const strengthBuff = currentCaster?.buffs.find(
           (b) => b.type === "strength"
         );
         if (strengthBuff) {
-          damage += strengthBuff.value;
+          if (strengthBuff.isPercentage) {
+            // Percentage-based strength (e.g., +50% damage)
+            const bonusDamage = Math.floor(damage * (strengthBuff.value / 100));
+            damage += bonusDamage;
+            logs.push(
+              createLogEntry(
+                turn,
+                "PLAYER_ACTION",
+                `${caster.name}'s damage buff adds +${strengthBuff.value}% (+${bonusDamage}) damage!`,
+                "buff",
+                true
+              )
+            );
+          } else {
+            // Flat strength bonus
+            damage += strengthBuff.value;
+            logs.push(
+              createLogEntry(
+                turn,
+                "PLAYER_ACTION",
+                `${caster.name}'s strength buff adds +${strengthBuff.value} damage!`,
+                "buff",
+                true
+              )
+            );
+          }
+        }
+
+        // ============================================
+        // ROGUE - Stealth damage bonus (card-specific)
+        // Uses stealthBonus from effect if available, otherwise 50%
+        // ============================================
+        if (currentCaster?.class === "rogue" && currentCaster.isStealth) {
+          // Check for card-specific stealth bonus
+          const cardStealthBonus = effect.stealthBonus;
+          if (cardStealthBonus !== undefined) {
+            damage += cardStealthBonus;
+            logs.push(
+              createLogEntry(
+                turn,
+                "PLAYER_ACTION",
+                `Sneak Attack! ${caster.name} deals +${cardStealthBonus} bonus damage from stealth!`,
+                "damage",
+                true
+              )
+            );
+          } else {
+            // Default 50% stealth bonus for cards without specific bonus
+            const stealthBonus = Math.floor(damage * 0.5);
+            damage += stealthBonus;
+            logs.push(
+              createLogEntry(
+                turn,
+                "PLAYER_ACTION",
+                `Sneak Attack! ${caster.name} deals +${stealthBonus} bonus damage from stealth!`,
+                "damage",
+                true
+              )
+            );
+          }
+        }
+
+        // ============================================
+        // CONDITIONAL BONUSES - Stun, Burn, Frost
+        // ============================================
+        // Stun bonus (Rogue cards: +damage if target stunned)
+        if (effect.stunBonus && monster.debuffs.some(d => d.type === "stun")) {
+          damage += effect.stunBonus;
           logs.push(
             createLogEntry(
               turn,
               "PLAYER_ACTION",
-              `${caster.name}'s strength buff adds +${strengthBuff.value} damage!`,
-              "buff",
+              `${caster.name} exploits the stunned enemy for +${effect.stunBonus} bonus damage!`,
+              "damage",
               true
             )
           );
         }
 
-        // Roll for crit (based on LCK)
-        const critResult = rollCrit(caster.attributes);
-        if (critResult.isCrit) {
-          damage = Math.floor(damage * critResult.multiplier);
+        // Burn bonus (Mage cards: +damage if target has Burn)
+        if (effect.burnBonus && monster.debuffs.some(d => d.type === "burn")) {
+          damage += effect.burnBonus;
           logs.push(
             createLogEntry(
               turn,
               "PLAYER_ACTION",
-              `Critical hit! ${caster.name}'s damage is multiplied by ${critResult.multiplier.toFixed(2)}x!`,
+              `Combustion! ${caster.name} deals +${effect.burnBonus} bonus damage to burning enemy!`,
               "damage",
               true
             )
           );
+        }
+
+        // Frost bonus (Mage cards: +damage if target has Frost)
+        if (effect.frostBonus && monster.debuffs.some(d => d.type === "frost")) {
+          damage += effect.frostBonus;
+          logs.push(
+            createLogEntry(
+              turn,
+              "PLAYER_ACTION",
+              `Shatter! ${caster.name} deals +${effect.frostBonus} bonus damage to frozen enemy!`,
+              "damage",
+              true
+            )
+          );
+        }
+
+        // Double damage if target has specific debuff (e.g., Shattering Lance)
+        if (effect.doubleDamageIfDebuff) {
+          const hasDebuff = monster.debuffs.some(d => d.type === effect.doubleDamageIfDebuff);
+          if (hasDebuff) {
+            damage *= 2;
+            logs.push(
+              createLogEntry(
+                turn,
+                "PLAYER_ACTION",
+                `${caster.name}'s attack doubles damage against ${effect.doubleDamageIfDebuff}ed enemy!`,
+                "damage",
+                true
+              )
+            );
+            // Consume the debuff if specified
+            if (effect.consumeDebuff) {
+              updatedMonsters[idx] = {
+                ...updatedMonsters[idx],
+                debuffs: updatedMonsters[idx].debuffs.filter(d => d.type !== effect.doubleDamageIfDebuff),
+              };
+              logs.push(
+                createLogEntry(
+                  turn,
+                  "PLAYER_ACTION",
+                  `The ${effect.doubleDamageIfDebuff} effect is consumed!`,
+                  "debuff",
+                  true
+                )
+              );
+            }
+          }
+        }
+
+        // ============================================
+        // CRIT CALCULATION - Class-specific mechanics
+        // ============================================
+        let isCrit = false;
+        let critMultiplier = 1;
+
+        // Archer - Aim-based crit (+10% per Aim stack, guaranteed 2.5x at 5)
+        if (currentCaster?.class === "archer") {
+          const aimStacks = currentCaster.resource || 0;
+          if (aimStacks >= 5) {
+            // Guaranteed empowered crit at max Aim
+            isCrit = true;
+            critMultiplier = ARCHER_MAX_AIM_CRIT_MULTIPLIER;
+            logs.push(
+              createLogEntry(
+                turn,
+                "PLAYER_ACTION",
+                `Perfect Shot! ${caster.name}'s maximum Aim guarantees a ${critMultiplier}x critical hit!`,
+                "damage",
+                true
+              )
+            );
+            // Reset Aim after empowered attack
+            const casterIdx = updatedPlayers.findIndex((p) => p.id === caster.id);
+            if (casterIdx !== -1) {
+              updatedPlayers[casterIdx] = {
+                ...updatedPlayers[casterIdx],
+                resource: 0,
+              };
+            }
+          } else {
+            // Normal crit chance based on Aim stacks
+            const aimCritChance = aimStacks * ARCHER_CRIT_CHANCE_PER_AIM;
+            const baseCrit = rollCrit(caster.attributes);
+            const totalCritChance = aimCritChance + (baseCrit.isCrit ? 1 : (BASE_CRIT_CHANCE + (caster.attributes?.LCK || 0) * CRIT_CHANCE_PER_LCK));
+
+            if (Math.random() < totalCritChance) {
+              isCrit = true;
+              critMultiplier = 2.0; // Standard Archer crit
+            }
+          }
+        }
+        // Fighter - Disciplined Strikes (10% crit chance as part of passive)
+        else if (currentCaster?.class === "fighter") {
+          // Fighter has separate 10% crit from passive, plus normal LCK-based crit
+          const fighterCrit = Math.random() < FIGHTER_PROC_CHANCE;
+          const lckCrit = rollCrit(caster.attributes);
+
+          if (fighterCrit || lckCrit.isCrit) {
+            isCrit = true;
+            critMultiplier = fighterCrit ? FIGHTER_CRIT_MULTIPLIER : lckCrit.multiplier;
+          }
+        }
+        // Default - LCK-based crit
+        else {
+          const critResult = rollCrit(caster.attributes);
+          if (critResult.isCrit) {
+            isCrit = true;
+            critMultiplier = critResult.multiplier;
+          }
+        }
+
+        if (isCrit) {
+          damage = Math.floor(damage * critMultiplier);
+          if (currentCaster?.class !== "archer" || (currentCaster?.resource || 0) < 5) {
+            // Don't double-log for Archer Perfect Shot
+            logs.push(
+              createLogEntry(
+                turn,
+                "PLAYER_ACTION",
+                `Critical hit! ${caster.name}'s damage is multiplied by ${critMultiplier.toFixed(2)}x!`,
+                "damage",
+                true
+              )
+            );
+          }
         }
 
         // Apply accuracy penalty with AGI mitigation
@@ -569,6 +834,8 @@ export function applyEffect(
           }
         }
 
+        // TODO: Execute bonus logic needs to be implemented via effect type, not card reference
+
         if (monster.damageReduction) {
           const reducedAmount = Math.floor(damage * monster.damageReduction);
           damage = damage - reducedAmount;
@@ -585,7 +852,11 @@ export function applyEffect(
 
         let remainingDamage = damage;
         let newShield = monster.shield;
-        if (newShield > 0) {
+
+        // Check for ignoreShield buff
+        const ignoreShieldBuff = currentCaster?.buffs.find((b) => b.type === "ignoreShield");
+
+        if (newShield > 0 && !ignoreShieldBuff) {
           if (newShield >= remainingDamage) {
             newShield -= remainingDamage;
             remainingDamage = 0;
@@ -593,6 +864,17 @@ export function applyEffect(
             remainingDamage -= newShield;
             newShield = 0;
           }
+        } else if (ignoreShieldBuff) {
+          // Ignore shield entirely - damage goes straight to HP
+          logs.push(
+            createLogEntry(
+              turn,
+              "PLAYER_ACTION",
+              `Armor Piercing! ${caster.name}'s attack ignores shields!`,
+              "damage",
+              true
+            )
+          );
         }
 
         const newHp = Math.max(0, monster.hp - remainingDamage);
@@ -646,11 +928,11 @@ export function applyEffect(
         }
 
         if (monster.eliteModifier === "cursed" && currentCaster) {
-          const debuffTypes: Array<"poison" | "burn" | "weakness" | "ice"> = [
+          const debuffTypes: Array<"poison" | "burn" | "weakness" | "frost"> = [
             "poison",
             "burn",
             "weakness",
-            "ice",
+            "frost",
           ];
           const randomDebuff =
             debuffTypes[Math.floor(Math.random() * debuffTypes.length)];
@@ -682,6 +964,72 @@ export function applyEffect(
           }
         }
 
+        // ============================================
+        // FIGHTER - Disciplined Strikes passive procs
+        // 10% chance each for: stun, vulnerable, weakness
+        // ============================================
+        if (currentCaster?.class === "fighter" && updatedMonsters[idx].isAlive) {
+          const fighterProcs: string[] = [];
+
+          // 10% chance to stun
+          if (Math.random() < FIGHTER_PROC_CHANCE) {
+            updatedMonsters[idx] = {
+              ...updatedMonsters[idx],
+              debuffs: [
+                ...updatedMonsters[idx].debuffs,
+                { type: "stun" as EffectType, value: 1, duration: 1, useActionTracking: true },
+              ],
+            };
+            fighterProcs.push("Stunned");
+          }
+
+          // 10% chance to apply Vulnerable
+          if (Math.random() < FIGHTER_PROC_CHANCE) {
+            const existingVuln = updatedMonsters[idx].debuffs.find((d) => d.type === "vulnerable");
+            if (existingVuln) {
+              existingVuln.duration = Math.max(existingVuln.duration, 2);
+            } else {
+              updatedMonsters[idx] = {
+                ...updatedMonsters[idx],
+                debuffs: [
+                  ...updatedMonsters[idx].debuffs,
+                  { type: "vulnerable" as EffectType, value: 1, duration: 2 },
+                ],
+              };
+            }
+            fighterProcs.push("Vulnerable");
+          }
+
+          // 10% chance to apply Weakness
+          if (Math.random() < FIGHTER_PROC_CHANCE) {
+            const existingWeak = updatedMonsters[idx].debuffs.find((d) => d.type === "weakness");
+            if (existingWeak) {
+              existingWeak.duration = Math.max(existingWeak.duration, 2);
+            } else {
+              updatedMonsters[idx] = {
+                ...updatedMonsters[idx],
+                debuffs: [
+                  ...updatedMonsters[idx].debuffs,
+                  { type: "weakness" as EffectType, value: 20, duration: 2 },
+                ],
+              };
+            }
+            fighterProcs.push("Weakened");
+          }
+
+          if (fighterProcs.length > 0) {
+            logs.push(
+              createLogEntry(
+                turn,
+                "PLAYER_ACTION",
+                `Disciplined Strike! ${caster.name} finds weakpoints: ${fighterProcs.join(", ")}!`,
+                "debuff",
+                true
+              )
+            );
+          }
+        }
+
         logs.push(
           createLogEntry(
             turn,
@@ -698,12 +1046,37 @@ export function applyEffect(
       if (effect.target === "self" && effect.value) {
         const idx = updatedPlayers.findIndex((p) => p.id === caster.id);
         if (idx !== -1) {
-          const newHp = Math.max(0, updatedPlayers[idx].hp - effect.value);
-          updatedPlayers[idx] = {
-            ...updatedPlayers[idx],
-            hp: newHp,
-            isAlive: newHp > 0,
-          };
+          let newHp = Math.max(0, updatedPlayers[idx].hp - effect.value);
+          let isAlive = newHp > 0;
+
+          // Check for surviveLethal buff
+          const surviveLethalBuff = updatedPlayers[idx].buffs.find((b) => b.type === "surviveLethal");
+          if (!isAlive && surviveLethalBuff) {
+            newHp = 1;
+            isAlive = true;
+            // Remove the buff after it triggers
+            updatedPlayers[idx] = {
+              ...updatedPlayers[idx],
+              hp: newHp,
+              isAlive,
+              buffs: updatedPlayers[idx].buffs.filter((b) => b.type !== "surviveLethal"),
+            };
+            logs.push(
+              createLogEntry(
+                turn,
+                "PLAYER_ACTION",
+                `Death's Door! ${caster.name} survives at 1 HP!`,
+                "heal",
+                true
+              )
+            );
+          } else {
+            updatedPlayers[idx] = {
+              ...updatedPlayers[idx],
+              hp: newHp,
+              isAlive,
+            };
+          }
           logs.push(
             createLogEntry(
               turn,
@@ -714,11 +1087,88 @@ export function applyEffect(
           );
         }
       }
+
+      // Handle lifesteal and healPerHit buffs after all damage is dealt
+      const casterIdxForHealing = updatedPlayers.findIndex((p) => p.id === caster.id);
+      if (casterIdxForHealing !== -1) {
+        const casterForHealing = updatedPlayers[casterIdxForHealing];
+
+        // Lifesteal: heal for percentage of damage dealt
+        const lifestealBuff = casterForHealing.buffs.find((b) => b.type === "lifesteal");
+        if (lifestealBuff && effect.target !== "self") {
+          const totalDamageDealt = monsterTargets.reduce((sum, m) => {
+            const monster = updatedMonsters.find((mon) => mon.id === m.id);
+            const originalMonster = monsters.find((mon) => mon.id === m.id);
+            if (monster && originalMonster) {
+              return sum + Math.max(0, originalMonster.hp - monster.hp);
+            }
+            return sum;
+          }, 0);
+
+          const healAmount = Math.floor(totalDamageDealt * (lifestealBuff.value / 100));
+          if (healAmount > 0) {
+            const newHp = Math.min(casterForHealing.maxHp, casterForHealing.hp + healAmount);
+            updatedPlayers[casterIdxForHealing] = {
+              ...casterForHealing,
+              hp: newHp,
+            };
+            logs.push(
+              createLogEntry(
+                turn,
+                "PLAYER_ACTION",
+                `Lifesteal! ${caster.name} heals for ${healAmount} HP!`,
+                "heal",
+                true
+              )
+            );
+          }
+        }
+
+        // HealPerHit: heal X per enemy hit
+        const healPerHitBuff = casterForHealing.buffs.find((b) => b.type === "healPerHit");
+        if (healPerHitBuff && effect.target === "allMonsters") {
+          const enemiesHit = monsterTargets.filter((m) => {
+            const monster = updatedMonsters.find((mon) => mon.id === m.id);
+            return monster && monster.isAlive;
+          }).length;
+
+          const healAmount = healPerHitBuff.value * Math.max(1, enemiesHit);
+          if (healAmount > 0) {
+            const currentCasterHp = updatedPlayers[casterIdxForHealing].hp;
+            const newHp = Math.min(updatedPlayers[casterIdxForHealing].maxHp, currentCasterHp + healAmount);
+            updatedPlayers[casterIdxForHealing] = {
+              ...updatedPlayers[casterIdxForHealing],
+              hp: newHp,
+            };
+            logs.push(
+              createLogEntry(
+                turn,
+                "PLAYER_ACTION",
+                `Vampiric! ${caster.name} heals for ${healAmount} HP (${enemiesHit} enemies hit)!`,
+                "heal",
+                true
+              )
+            );
+          }
+        }
+
+        // Remove ignoreShield buff after use (single use)
+        const ignoreShieldBuff = casterForHealing.buffs.find((b) => b.type === "ignoreShield");
+        if (ignoreShieldBuff) {
+          updatedPlayers[casterIdxForHealing] = {
+            ...updatedPlayers[casterIdxForHealing],
+            buffs: updatedPlayers[casterIdxForHealing].buffs.filter((b) => b.type !== "ignoreShield"),
+          };
+        }
+      }
+
       break;
     }
 
     case "heal": {
       const targets = getTargets();
+      // NOTE: Paladin Faith bonuses are card-specific and applied via applyFaithBonuses()
+
       for (const target of targets) {
         const idx = updatedPlayers.findIndex((p) => p.id === target.id);
         if (idx === -1) continue;
@@ -727,6 +1177,7 @@ export function applyEffect(
         // Apply stat scaling based on caster's WIS
         healAmount = calculateScaledHeal(healAmount, caster.attributes);
         healAmount = applyEnvironmentModifier(healAmount, "heal", environment);
+
         const newHp = Math.min(target.maxHp, target.hp + healAmount);
 
         updatedPlayers[idx] = {
@@ -777,6 +1228,7 @@ export function applyEffect(
     case "stealth":
     case "taunt":
     case "strength":
+    case "regen":
     case "block": {
       const targets = getTargets();
       for (const target of targets) {
@@ -788,11 +1240,19 @@ export function applyEffect(
         const baseDuration = effect.duration || 1;
         const finalDuration = baseDuration + durationBonus;
 
+        // Stealth, Taunt, Strength use action-based tracking
+        // Block, Regen use turn-based tracking
+        const useActionTracking = ["stealth", "taunt", "strength"].includes(effect.type);
+
         const newBuff: StatusEffect = {
           type: effect.type,
           value: effect.value || 1,
-          duration: finalDuration,
+          duration: effect.consumeOnAttack ? baseDuration : finalDuration, // Don't apply WIS bonus to attack-based buffs
           source: caster.name,
+          consumeOnAttack: effect.consumeOnAttack,
+          attacksRemaining: effect.consumeOnAttack ? baseDuration : undefined,
+          isPercentage: effect.isPercentage, // For percentage-based strength buffs
+          useActionTracking,
         };
 
         updatedPlayers[idx] = {
@@ -802,7 +1262,10 @@ export function applyEffect(
           hasTaunt: effect.type === "taunt" || target.hasTaunt,
         };
 
-        const durationText = durationBonus > 0 ? ` (${baseDuration}+${durationBonus} turns)` : "";
+        const durationUnit = useActionTracking ? "action(s)" : "turns";
+        const durationText = effect.consumeOnAttack
+          ? ` (${baseDuration} attacks)`
+          : durationBonus > 0 ? ` (${baseDuration}+${durationBonus} ${durationUnit})` : "";
         logs.push(
           createLogEntry(
             turn,
@@ -817,10 +1280,20 @@ export function applyEffect(
 
     case "poison":
     case "burn":
-    case "ice":
+    case "frost":
     case "weakness":
+    case "vulnerable":
     case "stun":
     case "accuracy": {
+      // Check if this effect requires stealth
+      if (effect.stealthOnly) {
+        const currentCaster = updatedPlayers.find((p) => p.id === caster.id);
+        if (!currentCaster?.isStealth) {
+          // Skip this effect if not stealthed
+          break;
+        }
+      }
+
       const monsterTargets = getMonsterTargets();
       for (const monster of monsterTargets) {
         const idx = updatedMonsters.findIndex((m) => m.id === monster.id);
@@ -829,21 +1302,120 @@ export function applyEffect(
         // Apply duration bonus from WIS for debuffs too
         const durationBonus = calculateDurationBonus(caster.attributes);
         const baseDuration = effect.duration || 1;
-        const finalDuration = baseDuration + durationBonus;
+        let finalDuration = baseDuration + durationBonus;
 
-        const newDebuff: StatusEffect = {
-          type: effect.type,
-          value: effect.value || 1,
-          duration: finalDuration,
-          source: caster.name,
-        };
+        // Apply stealth duration bonus if stealthed
+        const currentCaster = updatedPlayers.find((p) => p.id === caster.id);
+        if (effect.stealthDurationBonus && currentCaster?.isStealth) {
+          finalDuration += effect.stealthDurationBonus;
+          logs.push(
+            createLogEntry(
+              turn,
+              "PLAYER_ACTION",
+              `Stealth bonus: +${effect.stealthDurationBonus} turn(s) duration!`,
+              "buff",
+              true
+            )
+          );
+        }
+
+        // Apply stealth value bonus for poison if stealthed
+        let finalValue = effect.value || 1;
+        if (effect.stealthBonus && currentCaster?.isStealth) {
+          finalValue += effect.stealthBonus;
+          logs.push(
+            createLogEntry(
+              turn,
+              "PLAYER_ACTION",
+              `Stealth bonus: +${effect.stealthBonus} ${effect.type}/tick!`,
+              "buff",
+              true
+            )
+          );
+        }
+
+        // ============================================
+        // MAGE - Elemental combo: increase existing debuff tick damage
+        // ============================================
+        const currentMonster = updatedMonsters[idx];
+        let updatedDebuffs = [...currentMonster.debuffs];
+
+        // Burn bonus tick: increase existing burn's tick damage
+        if (effect.type === "burn" && effect.burnBonusTick) {
+          const existingBurnIdx = updatedDebuffs.findIndex(d => d.type === "burn");
+          if (existingBurnIdx !== -1) {
+            updatedDebuffs[existingBurnIdx] = {
+              ...updatedDebuffs[existingBurnIdx],
+              value: updatedDebuffs[existingBurnIdx].value + effect.burnBonusTick,
+            };
+            logs.push(
+              createLogEntry(
+                turn,
+                "PLAYER_ACTION",
+                `Intensified Flames! Existing burn damage increased by +${effect.burnBonusTick}/tick!`,
+                "debuff",
+                true
+              )
+            );
+          }
+        }
+
+        // Frost bonus tick: increase existing frost's tick damage
+        if (effect.type === "frost" && effect.frostBonusTick) {
+          const existingFrostIdx = updatedDebuffs.findIndex(d => d.type === "frost");
+          if (existingFrostIdx !== -1) {
+            updatedDebuffs[existingFrostIdx] = {
+              ...updatedDebuffs[existingFrostIdx],
+              value: updatedDebuffs[existingFrostIdx].value + effect.frostBonusTick,
+            };
+            logs.push(
+              createLogEntry(
+                turn,
+                "PLAYER_ACTION",
+                `Deep Freeze! Existing frost damage increased by +${effect.frostBonusTick}/tick!`,
+                "debuff",
+                true
+              )
+            );
+          }
+        }
+
+        // Stun, Weakness, Accuracy use action-based tracking
+        // Poison, Burn, Frost, Vulnerable use turn-based tracking
+        const useActionTracking = ["stun", "weakness", "accuracy"].includes(effect.type);
+
+        // Check if debuff of this type already exists - stack by extending duration
+        const existingDebuffIdx = updatedDebuffs.findIndex(d => d.type === effect.type);
+
+        if (existingDebuffIdx !== -1) {
+          // Stack: extend duration and take higher value
+          const existing = updatedDebuffs[existingDebuffIdx];
+          updatedDebuffs[existingDebuffIdx] = {
+            ...existing,
+            duration: existing.duration + finalDuration,
+            value: Math.max(existing.value, finalValue),
+          };
+        } else {
+          // New debuff
+          const newDebuff: StatusEffect = {
+            type: effect.type,
+            value: finalValue,
+            duration: finalDuration,
+            source: caster.name,
+            useActionTracking,
+          };
+          updatedDebuffs.push(newDebuff);
+        }
 
         updatedMonsters[idx] = {
-          ...monster,
-          debuffs: [...monster.debuffs, newDebuff],
+          ...currentMonster,
+          debuffs: updatedDebuffs,
         };
 
-        const durationText = durationBonus > 0 ? ` for ${finalDuration} turns` : "";
+        const durationUnit = useActionTracking ? "action(s)" : "turns";
+        const durationText = durationBonus > 0 || effect.stealthDurationBonus
+          ? ` for ${finalDuration} ${durationUnit}`
+          : "";
         logs.push(
           createLogEntry(
             turn,
@@ -911,6 +1483,557 @@ export function applyEffect(
             )
           );
         }
+      }
+      break;
+    }
+
+    // ============================================
+    // NEW CLASS MECHANIC EFFECTS
+    // ============================================
+
+    case "gainResource": {
+      // Gain class resource (Aim, Fury, Mana, etc.)
+      const casterIdx = updatedPlayers.findIndex((p) => p.id === caster.id);
+      if (casterIdx !== -1) {
+        const player = updatedPlayers[casterIdx];
+        const newResource = Math.min(
+          player.maxResource,
+          player.resource + (effect.value || 1)
+        );
+        updatedPlayers[casterIdx] = {
+          ...player,
+          resource: newResource,
+        };
+        logs.push(
+          createLogEntry(
+            turn,
+            "PLAYER_ACTION",
+            `${player.name} gains +${effect.value} ${player.class === "archer" ? "Aim" : player.class === "barbarian" ? "Fury" : "resource"}!`,
+            "buff"
+          )
+        );
+      }
+      break;
+    }
+
+    case "manaRestore": {
+      // Mage-specific: restore mana (the Empowered pool, not Resonance)
+      const casterIdx = updatedPlayers.findIndex((p) => p.id === caster.id);
+      if (casterIdx !== -1) {
+        const player = updatedPlayers[casterIdx];
+        const currentMana = player.mana ?? 0;
+        const maxMana = player.maxMana ?? 10;
+        const newMana = Math.min(maxMana, currentMana + (effect.value || 1));
+        updatedPlayers[casterIdx] = {
+          ...player,
+          mana: newMana,
+        };
+        logs.push(
+          createLogEntry(
+            turn,
+            "PLAYER_ACTION",
+            `${player.name} restores ${effect.value} mana!`,
+            "buff"
+          )
+        );
+      }
+      break;
+    }
+
+    case "empowered": {
+      // Grant empowered buff (bonus damage to next spell) - legacy
+      const casterIdx = updatedPlayers.findIndex((p) => p.id === caster.id);
+      if (casterIdx !== -1) {
+        const player = updatedPlayers[casterIdx];
+        const newBuff: StatusEffect = {
+          type: "strength", // Use strength as the underlying mechanic
+          value: effect.value || 10,
+          duration: effect.duration || 1,
+          source: "Empowered",
+        };
+        updatedPlayers[casterIdx] = {
+          ...player,
+          buffs: [...player.buffs, newBuff],
+        };
+        logs.push(
+          createLogEntry(
+            turn,
+            "PLAYER_ACTION",
+            `${player.name}'s next spell is Empowered (+${effect.value}% damage)!`,
+            "buff"
+          )
+        );
+      }
+      break;
+    }
+
+    case "forceEmpowered": {
+      // Force next spell to be treated as Empowered regardless of mana
+      const casterIdx = updatedPlayers.findIndex((p) => p.id === caster.id);
+      if (casterIdx !== -1) {
+        const player = updatedPlayers[casterIdx];
+        const newBuff: StatusEffect = {
+          type: "strength", // Marker buff
+          value: 1,
+          duration: effect.duration || 1,
+          source: "ForceEmpowered",
+        };
+        updatedPlayers[casterIdx] = {
+          ...player,
+          buffs: [...player.buffs, newBuff],
+        };
+        logs.push(
+          createLogEntry(
+            turn,
+            "PLAYER_ACTION",
+            `${player.name}'s next spell will be Empowered!`,
+            "buff"
+          )
+        );
+      }
+      break;
+    }
+
+    case "doubleEmpowered": {
+      // Double next spell's Empowered bonus
+      const casterIdx = updatedPlayers.findIndex((p) => p.id === caster.id);
+      if (casterIdx !== -1) {
+        const player = updatedPlayers[casterIdx];
+        const newBuff: StatusEffect = {
+          type: "strength", // Marker buff
+          value: 2, // 2x multiplier
+          duration: effect.duration || 1,
+          source: "DoubleEmpowered",
+        };
+        updatedPlayers[casterIdx] = {
+          ...player,
+          buffs: [...player.buffs, newBuff],
+        };
+        logs.push(
+          createLogEntry(
+            turn,
+            "PLAYER_ACTION",
+            `${player.name}'s next Empowered spell bonus is DOUBLED!`,
+            "buff"
+          )
+        );
+      }
+      break;
+    }
+
+    case "spellDamageBonus": {
+      // Add bonus damage to next spell
+      const casterIdx = updatedPlayers.findIndex((p) => p.id === caster.id);
+      if (casterIdx !== -1) {
+        const player = updatedPlayers[casterIdx];
+        const newBuff: StatusEffect = {
+          type: "strength",
+          value: effect.value || 5,
+          duration: effect.duration || 1,
+          source: "SpellDamageBonus",
+        };
+        updatedPlayers[casterIdx] = {
+          ...player,
+          buffs: [...player.buffs, newBuff],
+        };
+        logs.push(
+          createLogEntry(
+            turn,
+            "PLAYER_ACTION",
+            `${player.name}'s next spell deals +${effect.value} damage!`,
+            "buff"
+          )
+        );
+      }
+      break;
+    }
+
+    case "manaSurge": {
+      // Spend all mana (the Empowered pool), fire a missile per mana spent
+      const casterIdx = updatedPlayers.findIndex((p) => p.id === caster.id);
+      if (casterIdx === -1) break;
+
+      const player = updatedPlayers[casterIdx];
+      const currentMana = player.mana ?? 0;
+      const maxMana = player.maxMana ?? 10;
+      const damagePerMissile = effect.value || 5;
+      const isEmpowered = currentMana >= (maxMana / 2);
+
+      // Spend all mana (the Empowered pool)
+      updatedPlayers[casterIdx] = {
+        ...player,
+        mana: 0,
+      };
+
+      logs.push(
+        createLogEntry(
+          turn,
+          "PLAYER_ACTION",
+          `${player.name} channels ${currentMana} mana into Mana Surge!`,
+          "action"
+        )
+      );
+
+      // Fire missiles at target(s)
+      const monsterTargets = getMonsterTargets();
+      const totalDamage = currentMana * damagePerMissile;
+
+      for (const monster of monsterTargets) {
+        const idx = updatedMonsters.findIndex((m) => m.id === monster.id);
+        if (idx === -1 || !updatedMonsters[idx].isAlive) continue;
+
+        // Apply damage
+        const newHp = Math.max(0, updatedMonsters[idx].hp - totalDamage);
+        const wasAlive = updatedMonsters[idx].isAlive;
+        const nowDead = newHp <= 0;
+
+        updatedMonsters[idx] = {
+          ...updatedMonsters[idx],
+          hp: newHp,
+          isAlive: !nowDead,
+        };
+
+        logs.push(
+          createLogEntry(
+            turn,
+            "PLAYER_ACTION",
+            `${currentMana} missiles hit ${monster.name} for ${totalDamage} damage!`,
+            "damage"
+          )
+        );
+
+        // Apply Vulnerable if empowered
+        if (isEmpowered) {
+          const existingVulnIdx = updatedMonsters[idx].debuffs.findIndex(
+            (d) => d.type === "vulnerable"
+          );
+          if (existingVulnIdx >= 0) {
+            updatedMonsters[idx].debuffs[existingVulnIdx] = {
+              ...updatedMonsters[idx].debuffs[existingVulnIdx],
+              value: updatedMonsters[idx].debuffs[existingVulnIdx].value + currentMana,
+            };
+          } else {
+            updatedMonsters[idx] = {
+              ...updatedMonsters[idx],
+              debuffs: [
+                ...updatedMonsters[idx].debuffs,
+                { type: "vulnerable", value: currentMana, duration: 1, source: "Mana Surge" },
+              ],
+            };
+          }
+          logs.push(
+            createLogEntry(
+              turn,
+              "PLAYER_ACTION",
+              `Empowered! ${monster.name} gains ${currentMana} Vulnerable!`,
+              "debuff"
+            )
+          );
+        }
+
+        // Award XP if killed
+        if (wasAlive && nowDead) {
+          const xpReward = monster.xpReward || 0;
+          if (xpReward > 0 && caster.championId) {
+            xpEarned.set(caster.championId, (xpEarned.get(caster.championId) || 0) + xpReward);
+          }
+        }
+      }
+      break;
+    }
+
+    case "execute": {
+      // Kill target if below HP threshold
+      const threshold = effect.value || 20; // HP percentage threshold
+      const monsterTargets = getMonsterTargets();
+      for (const monster of monsterTargets) {
+        const idx = updatedMonsters.findIndex((m) => m.id === monster.id);
+        if (idx === -1 || !updatedMonsters[idx].isAlive) continue;
+
+        const hpPercent = (updatedMonsters[idx].hp / updatedMonsters[idx].maxHp) * 100;
+        if (hpPercent <= threshold) {
+          const xpReward = updatedMonsters[idx].xpReward || 0;
+          updatedMonsters[idx] = {
+            ...updatedMonsters[idx],
+            hp: 0,
+            isAlive: false,
+          };
+          logs.push(
+            createLogEntry(
+              turn,
+              "PLAYER_ACTION",
+              `EXECUTE! ${monster.name} is finished off!`,
+              "damage",
+              true
+            )
+          );
+          if (xpReward > 0 && caster.championId) {
+            xpEarned.set(caster.championId, (xpEarned.get(caster.championId) || 0) + xpReward);
+          }
+        }
+      }
+      break;
+    }
+
+    case "executeBonus": {
+      // Bonus damage if target below HP threshold (duration field = threshold %)
+      // This is handled in the damage case above, this is just a marker
+      break;
+    }
+
+    case "lifesteal":
+    case "surviveLethal":
+    case "ignoreShield":
+    case "healPerHit":
+    case "repeatOnKill": {
+      // These are buff-type effects that modify other actions
+      const targets = getTargets();
+      for (const target of targets) {
+        const idx = updatedPlayers.findIndex((p) => p.id === target.id);
+        if (idx === -1) continue;
+
+        const newBuff: StatusEffect = {
+          type: effect.type,
+          value: effect.value || 1,
+          duration: effect.duration || 1,
+          source: caster.name,
+          consumeOnAttack: effect.consumeOnAttack,
+          attacksRemaining: effect.consumeOnAttack ? effect.duration : undefined,
+        };
+
+        updatedPlayers[idx] = {
+          ...target,
+          buffs: [...target.buffs, newBuff],
+        };
+
+        const effectName = {
+          lifesteal: "Lifesteal",
+          surviveLethal: "Death's Door",
+          ignoreShield: "Armor Piercing",
+          healPerHit: "Vampiric",
+          repeatOnKill: "Bloodlust",
+        }[effect.type] || effect.type;
+
+        logs.push(
+          createLogEntry(
+            turn,
+            "PLAYER_ACTION",
+            `${target.name} gains ${effectName}!`,
+            "buff"
+          )
+        );
+      }
+      break;
+    }
+
+    case "removeShield": {
+      // Remove all shields from monster targets
+      const monsterTargets = getMonsterTargets();
+      for (const monster of monsterTargets) {
+        const idx = updatedMonsters.findIndex((m) => m.id === monster.id);
+        if (idx === -1) continue;
+
+        const shieldRemoved = updatedMonsters[idx].shield;
+        if (shieldRemoved > 0) {
+          updatedMonsters[idx] = {
+            ...updatedMonsters[idx],
+            shield: 0,
+          };
+          logs.push(
+            createLogEntry(
+              turn,
+              "PLAYER_ACTION",
+              `${monster.name}'s shield (${shieldRemoved}) is shattered!`,
+              "damage",
+              true
+            )
+          );
+        }
+      }
+      break;
+    }
+
+    case "stunImmunity": {
+      // Grant immunity to stun
+      const targets = getTargets();
+      for (const target of targets) {
+        const idx = updatedPlayers.findIndex((p) => p.id === target.id);
+        if (idx === -1) continue;
+
+        const newBuff: StatusEffect = {
+          type: "stunImmunity",
+          value: 1,
+          duration: effect.duration || 1,
+          source: caster.name,
+        };
+
+        updatedPlayers[idx] = {
+          ...target,
+          buffs: [...target.buffs, newBuff],
+        };
+
+        logs.push(
+          createLogEntry(
+            turn,
+            "PLAYER_ACTION",
+            `${target.name} is immune to stun!`,
+            "buff"
+          )
+        );
+      }
+      break;
+    }
+
+    case "priority": {
+      // Mark that this card has priority (handled at card play level)
+      // This is primarily a marker effect - actual priority logic is in combat resolution
+      logs.push(
+        createLogEntry(
+          turn,
+          "PLAYER_ACTION",
+          `${caster.name}'s action has priority!`,
+          "buff",
+          true
+        )
+      );
+      break;
+    }
+
+    case "transferDebuffs": {
+      // Transfer all debuffs from caster to target monster
+      const casterIdx = updatedPlayers.findIndex((p) => p.id === caster.id);
+      if (casterIdx === -1) break;
+
+      const casterDebuffs = [...updatedPlayers[casterIdx].debuffs];
+      if (casterDebuffs.length === 0) break;
+
+      // Clear caster's debuffs
+      updatedPlayers[casterIdx] = {
+        ...updatedPlayers[casterIdx],
+        debuffs: [],
+        isStunned: false,
+        accuracyPenalty: 0,
+      };
+
+      // Apply debuffs to target monster
+      const monsterTargets = getMonsterTargets();
+      for (const monster of monsterTargets) {
+        const idx = updatedMonsters.findIndex((m) => m.id === monster.id);
+        if (idx === -1) continue;
+
+        updatedMonsters[idx] = {
+          ...updatedMonsters[idx],
+          debuffs: [...updatedMonsters[idx].debuffs, ...casterDebuffs],
+        };
+
+        logs.push(
+          createLogEntry(
+            turn,
+            "PLAYER_ACTION",
+            `${caster.name} transfers ${casterDebuffs.length} debuff(s) to ${monster.name}!`,
+            "debuff"
+          )
+        );
+      }
+      break;
+    }
+
+    case "aggroReduction": {
+      // Apply aggro reduction buff
+      const targets = getTargets();
+      for (const target of targets) {
+        const idx = updatedPlayers.findIndex((p) => p.id === target.id);
+        if (idx === -1) continue;
+
+        const newBuff: StatusEffect = {
+          type: "aggroReduction",
+          value: effect.value || 5,
+          duration: effect.duration || 2,
+          source: caster.name,
+        };
+
+        updatedPlayers[idx] = {
+          ...target,
+          buffs: [...target.buffs, newBuff],
+        };
+
+        logs.push(
+          createLogEntry(
+            turn,
+            "PLAYER_ACTION",
+            `${target.name}'s aggro is reduced for ${effect.duration} turns!`,
+            "buff"
+          )
+        );
+      }
+      break;
+    }
+
+    case "bountyMark": {
+      // Mark an enemy for bonus gold on kill
+      const monsterTargets = getMonsterTargets();
+      for (const monster of monsterTargets) {
+        const idx = updatedMonsters.findIndex((m) => m.id === monster.id);
+        if (idx === -1) continue;
+
+        const newDebuff: StatusEffect = {
+          type: "bountyMark",
+          value: effect.value || 50, // Bonus gold percentage
+          duration: 99, // Permanent until killed
+          source: caster.name,
+        };
+
+        updatedMonsters[idx] = {
+          ...updatedMonsters[idx],
+          debuffs: [...updatedMonsters[idx].debuffs, newDebuff],
+        };
+
+        logs.push(
+          createLogEntry(
+            turn,
+            "PLAYER_ACTION",
+            `${monster.name} is marked for a bounty! (+${effect.value}% gold on kill)`,
+            "debuff"
+          )
+        );
+      }
+      break;
+    }
+
+    case "poisonCoating": {
+      // Grant a buff that makes next X attacks apply poison
+      const targets = getTargets();
+      for (const target of targets) {
+        const idx = updatedPlayers.findIndex((p) => p.id === target.id);
+        if (idx === -1) continue;
+
+        // Check if stealthed for bonus poison
+        const isStealth = target.isStealth;
+        const poisonValue = isStealth ? (effect.value || 3) + 1 : (effect.value || 3);
+
+        const newBuff: StatusEffect = {
+          type: "poisonCoating",
+          value: poisonValue,
+          duration: effect.duration || 3,
+          source: caster.name,
+          consumeOnAttack: true,
+          attacksRemaining: effect.duration || 3,
+          useActionTracking: true, // Prevent turn-based decrement (uses attack-based instead)
+        };
+
+        updatedPlayers[idx] = {
+          ...target,
+          buffs: [...target.buffs, newBuff],
+        };
+
+        logs.push(
+          createLogEntry(
+            turn,
+            "PLAYER_ACTION",
+            `${target.name}'s next ${effect.duration || 3} attacks will apply ${poisonValue} Poison!`,
+            "buff"
+          )
+        );
       }
       break;
     }

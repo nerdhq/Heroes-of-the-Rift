@@ -9,11 +9,11 @@ import type { ClassType } from "../types";
  */
 export function getClassIcon(classType: ClassType): string {
   const icons: Record<ClassType, string> = {
-    warrior: "⚔️",
+    fighter: "⚔️",
     rogue: "🗡️",
     paladin: "🛡️",
     mage: "🔮",
-    priest: "✨",
+    cleric: "✨",
     bard: "🎵",
     archer: "🏹",
     barbarian: "🪓",
@@ -26,11 +26,11 @@ export function getClassIcon(classType: ClassType): string {
  */
 export function getClassColor(classType: ClassType): string {
   const colors: Record<ClassType, string> = {
-    warrior: "#dc2626", // red-600
+    fighter: "#dc2626", // red-600
     rogue: "#4ade80", // green-400
     paladin: "#facc15", // yellow-400
     mage: "#8b5cf6", // violet-500
-    priest: "#fcd34d", // amber-300
+    cleric: "#fcd34d", // amber-300
     bard: "#f472b6", // pink-400
     archer: "#22c55e", // green-500
     barbarian: "#fb923c", // orange-400

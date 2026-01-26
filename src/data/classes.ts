@@ -1,35 +1,40 @@
 import type { ClassConfig, ClassType } from "../types";
 
 export const CLASS_CONFIGS: Record<ClassType, ClassConfig> = {
-  warrior: {
-    type: "warrior",
-    name: "Warrior",
-    description: "A stalwart defender with high HP and powerful melee attacks.",
+  fighter: {
+    type: "fighter",
+    name: "Fighter",
+    description: "A disciplined master of combat. Each attack may find weakpoints: 10% stun, 10% crit (1.5x), 10% vulnerable, 10% weakness.",
     baseHp: 120,
-    resourceName: "Rage",
+    resourceName: "Discipline",
     maxResource: 10,
     color: "#dc2626", // red
     specialAbility: {
-      name: "Berserker Strike",
-      description: "Deal 25 damage to all enemies",
-      effects: [{ type: "damage", value: 25, target: "allMonsters" }],
+      name: "Action Surge",
+      description: "Deal 25 damage to all enemies. Your next attack triggers all proc effects (stun, crit, vulnerable, weakness).",
+      effects: [
+        { type: "damage", value: 25, target: "allMonsters" },
+        { type: "stun", value: 1, target: "allMonsters", duration: 1 },
+        { type: "vulnerable", value: 1, target: "allMonsters", duration: 1 },
+        { type: "weakness", value: 1, target: "allMonsters", duration: 1 },
+      ],
     },
     enhanceBonus: { damageBonus: 8, healBonus: 0, shieldBonus: 5 },
   },
   rogue: {
     type: "rogue",
     name: "Rogue",
-    description: "A swift assassin who strikes from the shadows.",
+    description: "A swift assassin who strikes from the shadows. Builds Combo to empower devastating sneak attacks.",
     baseHp: 80,
     resourceName: "Combo",
     maxResource: 5,
     color: "#7c3aed", // purple
     specialAbility: {
-      name: "Assassinate",
-      description: "Deal 40 damage to one enemy and gain stealth",
+      name: "Shadow Dance",
+      description: "At 5 Combo: Enter stealth for 2 turns. Your next attack from stealth deals +100% damage.",
       effects: [
-        { type: "damage", value: 40, target: "monster" },
         { type: "stealth", value: 2, target: "self", duration: 2 },
+        { type: "strength", value: 100, target: "self", duration: 1 },
       ],
     },
     enhanceBonus: { damageBonus: 10, healBonus: 0, shieldBonus: 0 },
@@ -43,103 +48,122 @@ export const CLASS_CONFIGS: Record<ClassType, ClassConfig> = {
     maxResource: 8,
     color: "#eab308", // yellow
     specialAbility: {
-      name: "Divine Shield",
-      description: "Grant 15 shield to all allies",
-      effects: [{ type: "shield", value: 15, target: "allAllies" }],
+      name: "Shield of Faith",
+      description: "Heal and shield all allies. Party is immune to damage and effects until end of next turn.",
+      effects: [
+        { type: "heal", value: 10, target: "allAllies" },
+        { type: "shield", value: 15, target: "allAllies" },
+        { type: "block", value: 1, target: "allAllies", duration: 1 },
+      ],
     },
     enhanceBonus: { damageBonus: 5, healBonus: 8, shieldBonus: 10 },
   },
   mage: {
     type: "mage",
     name: "Mage",
-    description: "A master of arcane arts dealing devastating spell damage.",
+    description: "Scholarly arcanist who bends reality through mastery of magic. High damage and utility, but fragile.",
     baseHp: 70,
-    resourceName: "Arcane",
-    maxResource: 12,
+    resourceName: "Mana",
+    maxResource: 10,
     color: "#3b82f6", // blue
     specialAbility: {
-      name: "Arcane Blast",
-      description: "Deal 35 damage to all enemies",
-      effects: [{ type: "damage", value: 35, target: "allMonsters" }],
+      name: "Mana Overload",
+      description: "At 10 Mana: Deal 36 damage to all enemies. Apply Burn 2, Ice 2, and Vulnerable 2 for 2 turns.",
+      effects: [
+        { type: "damage", value: 36, target: "allMonsters" },
+        { type: "burn", value: 2, target: "allMonsters", duration: 2 },
+        { type: "ice", value: 2, target: "allMonsters", duration: 2 },
+        { type: "vulnerable", value: 2, target: "allMonsters", duration: 2 },
+      ],
     },
     enhanceBonus: { damageBonus: 12, healBonus: 0, shieldBonus: 0 },
   },
-  priest: {
-    type: "priest",
-    name: "Priest",
-    description: "A divine healer who keeps the party alive.",
+  cleric: {
+    type: "cleric",
+    name: "Cleric",
+    description: "Divine servant who channels their deity's power through prayer. Switches between Judgment and Benediction modes.",
     baseHp: 75,
     resourceName: "Devotion",
-    maxResource: 10,
+    maxResource: 5,
     color: "#f8fafc", // white
     specialAbility: {
-      name: "Mass Heal",
-      description: "Heal all allies for 20 HP and cleanse debuffs",
+      name: "Prayer Cycle",
+      description: "At 5 Devotion: Judgment deals 10 AOE damage + grants allies +50% damage (2 turns). Benediction heals 15 AOE + grants allies +50% healing received (2 turns). Switches mode after use.",
       effects: [
-        { type: "heal", value: 20, target: "allAllies" },
-        { type: "cleanse", target: "allAllies" },
+        // Judgment effects (damage-focused)
+        { type: "damage", value: 10, target: "allMonsters" },
+        { type: "strength", value: 50, target: "allAllies", duration: 2 },
+        // Benediction effects (healing-focused)
+        { type: "heal", value: 15, target: "allAllies" },
+        { type: "regen", value: 5, target: "allAllies", duration: 2 },
       ],
     },
-    enhanceBonus: { damageBonus: 0, healBonus: 12, shieldBonus: 5 },
+    enhanceBonus: { damageBonus: 6, healBonus: 10, shieldBonus: 5 },
   },
   bard: {
     type: "bard",
     name: "Bard",
-    description: "A charismatic performer who buffs allies with songs.",
+    description: "A charismatic performer using Harmony to buff allies and Riot to debuff enemies. Build song stacks to unleash a powerful Crescendo.",
     baseHp: 85,
-    resourceName: "Melody",
-    maxResource: 6,
+    resourceName: "Song",
+    maxResource: 5,
     color: "#ec4899", // pink
     specialAbility: {
-      name: "Battle Hymn",
-      description: "Grant +5 strength to all allies for 3 turns",
+      name: "Crescendo",
+      description: "At 5 Song stacks: Harmony grants all allies +50% damage (2 turns). Riot applies Vulnerable 2 + Weakness 2 to all enemies (2 turns).",
       effects: [
-        { type: "strength", value: 5, target: "allAllies", duration: 3 },
+        // Effects depend on current song type - handled in game logic
+        { type: "strength", value: 50, target: "allAllies", duration: 2 },
+        { type: "vulnerable", value: 2, target: "allMonsters", duration: 2 },
+        { type: "weakness", value: 2, target: "allMonsters", duration: 2 },
       ],
     },
-    enhanceBonus: { damageBonus: 3, healBonus: 5, shieldBonus: 5 },
+    enhanceBonus: { damageBonus: 3, healBonus: 8, shieldBonus: 6 },
   },
   archer: {
     type: "archer",
     name: "Archer",
-    description: "A precise marksman who never misses their target.",
+    description: "A precise marksman building Aim for devastating critical hits. +10% crit per Aim stack. At 5 Aim: guaranteed 2.5x damage crit.",
     baseHp: 75,
-    resourceName: "Focus",
-    maxResource: 8,
+    resourceName: "Aim",
+    maxResource: 5,
     color: "#22c55e", // green
     specialAbility: {
-      name: "Piercing Shot",
-      description: "Deal 30 damage to all enemies (ignores shields)",
-      effects: [{ type: "damage", value: 30, target: "allMonsters" }],
+      name: "Perfect Shot",
+      description: "At 5 Aim: Next attack is a guaranteed critical hit dealing 2.5x damage. Resets Aim to 0.",
+      effects: [
+        // Handled in game logic - empowers next attack
+        { type: "strength", value: 150, target: "self", duration: 1 },
+      ],
     },
-    enhanceBonus: { damageBonus: 10, healBonus: 0, shieldBonus: 0 },
+    enhanceBonus: { damageBonus: 12, healBonus: 0, shieldBonus: 0 },
   },
   barbarian: {
     type: "barbarian",
     name: "Barbarian",
-    description: "A berserker who grows stronger as they take damage.",
+    description: "A berserker who grows stronger as HP drops. +25% damage at 75-50% HP, +50% at 50-25% HP, +100% below 25% HP.",
     baseHp: 130,
     resourceName: "Fury",
     maxResource: 10,
     color: "#f97316", // orange
     specialAbility: {
-      name: "Rampage",
-      description: "Deal 20 damage to all enemies and gain 10 HP",
+      name: "Bloodbath",
+      description: "At max Fury: Deal 30 damage to all enemies, heal for 50% of damage dealt. Resets Fury to 0.",
       effects: [
-        { type: "damage", value: 20, target: "allMonsters" },
-        { type: "heal", value: 10, target: "self" },
+        { type: "damage", value: 30, target: "allMonsters" },
+        { type: "heal", value: 15, target: "self" },
       ],
     },
-    enhanceBonus: { damageBonus: 8, healBonus: 5, shieldBonus: 0 },
+    enhanceBonus: { damageBonus: 10, healBonus: 5, shieldBonus: 0 },
   },
 };
 
 export const AVAILABLE_CLASSES: ClassType[] = [
-  "warrior",
+  "fighter",
   "rogue",
   "paladin",
   "mage",
-  "priest",
+  "cleric",
   "bard",
   "archer",
   "barbarian",

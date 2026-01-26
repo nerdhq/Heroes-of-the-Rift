@@ -34,27 +34,48 @@ export const createDebuffActions = (set: SetState, get: GetState) => ({
           const burnDamage = applyEnvironmentModifier(debuff.value, "burn", environment);
           totalDotDamage += burnDamage;
           dotSources.push(`burn (${burnDamage})`);
-        } else if (debuff.type === "ice") {
-          const iceDamage = applyEnvironmentModifier(debuff.value, "ice", environment);
+        } else if (debuff.type === "frost") {
+          const iceDamage = applyEnvironmentModifier(debuff.value, "frost", environment);
           totalDotDamage += iceDamage;
-          dotSources.push(`frost (${iceDamage})`);
+          dotSources.push(`ice (${iceDamage})`);
         }
       }
 
       if (totalDotDamage > 0) {
-        const newHp = Math.max(0, player.hp - totalDotDamage);
-        const isAlive = newHp > 0;
+        let newHp = Math.max(0, player.hp - totalDotDamage);
+        let isAlive = newHp > 0;
 
-        updatedPlayers[i] = {
-          ...player,
-          hp: newHp,
-          isAlive,
-        };
+        // Check for surviveLethal buff
+        const surviveLethalBuff = player.buffs.find((b) => b.type === "surviveLethal");
+        if (!isAlive && surviveLethalBuff) {
+          newHp = 1;
+          isAlive = true;
+          updatedPlayers[i] = {
+            ...player,
+            hp: newHp,
+            isAlive,
+            buffs: player.buffs.filter((b) => b.type !== "surviveLethal"),
+          };
+          logs.push(
+            createLogEntry(
+              turn,
+              "STATUS_RESOLUTION",
+              `Death's Door! ${player.name} survives at 1 HP!`,
+              "heal"
+            )
+          );
+        } else {
+          updatedPlayers[i] = {
+            ...player,
+            hp: newHp,
+            isAlive,
+          };
+        }
 
         logs.push(
           createLogEntry(
             turn,
-            "DEBUFF_RESOLUTION",
+            "STATUS_RESOLUTION",
             `${
               player.name
             } takes ${totalDotDamage} damage from ${dotSources.join(", ")}!${
@@ -65,8 +86,36 @@ export const createDebuffActions = (set: SetState, get: GetState) => ({
         );
       }
 
+      // Process regen buffs (heal over time)
+      let totalRegen = 0;
+      for (const buff of player.buffs) {
+        if (buff.type === "regen") {
+          totalRegen += buff.value;
+        }
+      }
+      if (totalRegen > 0 && updatedPlayers[i].isAlive) {
+        const currentHp = updatedPlayers[i].hp;
+        const newHp = Math.min(updatedPlayers[i].maxHp, currentHp + totalRegen);
+        const actualHeal = newHp - currentHp;
+        if (actualHeal > 0) {
+          updatedPlayers[i] = {
+            ...updatedPlayers[i],
+            hp: newHp,
+          };
+          logs.push(
+            createLogEntry(
+              turn,
+              "STATUS_RESOLUTION",
+              `${player.name} regenerates ${actualHeal} HP!`,
+              "heal"
+            )
+          );
+        }
+      }
+
+      // Decrement turn-based debuffs only (skip action-tracked debuffs)
       const updatedDebuffs = player.debuffs
-        .map((d) => ({ ...d, duration: d.duration - 1 }))
+        .map((d) => d.useActionTracking ? d : { ...d, duration: d.duration - 1 })
         .filter((d) => d.duration > 0);
 
       const hasStun = updatedDebuffs.some((d) => d.type === "stun");
@@ -78,8 +127,9 @@ export const createDebuffActions = (set: SetState, get: GetState) => ({
         .filter((d) => d.type === "accuracy")
         .reduce((sum, d) => sum + d.value, 0);
 
+      // Decrement turn-based buffs only (skip action-tracked buffs)
       const updatedBuffs = updatedPlayers[i].buffs
-        .map((b) => ({ ...b, duration: b.duration - 1 }))
+        .map((b) => b.useActionTracking ? b : { ...b, duration: b.duration - 1 })
         .filter((b) => b.duration > 0);
 
       updatedPlayers[i] = {
@@ -109,10 +159,10 @@ export const createDebuffActions = (set: SetState, get: GetState) => ({
           const modifiedValue = applyEnvironmentModifier(debuff.value, "burn", environment);
           totalDotDamage += modifiedValue;
           dotSources.push(`burn (${modifiedValue})`);
-        } else if (debuff.type === "ice") {
-          const modifiedValue = applyEnvironmentModifier(debuff.value, "ice", environment);
+        } else if (debuff.type === "frost") {
+          const modifiedValue = applyEnvironmentModifier(debuff.value, "frost", environment);
           totalDotDamage += modifiedValue;
-          dotSources.push(`frost (${modifiedValue})`);
+          dotSources.push(`ice (${modifiedValue})`);
         }
       }
 
@@ -129,7 +179,7 @@ export const createDebuffActions = (set: SetState, get: GetState) => ({
         logs.push(
           createLogEntry(
             turn,
-            "DEBUFF_RESOLUTION",
+            "STATUS_RESOLUTION",
             `${
               monster.name
             } takes ${totalDotDamage} damage from ${dotSources.join(", ")}!${
@@ -148,7 +198,7 @@ export const createDebuffActions = (set: SetState, get: GetState) => ({
           logs.push(
             createLogEntry(
               turn,
-              "DEBUFF_RESOLUTION",
+              "STATUS_RESOLUTION",
               goldDistribution.message,
               "info"
             )
@@ -169,7 +219,7 @@ export const createDebuffActions = (set: SetState, get: GetState) => ({
         logs.push(
           createLogEntry(
             turn,
-            "DEBUFF_RESOLUTION",
+            "STATUS_RESOLUTION",
             `${monster.name} regenerates ${healAmount} HP! 💚`,
             "heal"
           )
@@ -190,7 +240,7 @@ export const createDebuffActions = (set: SetState, get: GetState) => ({
           logs.push(
             createLogEntry(
               turn,
-              "DEBUFF_RESOLUTION",
+              "STATUS_RESOLUTION",
               `${monster.name}'s shield regenerates! 🔰`,
               "buff"
             )
@@ -198,8 +248,9 @@ export const createDebuffActions = (set: SetState, get: GetState) => ({
         }
       }
 
+      // Decrement turn-based debuffs only (skip action-tracked debuffs)
       const updatedDebuffs = monster.debuffs
-        .map((d) => ({ ...d, duration: d.duration - 1 }))
+        .map((d) => d.useActionTracking ? d : { ...d, duration: d.duration - 1 })
         .filter((d) => d.duration > 0);
 
       updatedMonsters[i] = {
