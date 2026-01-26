@@ -24,7 +24,6 @@ export function TitleScreen() {
   const loadUserData = useGameStore((state) => state.loadUserData);
   const activeChampion = useGameStore((state) => state.activeChampion);
   const loadProgression = useGameStore((state) => state.loadProgression);
-  const startChampionGame = useGameStore((state) => state.startChampionGame);
   const campaignProgress = useGameStore((state) => state.campaignProgress);
   const activeCampaign = useGameStore((state) => state.activeCampaign);
   const resumeCampaign = useGameStore((state) => state.resumeCampaign);
@@ -121,21 +120,12 @@ export function TitleScreen() {
           </button>
         )}
 
-        {activeChampion ? (
-          <button
-            onClick={startChampionGame}
-            className="bg-gradient-to-r from-amber-700 to-amber-600 hover:from-amber-600 hover:to-amber-500 text-amber-100 font-bold py-4 px-8 rounded-lg text-xl transition-all transform hover:scale-105 shadow-lg shadow-amber-900/50"
-          >
-            Quick Game
-          </button>
-        ) : (
-          <button
-            onClick={() => setScreen("championSelect")}
-            className="bg-gradient-to-r from-amber-700 to-amber-600 hover:from-amber-600 hover:to-amber-500 text-amber-100 font-bold py-4 px-8 rounded-lg text-xl transition-all transform hover:scale-105 shadow-lg shadow-amber-900/50"
-          >
-            Quick Game
-          </button>
-        )}
+        <button
+          onClick={() => setScreen("gameChampionSelect")}
+          className="bg-gradient-to-r from-amber-700 to-amber-600 hover:from-amber-600 hover:to-amber-500 text-amber-100 font-bold py-4 px-8 rounded-lg text-xl transition-all transform hover:scale-105 shadow-lg shadow-amber-900/50"
+        >
+          Quick Game
+        </button>
 
         <button
           onClick={() => setScreen("campaignSelect")}

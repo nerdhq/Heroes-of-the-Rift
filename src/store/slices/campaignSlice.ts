@@ -13,7 +13,7 @@ import {
 } from "../../data/monsters";
 import { ENVIRONMENTS } from "../../data/environments";
 import type { Monster, Environment } from "../../types";
-import { createPlayer } from "../utils";
+import { createPlayer, shuffleArray } from "../utils";
 import { storage, STORAGE_KEYS } from "../../lib/storage";
 
 // ============================================
@@ -229,7 +229,7 @@ export const createCampaignSlice: StateCreator<
       environment = ENVIRONMENTS[envType] || null;
     }
 
-    // Reset player states for new round
+    // Reset player states for new round and shuffle decks
     const resetPlayers = players.map((p) => ({
       ...p,
       hand: [],
@@ -240,6 +240,8 @@ export const createCampaignSlice: StateCreator<
       isStealth: false,
       hasTaunt: false,
       isStunned: false,
+      deck: shuffleArray([...p.deck, ...p.discard]), // Shuffle deck + discard together
+      discard: [], // Clear discard pile
     }));
 
     set({

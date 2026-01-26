@@ -53,11 +53,11 @@ export const createCoreSlice: SliceCreator<CoreActions> = (set, get) => ({
         break;
       }
       case "MONSTER_ACTION":
-        set({ phase: "DEBUFF_RESOLUTION" });
+        set({ phase: "STATUS_RESOLUTION" });
         get().syncAfterAction();
         get().resolveDebuffs();
         break;
-      case "DEBUFF_RESOLUTION":
+      case "STATUS_RESOLUTION":
         set({ phase: "END_TURN" });
         get().syncAfterAction();
         get().endTurn();

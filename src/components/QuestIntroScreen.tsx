@@ -127,7 +127,7 @@ export function QuestIntroScreen() {
                 startCampaignRound();
               } else {
                 // New campaign or no deck yet - go to champion/deck selection
-                setScreen("championSelect");
+                setScreen("gameChampionSelect");
               }
             }}
             className="px-8 py-3 rounded-lg font-bold text-lg transition-all transform hover:scale-105"

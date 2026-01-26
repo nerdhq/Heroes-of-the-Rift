@@ -34,7 +34,7 @@ function StatsTooltip({
     const icons: Record<string, string> = {
       poison: "🧪",
       burn: "🔥",
-      ice: "❄️",
+      frost: "❄️",
       stun: "💫",
       stealth: "👤",
       taunt: "🛡️",
@@ -226,6 +226,32 @@ export function PlayerCard({
               style={{
                 width: `${(player.resource / player.maxResource) * 100}%`,
                 backgroundColor: config.color,
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Mage Mana Bar (separate from Overflow for Empowered/Depowered) */}
+      {player.class === "mage" && player.maxMana !== undefined && (
+        <div className="mb-2">
+          <div className="flex items-center justify-between text-xs mb-1">
+            <span className="text-cyan-400 font-medium">
+              Mana {(player.mana ?? 0) >= (player.maxMana / 2) ? "(Empowered)" : "(Depowered)"}
+            </span>
+            <span className="text-stone-400">
+              {player.mana ?? 0}/{player.maxMana}
+            </span>
+          </div>
+          <div className="w-full h-2 bg-stone-700 rounded-full overflow-hidden">
+            <div
+              className={`h-full transition-all duration-300 ${
+                (player.mana ?? 0) >= (player.maxMana / 2)
+                  ? "bg-cyan-400"
+                  : "bg-cyan-700"
+              }`}
+              style={{
+                width: `${((player.mana ?? 0) / player.maxMana) * 100}%`,
               }}
             />
           </div>

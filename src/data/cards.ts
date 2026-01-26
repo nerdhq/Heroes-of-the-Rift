@@ -103,7 +103,8 @@ const fighterCards: Card[] = [
     description: "Deal 25 damage, remove all shields, and reduce armor for 3 turns.",
     effects: [
       { type: "damage", value: 25, target: "monster" },
-      { type: "weakness", value: 5, target: "monster", duration: 3 },
+      { type: "removeShield", value: 1, target: "monster" },
+      { type: "vulnerable", value: 5, target: "monster", duration: 3 },
     ],
   },
   // Additional common cards (21-25)
@@ -213,6 +214,7 @@ const fighterCards: Card[] = [
     effects: [
       { type: "damage", value: 30, target: "monster" },
       { type: "block", value: 1, target: "self", duration: 1 },
+      { type: "priority", value: 1, target: "self" },
     ],
   },
   // Legendary cards (16-20)
@@ -226,30 +228,7 @@ const fighterCards: Card[] = [
     effects: [
       { type: "damage", value: 40, target: "monster" },
       { type: "shield", value: 15, target: "self" },
-    ],
-  },
-  {
-    id: "fighter-17",
-    name: "Warlord's Command",
-    class: "fighter",
-    rarity: "legendary",
-    aggro: 5,
-    description: "All allies gain 6 Strength and 8 shield for 2 turns.",
-    effects: [
-      { type: "strength", value: 6, target: "allAllies", duration: 2 },
-      { type: "shield", value: 8, target: "allAllies" },
-    ],
-  },
-  {
-    id: "fighter-18",
-    name: "Bladestorm",
-    class: "fighter",
-    rarity: "legendary",
-    aggro: 6,
-    description: "Deal 18 damage to all monsters twice.",
-    effects: [
-      { type: "damage", value: 18, target: "allMonsters" },
-      { type: "damage", value: 18, target: "allMonsters" },
+      { type: "stunImmunity", value: 1, target: "self", duration: 1 },
     ],
   },
   {
@@ -263,18 +242,6 @@ const fighterCards: Card[] = [
       { type: "shield", value: 30, target: "self" },
       { type: "taunt", value: 1, target: "self", duration: 2 },
       { type: "heal", value: 15, target: "self" },
-    ],
-  },
-  {
-    id: "fighter-20",
-    name: "Champion's Fury",
-    class: "fighter",
-    rarity: "legendary",
-    aggro: 6,
-    description: "Deal 35 damage and gain 8 Strength for 2 turns.",
-    effects: [
-      { type: "damage", value: 35, target: "monster" },
-      { type: "strength", value: 8, target: "self", duration: 2 },
     ],
   },
 ];
@@ -303,8 +270,7 @@ const rogueCards: Card[] = [
     aggro: 1,
     description: "Your next 3 damaging cards apply 3 Poison for 3 turns. (+1 poison/tick if stealthed)",
     effects: [
-      { type: "strength", value: 3, target: "self", duration: 3 },
-      { type: "poison", value: 3, target: "monster", duration: 3 }, // Simplified: directly apply poison
+      { type: "poisonCoating", value: 3, target: "self", duration: 3 },
     ],
   },
   {
@@ -314,7 +280,7 @@ const rogueCards: Card[] = [
     rarity: "common",
     aggro: 1,
     description: "Deal 8 damage. (+4 if stealthed or target stunned)",
-    effects: [{ type: "damage", value: 8, target: "monster" }],
+    effects: [{ type: "damage", value: 8, target: "monster", stealthBonus: 4, stunBonus: 4 }],
   },
   {
     id: "rogue-4",
@@ -337,7 +303,7 @@ const rogueCards: Card[] = [
     description: "Deal 5 damage and apply 3 Poison for 2 turns. (+1 poison/tick if stealthed)",
     effects: [
       { type: "damage", value: 5, target: "monster" },
-      { type: "poison", value: 3, target: "monster", duration: 2 },
+      { type: "poison", value: 3, target: "monster", duration: 2, stealthBonus: 1 },
     ],
   },
   {
@@ -350,6 +316,7 @@ const rogueCards: Card[] = [
     effects: [
       { type: "damage", value: 6, target: "monster" },
       { type: "damage", value: 6, target: "monster" },
+      { type: "damage", value: 6, target: "monster", stealthOnly: true },
     ],
   },
   {
@@ -359,7 +326,7 @@ const rogueCards: Card[] = [
     rarity: "common",
     aggro: 0,
     description: "Reduce your aggro significantly for your next 2 cards.",
-    effects: [{ type: "stealth", value: 1, target: "self", duration: 2 }], // Stealth effectively reduces aggro
+    effects: [{ type: "aggroReduction", value: 5, target: "self", duration: 2 }],
   },
   // ============================================
   // UNCOMMON (6 cards)
@@ -371,7 +338,7 @@ const rogueCards: Card[] = [
     rarity: "uncommon",
     aggro: 1,
     description: "Deal 10 damage. (+5 if stealthed or target stunned)",
-    effects: [{ type: "damage", value: 10, target: "monster" }],
+    effects: [{ type: "damage", value: 10, target: "monster", stealthBonus: 5, stunBonus: 5 }],
   },
   {
     id: "rogue-9",
@@ -380,7 +347,7 @@ const rogueCards: Card[] = [
     rarity: "uncommon",
     aggro: 2,
     description: "Deal 4 damage to all monsters. (+2 AOE damage if stealthed)",
-    effects: [{ type: "damage", value: 4, target: "allMonsters" }],
+    effects: [{ type: "damage", value: 4, target: "allMonsters", stealthBonus: 2 }],
   },
   {
     id: "rogue-10",
@@ -392,6 +359,7 @@ const rogueCards: Card[] = [
     effects: [
       { type: "damage", value: 6, target: "monster" },
       { type: "weakness", value: 2, target: "monster", duration: 2 },
+      { type: "stun", value: 1, target: "monster", duration: 1, stealthOnly: true },
     ],
   },
   {
@@ -415,7 +383,7 @@ const rogueCards: Card[] = [
     description: "Deal 3 damage to all monsters and apply 3 Poison for 3 turns. (+1 poison/tick if stealthed)",
     effects: [
       { type: "damage", value: 3, target: "allMonsters" },
-      { type: "poison", value: 3, target: "allMonsters", duration: 3 },
+      { type: "poison", value: 3, target: "allMonsters", duration: 3, stealthBonus: 1 },
     ],
   },
   {
@@ -441,7 +409,7 @@ const rogueCards: Card[] = [
     aggro: 2,
     description: "Deal 18 damage and gain Stealth for 1 turn. (+8 damage if stealthed)",
     effects: [
-      { type: "damage", value: 18, target: "monster" },
+      { type: "damage", value: 18, target: "monster", stealthBonus: 8 },
       { type: "stealth", value: 1, target: "self", duration: 1 },
     ],
   },
@@ -454,7 +422,7 @@ const rogueCards: Card[] = [
     description: "Deal 12 damage and apply 2 Accuracy penalty for 2 turns. (+1 turn if stealthed)",
     effects: [
       { type: "damage", value: 12, target: "monster" },
-      { type: "accuracy", value: 2, target: "monster", duration: 2 },
+      { type: "accuracy", value: 2, target: "monster", duration: 2, stealthDurationBonus: 1 },
     ],
   },
   {
@@ -466,7 +434,7 @@ const rogueCards: Card[] = [
     description: "Deal 1 damage and apply 6 Poison for 4 turns. (+1 turn if stealthed)",
     effects: [
       { type: "damage", value: 1, target: "monster" },
-      { type: "poison", value: 6, target: "monster", duration: 4 },
+      { type: "poison", value: 6, target: "monster", duration: 4, stealthDurationBonus: 1 },
     ],
   },
   {
@@ -478,7 +446,7 @@ const rogueCards: Card[] = [
     description: "Deal 5 AOE damage and apply 2 Poison for 2 turns. (+1 turn if stealthed)",
     effects: [
       { type: "damage", value: 5, target: "allMonsters" },
-      { type: "poison", value: 2, target: "allMonsters", duration: 2 },
+      { type: "poison", value: 2, target: "allMonsters", duration: 2, stealthDurationBonus: 1 },
     ],
   },
   {
@@ -489,8 +457,7 @@ const rogueCards: Card[] = [
     aggro: 1,
     description: "Mark an enemy: gain bonus gold if you get the killing blow.",
     effects: [
-      { type: "weakness", value: 2, target: "monster", duration: 99 },
-      { type: "vulnerable", value: 2, target: "monster", duration: 99 }, // Mark target for bonus damage
+      { type: "bountyMark", value: 50, target: "monster", duration: 99 },
     ],
   },
   // ============================================
@@ -506,6 +473,7 @@ const rogueCards: Card[] = [
     effects: [
       { type: "damage", value: 10, target: "monster" },
       { type: "poison", value: 10, target: "monster", duration: 4 },
+      { type: "weakness", value: 4, target: "monster", duration: 4, stealthOnly: true },
     ],
   },
   {
@@ -517,7 +485,7 @@ const rogueCards: Card[] = [
     description: "Deal 15 damage to all monsters and apply 5 Poison for 4 turns. (+1 poison/tick if stealthed)",
     effects: [
       { type: "damage", value: 15, target: "allMonsters" },
-      { type: "poison", value: 5, target: "allMonsters", duration: 4 },
+      { type: "poison", value: 5, target: "allMonsters", duration: 4, stealthBonus: 1 },
     ],
   },
   {
@@ -527,7 +495,7 @@ const rogueCards: Card[] = [
     rarity: "legendary",
     aggro: 3,
     description: "Deal 40 damage. (+20 damage if stealthed)",
-    effects: [{ type: "damage", value: 40, target: "monster" }],
+    effects: [{ type: "damage", value: 40, target: "monster", stealthBonus: 20 }],
   },
   {
     id: "rogue-22",
@@ -789,8 +757,10 @@ const paladinCards: Card[] = [
 
 // ============================================
 // MAGE CARDS (22 cards) - Mana Mastery mechanic
-// Core Mechanic: Empowered (5+ mana) = cost +1, bonus effects
-// Recovery (0-4 mana) = restore mana, weaker effects
+// Core Mechanic:
+//   - Empowered (5+ mana) = bonus effects, costs +1 mana
+//   - Depowered (0-4 mana) = base card only
+//   - 0-cost utility spells have no empowered/depowered states
 // Mana costs: Common 1, Uncommon 2, Rare 3, Legendary 4, Utility 0
 // ============================================
 const mageCards: Card[] = [
@@ -837,7 +807,7 @@ const mageCards: Card[] = [
     description: "Deal 6 damage + 2 Burn 2 turns. If has Burn: +1 Burn/tick. Empowered: +2 Burn/tick. Depowered: -1 Burn/tick. [1 mana]",
     effects: [
       { type: "damage", value: 6, target: "monster" },
-      { type: "burn", value: 2, target: "monster", duration: 2 },
+      { type: "burn", value: 2, target: "monster", duration: 2, burnBonusTick: 1 },
     ],
   },
   {
@@ -846,10 +816,10 @@ const mageCards: Card[] = [
     class: "mage",
     rarity: "common",
     aggro: 2,
-    description: "Deal 6 damage + 2 Ice 2 turns. If has Frost: +3 damage. Empowered: +2 damage. Depowered: -2 damage. [1 mana]",
+    description: "Deal 6 damage + 2 Frost 2 turns. If has Frost: +3 damage. Empowered: +2 damage. [1 mana]",
     effects: [
-      { type: "damage", value: 6, target: "monster" },
-      { type: "ice", value: 2, target: "monster", duration: 2 },
+      { type: "damage", value: 6, target: "monster", frostBonus: 3 },
+      { type: "frost", value: 2, target: "monster", duration: 2 },
     ],
   },
   {
@@ -858,10 +828,10 @@ const mageCards: Card[] = [
     class: "mage",
     rarity: "common",
     aggro: 0,
-    description: "Restore 3 mana. Empowered: Also +5 damage to next spell. [0 mana]",
+    description: "Restore 3 mana. Your next spell deals +5 damage. [0 mana]",
     effects: [
       { type: "manaRestore", value: 3, target: "self" },
-      { type: "empowered", value: 5, target: "self", duration: 1 },
+      { type: "spellDamageBonus", value: 5, target: "self", duration: 1 },
     ],
   },
   {
@@ -870,8 +840,8 @@ const mageCards: Card[] = [
     class: "mage",
     rarity: "common",
     aggro: 0,
-    description: "Next spell is Empowered (even in Recovery). Empowered: Double next spell's Empowered bonus. [0 mana]",
-    effects: [{ type: "empowered", value: 10, target: "self", duration: 1 }],
+    description: "Your next spell is treated as Empowered regardless of mana. [0 mana]",
+    effects: [{ type: "forceEmpowered", value: 1, target: "self", duration: 1 }],
   },
   // ============================================
   // UNCOMMON (6 cards) - 2 mana base
@@ -885,7 +855,7 @@ const mageCards: Card[] = [
     description: "Deal 8 AOE damage + 2 Burn 2 turns. If has Burn: +2 Burn/tick. Empowered: +4 AOE damage. Depowered: -4 AOE damage. [2 mana]",
     effects: [
       { type: "damage", value: 8, target: "allMonsters" },
-      { type: "burn", value: 2, target: "allMonsters", duration: 2 },
+      { type: "burn", value: 2, target: "allMonsters", duration: 2, burnBonusTick: 2 },
     ],
   },
   {
@@ -894,10 +864,10 @@ const mageCards: Card[] = [
     class: "mage",
     rarity: "uncommon",
     aggro: 3,
-    description: "Deal 8 AOE damage + 2 Ice 2 turns. If has Frost: +4 damage. Empowered: +1 Ice/tick. Depowered: -1 Ice/tick. [2 mana]",
+    description: "Deal 8 AOE damage + 2 Frost 2 turns. If has Frost: +4 damage. Empowered: Stun 1 turn, extend Frost by 1 turn. [2 mana]",
     effects: [
-      { type: "damage", value: 8, target: "allMonsters" },
-      { type: "ice", value: 2, target: "allMonsters", duration: 2 },
+      { type: "damage", value: 8, target: "allMonsters", frostBonus: 4 },
+      { type: "frost", value: 2, target: "allMonsters", duration: 2 },
     ],
   },
   {
@@ -906,8 +876,11 @@ const mageCards: Card[] = [
     class: "mage",
     rarity: "uncommon",
     aggro: 2,
-    description: "Stun 1 enemy for 1 turn. Empowered: +1 turn stun. Depowered: No stun, apply 2 Weakness instead. [2 mana]",
-    effects: [{ type: "stun", value: 1, target: "monster", duration: 1 }],
+    description: "Deal 5 damage, apply 2 Weakness for 2 turns. Empowered: Stun for 1 turn instead of Weakness. [2 mana]",
+    effects: [
+      { type: "damage", value: 5, target: "monster" },
+      { type: "weakness", value: 2, target: "monster", duration: 2 },
+    ],
   },
   {
     id: "mage-11",
@@ -915,8 +888,8 @@ const mageCards: Card[] = [
     class: "mage",
     rarity: "uncommon",
     aggro: 2,
-    description: "Grant ally or self +3 primary stat for 2 turns. Empowered: +2 stat. Depowered: -1 stat. [2 mana]",
-    effects: [{ type: "strength", value: 3, target: "ally", duration: 2 }],
+    description: "Grant ally +2 Strength for 2 turns. Empowered: +4 Strength instead. [2 mana]",
+    effects: [{ type: "strength", value: 2, target: "ally", duration: 2 }],
   },
   {
     id: "mage-12",
@@ -924,11 +897,8 @@ const mageCards: Card[] = [
     class: "mage",
     rarity: "uncommon",
     aggro: 1,
-    description: "Gain Taunt + Stealth for 1 turn. Empowered: +1 turn duration. Depowered: No Taunt, Stealth only. [2 mana]",
-    effects: [
-      { type: "taunt", value: 1, target: "self", duration: 1 },
-      { type: "stealth", value: 1, target: "self", duration: 1 },
-    ],
+    description: "Gain Stealth for 1 turn. Empowered: Also gain Taunt for 1 turn. [2 mana]",
+    effects: [{ type: "stealth", value: 1, target: "self", duration: 1 }],
   },
   {
     id: "mage-13",
@@ -936,7 +906,7 @@ const mageCards: Card[] = [
     class: "mage",
     rarity: "uncommon",
     aggro: 3,
-    description: "Deal 5 AOE damage + 2 Vulnerable 2 turns. Empowered: +2 AOE damage. Depowered: -2 AOE damage. [2 mana]",
+    description: "Deal 5 AOE damage + 2 Vulnerable 2 turns. Empowered: +2 AOE damage. [2 mana]",
     effects: [
       { type: "damage", value: 5, target: "allMonsters" },
       { type: "vulnerable", value: 2, target: "allMonsters", duration: 2 },
@@ -951,8 +921,8 @@ const mageCards: Card[] = [
     class: "mage",
     rarity: "rare",
     aggro: 4,
-    description: "Deal 15 damage. Double damage if target has Frost. Empowered: +2 Frost duration. Depowered: Removes Frost. [3 mana]",
-    effects: [{ type: "damage", value: 15, target: "monster" }],
+    description: "Deal 15 damage. Double if target has Frost (consumes Frost). Empowered: Don't consume Frost, extend by 2 turns. [3 mana]",
+    effects: [{ type: "damage", value: 15, target: "monster", doubleDamageIfDebuff: "frost", consumeDebuff: true }],
   },
   {
     id: "mage-15",
@@ -960,7 +930,7 @@ const mageCards: Card[] = [
     class: "mage",
     rarity: "rare",
     aggro: 4,
-    description: "Deal 12 damage + 6 splash to all + 2 Vulnerable 2 turns. Empowered: +4 primary, +2 splash. Depowered: -4 primary, -2 splash. [3 mana]",
+    description: "Deal 12 damage + 6 splash to all + 2 Vulnerable 2 turns. Empowered: +4 primary, +2 splash. [3 mana]",
     effects: [
       { type: "damage", value: 12, target: "monster" },
       { type: "damage", value: 6, target: "allMonsters" },
@@ -973,7 +943,7 @@ const mageCards: Card[] = [
     class: "mage",
     rarity: "rare",
     aggro: 2,
-    description: "Stun until damaged or 3 turns. Attack that breaks stun deals +10 bonus damage. Empowered: +5 bonus. Depowered: -5 bonus. [3 mana]",
+    description: "Stun until damaged or 3 turns. Empowered: Attack that breaks stun deals +15 bonus damage. [3 mana]",
     effects: [{ type: "stun", value: 1, target: "monster", duration: 3 }],
   },
   {
@@ -982,8 +952,11 @@ const mageCards: Card[] = [
     class: "mage",
     rarity: "rare",
     aggro: 0,
-    description: "Stealth 1 turn + restore 4 mana. Empowered: Next attack +8 damage. Depowered: Next attack -4 damage. [3 mana]",
-    effects: [{ type: "stealth", value: 1, target: "self", duration: 1 }],
+    description: "Gain Stealth for 1 turn, restore 2 mana. Empowered: Next attack deals +8 damage. [3 mana]",
+    effects: [
+      { type: "stealth", value: 1, target: "self", duration: 1 },
+      { type: "manaRestore", value: 2, target: "self" },
+    ],
   },
   {
     id: "mage-18",
@@ -994,7 +967,7 @@ const mageCards: Card[] = [
     description: "Deal 15 AOE damage + 3 Burn 3 turns. If has Burn: +3 Burn/tick. Empowered: +5 AOE damage. Depowered: -5 AOE damage. [3 mana]",
     effects: [
       { type: "damage", value: 15, target: "allMonsters" },
-      { type: "burn", value: 3, target: "allMonsters", duration: 3 },
+      { type: "burn", value: 3, target: "allMonsters", duration: 3, burnBonusTick: 3 },
     ],
   },
   // ============================================
@@ -1006,10 +979,10 @@ const mageCards: Card[] = [
     class: "mage",
     rarity: "legendary",
     aggro: 2,
-    description: "Reset mana to 10 + next spell is Empowered. Empowered: Double next Empowered bonus. Depowered: +5 damage next spell. [4 mana]",
+    description: "Restore mana to 10. Your next spell is Empowered with doubled bonus. [0 mana]",
     effects: [
-      { type: "manaRestore", value: 10, target: "self" }, // Reset to max
-      { type: "empowered", value: 15, target: "self", duration: 1 },
+      { type: "manaRestore", value: 10, target: "self" },
+      { type: "doubleEmpowered", value: 1, target: "self", duration: 1 },
     ],
   },
   {
@@ -1018,10 +991,10 @@ const mageCards: Card[] = [
     class: "mage",
     rarity: "legendary",
     aggro: 6,
-    description: "Deal 20 AOE + 5 Burn 3 turns. If has Burn: +10 damage, +4 Burn/tick. Empowered: +5 AOE damage. Depowered: -5 AOE damage. [4 mana]",
+    description: "Deal 20 AOE + 5 Burn 3 turns. If has Burn: +10 damage, +4 Burn/tick. Empowered: +5 AOE damage. [4 mana]",
     effects: [
-      { type: "damage", value: 20, target: "allMonsters" },
-      { type: "burn", value: 5, target: "allMonsters", duration: 3 },
+      { type: "damage", value: 20, target: "allMonsters", burnBonus: 10 },
+      { type: "burn", value: 5, target: "allMonsters", duration: 3, burnBonusTick: 4 },
     ],
   },
   {
@@ -1030,32 +1003,20 @@ const mageCards: Card[] = [
     class: "mage",
     rarity: "legendary",
     aggro: 6,
-    description: "Deal 20 AOE + 5 Ice 3 turns. If has Frost: +20 damage, +2 Ice/tick. Empowered: +5 AOE damage. Depowered: -5 AOE damage. [4 mana]",
+    description: "Deal 20 AOE + 5 Frost 3 turns. If has Frost: +20 damage, +2 Frost/tick. Empowered: +5 AOE damage. [4 mana]",
     effects: [
-      { type: "damage", value: 20, target: "allMonsters" },
-      { type: "ice", value: 5, target: "allMonsters", duration: 3 },
+      { type: "damage", value: 20, target: "allMonsters", frostBonus: 20 },
+      { type: "frost", value: 5, target: "allMonsters", duration: 3, frostBonusTick: 2 },
     ],
   },
   {
     id: "mage-22",
-    name: "Arcane Torrent",
+    name: "Mana Surge",
     class: "mage",
     rarity: "legendary",
-    aggro: 5,
-    description: "Fire 10 missiles (3 damage each). Each applies 1 Vulnerable 1 turn. Empowered: +2 missiles. Depowered: -4 missiles. [4 mana]",
-    effects: [
-      { type: "damage", value: 3, target: "monster" },
-      { type: "damage", value: 3, target: "monster" },
-      { type: "damage", value: 3, target: "monster" },
-      { type: "damage", value: 3, target: "monster" },
-      { type: "damage", value: 3, target: "monster" },
-      { type: "damage", value: 3, target: "monster" },
-      { type: "damage", value: 3, target: "monster" },
-      { type: "damage", value: 3, target: "monster" },
-      { type: "damage", value: 3, target: "monster" },
-      { type: "damage", value: 3, target: "monster" },
-      { type: "vulnerable", value: 1, target: "monster", duration: 1 },
-    ],
+    aggro: 6,
+    description: "Spend all mana. Fire a missile (5 damage) per mana spent. Empowered: Each missile also applies Vulnerable (1 turn). [All mana]",
+    effects: [{ type: "manaSurge", value: 5, target: "monster" }],
   },
 ];
 
@@ -1194,7 +1155,7 @@ const clericCards: Card[] = [
     description: "Deal 8 damage + heal lowest ally 8 HP. [Hybrid]",
     effects: [
       { type: "damage", value: 8, target: "monster" },
-      { type: "heal", value: 8, target: "ally" },
+      { type: "heal", value: 8, target: "lowestAlly" },
     ],
   },
   {
@@ -1234,7 +1195,7 @@ const clericCards: Card[] = [
     effects: [
       { type: "damage", value: 10, target: "monster" },
       { type: "damage", value: 5, target: "self" },
-      { type: "cleanse", target: "self" },
+      { type: "transferDebuffs", target: "monster" },
     ],
   },
   {
@@ -1282,6 +1243,7 @@ const clericCards: Card[] = [
     description: "Deal 20 AOE damage. Below 25% HP: instant death. Above: 4 Burn 3 turns. [Judgment]",
     effects: [
       { type: "damage", value: 20, target: "allMonsters" },
+      { type: "execute", value: 25, target: "allMonsters" }, // Execute enemies below 25% HP
       { type: "burn", value: 4, target: "allMonsters", duration: 3 },
     ],
   },
@@ -1377,7 +1339,7 @@ const bardCards: Card[] = [
     rarity: "common",
     aggro: 1,
     description: "Grant one ally +20% damage (2 turns). [Harmony]",
-    effects: [{ type: "strength", value: 20, target: "ally", duration: 2 }],
+    effects: [{ type: "strength", value: 20, target: "ally", duration: 2, isPercentage: true }],
   },
   {
     id: "bard-5",
@@ -1431,7 +1393,7 @@ const bardCards: Card[] = [
     rarity: "uncommon",
     aggro: 1,
     description: "Grant one ally Inspired: next attack deals +50% damage. [Harmony]",
-    effects: [{ type: "strength", value: 50, target: "ally", duration: 1 }],
+    effects: [{ type: "strength", value: 50, target: "ally", duration: 1, consumeOnAttack: true, isPercentage: true }],
   },
   {
     id: "bard-10",
@@ -1535,7 +1497,7 @@ const bardCards: Card[] = [
     rarity: "rare",
     aggro: 2,
     description: "Grant all allies +30% damage (2 turns). [Harmony]",
-    effects: [{ type: "strength", value: 30, target: "allAllies", duration: 2 }],
+    effects: [{ type: "strength", value: 30, target: "allAllies", duration: 2, isPercentage: true }],
   },
   // ============================================
   // LEGENDARY (4 cards) - 2 Harmony / 2 Riot
@@ -1550,7 +1512,7 @@ const bardCards: Card[] = [
     effects: [
       { type: "heal", value: 15, target: "allAllies" },
       { type: "shield", value: 15, target: "allAllies" },
-      { type: "strength", value: 30, target: "allAllies", duration: 2 },
+      { type: "strength", value: 30, target: "allAllies", duration: 2, isPercentage: true },
     ],
   },
   {
@@ -1727,10 +1689,10 @@ const archerCards: Card[] = [
     class: "archer",
     rarity: "uncommon",
     aggro: 3,
-    description: "Stun all enemies 1 turn, Ice 2 (2 turns) to all.",
+    description: "Stun all enemies 1 turn, Frost 2 (2 turns) to all.",
     effects: [
       { type: "stun", value: 1, target: "allMonsters", duration: 1 },
-      { type: "ice", value: 2, target: "allMonsters", duration: 2 },
+      { type: "frost", value: 2, target: "allMonsters", duration: 2 },
     ],
   },
   {
@@ -1741,7 +1703,7 @@ const archerCards: Card[] = [
     aggro: 1,
     description: "+3 Aim, +20% damage (2 turns).",
     effects: [
-      { type: "strength", value: 20, target: "self", duration: 2 },
+      { type: "strength", value: 20, target: "self", duration: 2, isPercentage: true },
       { type: "gainResource", value: 3, target: "self" },
     ],
   },
@@ -1806,7 +1768,7 @@ const archerCards: Card[] = [
     description: "Gain Stealth 1 turn, next attack +50% damage.",
     effects: [
       { type: "stealth", value: 1, target: "self", duration: 1 },
-      { type: "strength", value: 50, target: "self", duration: 1 },
+      { type: "strength", value: 50, target: "self", duration: 1, consumeOnAttack: true, isPercentage: true },
     ],
   },
   // ============================================
@@ -1989,7 +1951,7 @@ const barbarianCards: Card[] = [
     aggro: 2,
     description: "+50% damage (next 2 attacks), immune to damage (2 turns).",
     effects: [
-      { type: "strength", value: 50, target: "self", duration: 2 },
+      { type: "strength", value: 50, target: "self", duration: 2, consumeOnAttack: true, isPercentage: true },
       { type: "block", value: 1, target: "self", duration: 2 },
     ],
   },
@@ -2001,7 +1963,7 @@ const barbarianCards: Card[] = [
     aggro: 2,
     description: "All allies +20% damage (next 2 attacks), +2 Fury.",
     effects: [
-      { type: "strength", value: 20, target: "allAllies", duration: 2 },
+      { type: "strength", value: 20, target: "allAllies", duration: 2, consumeOnAttack: true, isPercentage: true },
       { type: "gainResource", value: 2, target: "self" },
     ],
   },
@@ -2067,8 +2029,8 @@ const barbarianCards: Card[] = [
     description: "Take 15 damage, +50% damage (next 2 attacks), lifesteal (next 2 attacks).",
     effects: [
       { type: "damage", value: 15, target: "self" },
-      { type: "strength", value: 50, target: "self", duration: 2 },
-      { type: "lifesteal", value: 100, target: "self", duration: 2 }, // 100% lifesteal
+      { type: "strength", value: 50, target: "self", duration: 2, consumeOnAttack: true, isPercentage: true },
+      { type: "lifesteal", value: 100, target: "self", duration: 2, consumeOnAttack: true },
     ],
   },
   {
@@ -2116,8 +2078,8 @@ const barbarianCards: Card[] = [
     description: "Take 20 damage, +100% damage (next 3 attacks), lifesteal (next 3 attacks), +5 Fury.",
     effects: [
       { type: "damage", value: 20, target: "self" },
-      { type: "strength", value: 100, target: "self", duration: 3 },
-      { type: "lifesteal", value: 100, target: "self", duration: 3 },
+      { type: "strength", value: 100, target: "self", duration: 3, consumeOnAttack: true, isPercentage: true },
+      { type: "lifesteal", value: 100, target: "self", duration: 3, consumeOnAttack: true },
       { type: "gainResource", value: 5, target: "self" },
     ],
   },

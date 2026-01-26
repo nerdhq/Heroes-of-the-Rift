@@ -130,6 +130,8 @@ export interface MultiplayerState {
 export interface ProgressionState {
   playerAccount: PlayerAccount | null;
   activeChampion: Champion | null;
+  // Local co-op: selected champions for local multiplayer (1-3 champions)
+  localCoopChampions: Champion[];
 }
 
 // ============================================
@@ -289,10 +291,16 @@ export interface ProgressionActions {
   createChampion: (name: string, classType: ClassType) => Champion | null | Promise<Champion | null>;
   deleteChampion: (championId: string) => boolean | Promise<boolean>;
   selectChampion: (championId: string) => void | Promise<void>;
+  updateChampionName: (championId: string, newName: string) => boolean | Promise<boolean>;
   getActiveChampion: () => Champion | null;
 
+  // Local co-op champion selection (1-3 champions)
+  toggleLocalCoopChampion: (championId: string) => void;
+  clearLocalCoopChampions: () => void;
+  startLocalCoopGame: () => void; // Start game with selected local co-op champions
+
   // Game flow
-  startChampionGame: () => void; // Sets up game state for active champion
+  startChampionGame: () => void; // Sets up game state for active champion (single player)
 
   // Stat allocation
   allocateStatPoint: (stat: keyof CharacterAttributes) => boolean | Promise<boolean>;

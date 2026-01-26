@@ -55,27 +55,31 @@ export const STARTING_GOLD = 50;
 // Starting XP to next level
 export const STARTING_XP_TO_LEVEL = 100;
 
-// Maximum champion slots per account
-export const MAX_CHAMPION_SLOTS = 3;
+// Maximum champion slots per account (one per class)
+export const MAX_CHAMPION_SLOTS = 8;
 
 // ============================================
 // STARTER CARD GENERATION
 // ============================================
 
-// Number of guaranteed common cards
-export const STARTER_CARDS_COMMON_COUNT = 5;
+// Starter cards: All commons + guaranteed higher rarity cards
+// Each class has 7 commons, we add 2 uncommons, 1 rare, 1 legendary = 11 total
+export const STARTER_CARDS_COMMON_COUNT = 7; // All commons for the class
 
-// Number of cards with uncommon chance
-export const STARTER_CARDS_UNCOMMON_SLOTS = 2;
+// Number of guaranteed uncommon cards
+export const STARTER_CARDS_UNCOMMON_COUNT = 2;
 
-// Chance for uncommon in uncommon slots (50%)
-export const STARTER_CARDS_UNCOMMON_CHANCE = 0.5;
+// Number of guaranteed rare cards
+export const STARTER_CARDS_RARE_COUNT = 1;
 
-// Chance for rare in the bonus slot (5%)
-export const STARTER_CARDS_RARE_CHANCE = 0.05;
+// Number of guaranteed legendary cards
+export const STARTER_CARDS_LEGENDARY_COUNT = 1;
 
-// Total starter cards
-export const STARTER_CARDS_TOTAL = 8;
+// Total starter cards (7 common + 2 uncommon + 1 rare + 1 legendary)
+export const STARTER_CARDS_TOTAL = 11;
+
+// Chance for a card in your starting deck selection to be replaced with a random legendary (5%)
+export const DECK_LEGENDARY_REPLACE_CHANCE = 0.05;
 
 // ============================================
 // STORAGE KEYS

@@ -63,16 +63,16 @@ export const CLASS_CONFIGS: Record<ClassType, ClassConfig> = {
     name: "Mage",
     description: "Scholarly arcanist who bends reality through mastery of magic. High damage and utility, but fragile.",
     baseHp: 70,
-    resourceName: "Mana",
+    resourceName: "Overflow",
     maxResource: 10,
     color: "#3b82f6", // blue
     specialAbility: {
       name: "Mana Overload",
-      description: "At 10 Mana: Deal 36 damage to all enemies. Apply Burn 2, Ice 2, and Vulnerable 2 for 2 turns.",
+      description: "At 10 Overflow: Deal 36 damage to all enemies. Apply Burn 2, Ice 2, and Vulnerable 2 for 2 turns.",
       effects: [
         { type: "damage", value: 36, target: "allMonsters" },
         { type: "burn", value: 2, target: "allMonsters", duration: 2 },
-        { type: "ice", value: 2, target: "allMonsters", duration: 2 },
+        { type: "frost", value: 2, target: "allMonsters", duration: 2 },
         { type: "vulnerable", value: 2, target: "allMonsters", duration: 2 },
       ],
     },

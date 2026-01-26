@@ -696,7 +696,7 @@ const channelerAbilities: MonsterAbility[] = [
     description: "A chilling ghostly touch.",
     damage: 6,
     target: "single",
-    debuff: { type: "ice", value: 2, duration: 2 },
+    debuff: { type: "frost", value: 2, duration: 2 },
   },
   {
     roll: 5,
@@ -1156,7 +1156,7 @@ const ectoskullAbilities: MonsterAbility[] = [
     description: "Bites with spectral teeth.",
     damage: 8,
     target: "single",
-    debuff: { type: "ice", value: 2, duration: 2 },
+    debuff: { type: "frost", value: 2, duration: 2 },
   },
   {
     roll: 6,
@@ -1238,7 +1238,7 @@ const spectreAbilities: MonsterAbility[] = [
     description: "A freezing touch.",
     damage: 7,
     target: "single",
-    debuff: { type: "ice", value: 2, duration: 2 },
+    debuff: { type: "frost", value: 2, duration: 2 },
   },
   {
     roll: 4,

@@ -5,6 +5,7 @@ import { LoginScreen } from "./components/LoginScreen";
 import { LobbyScreen } from "./components/LobbyScreen";
 import { WaitingRoom } from "./components/WaitingRoom";
 import { ChampionSelectScreen } from "./components/ChampionSelectScreen";
+import { GameChampionSelectScreen } from "./components/GameChampionSelectScreen";
 import { ChampionCreateScreen } from "./components/ChampionCreateScreen";
 import { StatAllocationScreen } from "./components/StatAllocationScreen";
 import { ClassSelectScreen } from "./components/ClassSelectScreen";
@@ -46,6 +47,7 @@ function App() {
       {currentScreen === "waitingRoom" && <WaitingRoom />}
       {currentScreen === "onlineChampionSelect" && <OnlineChampionSelect />}
       {currentScreen === "championSelect" && <ChampionSelectScreen />}
+      {currentScreen === "gameChampionSelect" && <GameChampionSelectScreen />}
       {currentScreen === "championCreate" && <ChampionCreateScreen />}
       {currentScreen === "statAllocation" && <StatAllocationScreen />}
       {currentScreen === "classSelect" && (

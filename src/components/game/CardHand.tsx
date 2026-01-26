@@ -1,6 +1,7 @@
 import { Target, Check, Clock } from "lucide-react";
 import { CLASS_CONFIGS } from "../../data/classes";
 import type { Card, Player, Monster, Rarity, GamePhase } from "../../types";
+import { getCardDescriptionForFaith, getCardDescriptionForMana } from "../../utils/cardHelpers";
 
 interface PlayerSelection {
   playerId: string;
@@ -192,7 +193,15 @@ export function CardHand({
             {card.rarity}
           </span>
         </div>
-        <p className="text-stone-300 text-xs md:text-sm mb-1 md:mb-2 line-clamp-2">{card.description}</p>
+        <p className="text-stone-300 text-xs md:text-sm mb-1 md:mb-2 line-clamp-2">
+          {localPlayer
+            ? localPlayer.class === "paladin"
+              ? getCardDescriptionForFaith(card.description, localPlayer.resource, localPlayer.maxResource)
+              : localPlayer.class === "mage"
+              ? getCardDescriptionForMana(card.description, localPlayer.mana ?? 0, localPlayer.maxMana ?? 10)
+              : card.description
+            : card.description}
+        </p>
         <div className="flex items-center justify-between text-xs md:text-sm">
           <span className="text-amber-400">
             ⚡ {card.aggro}

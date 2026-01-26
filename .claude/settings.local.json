@@ -15,11 +15,12 @@
       "Bash(ls:*)",
       "Bash(dir:*)",
       "Bash(wc:*)",
-      "Bash(done)"
+      "Bash(done)",
+      "Bash(npx tsc:*)"
     ]
   },
+  "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "chrome-devtools"
-  ],
-  "enableAllProjectMcpServers": true
+  ]
 }

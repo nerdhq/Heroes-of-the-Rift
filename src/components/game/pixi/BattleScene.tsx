@@ -306,13 +306,68 @@ export function BattleScene({ width, height }: BattleSceneProps) {
 
     // Responsive spacing - smaller on mobile
     const isMobile = width < 500;
-    const spacing = isMobile ? 90 : 160;
+
+    // Header takes up space at top (Round indicator, phase bar)
+    const headerOffset = isMobile ? 100 : 140;
+    // Bottom area for cards
+    const bottomPadding = isMobile ? 80 : 100;
+    // Usable height for character placement
+    const usableHeight = safeHeight - headerOffset - bottomPadding;
+
+    const baseX = isMobile ? safeWidth * 0.22 : safeWidth * 0.25;
+
+    // For 3 players, use staggered layout with middle player forward
+    if (total === 3) {
+      const forwardOffset = isMobile ? 50 : 80; // Middle player pushed forward
+
+      // Positions: top, middle (forward), bottom - within usable area
+      const positions = [
+        { x: baseX, y: headerOffset + usableHeight * 0.15 },                    // Top player
+        { x: baseX + forwardOffset, y: headerOffset + usableHeight * 0.50 },    // Middle player (forward)
+        { x: baseX, y: headerOffset + usableHeight * 0.85 },                    // Bottom player
+      ];
+
+      return positions[index] || positions[0];
+    }
+
+    // For 4 players, use staggered layout
+    if (total === 4) {
+      const forwardOffset = isMobile ? 40 : 70;
+
+      // Positions: alternating back/forward pattern
+      const positions = [
+        { x: baseX, y: headerOffset + usableHeight * 0.12 },                    // Top (back)
+        { x: baseX + forwardOffset, y: headerOffset + usableHeight * 0.37 },    // Upper-mid (forward)
+        { x: baseX, y: headerOffset + usableHeight * 0.62 },                    // Lower-mid (back)
+        { x: baseX + forwardOffset, y: headerOffset + usableHeight * 0.87 },    // Bottom (forward)
+      ];
+
+      return positions[index] || positions[0];
+    }
+
+    // For 5 players
+    if (total === 5) {
+      const forwardOffset = isMobile ? 35 : 60;
+
+      const positions = [
+        { x: baseX, y: headerOffset + usableHeight * 0.10 },
+        { x: baseX + forwardOffset, y: headerOffset + usableHeight * 0.28 },
+        { x: baseX, y: headerOffset + usableHeight * 0.50 },
+        { x: baseX + forwardOffset, y: headerOffset + usableHeight * 0.72 },
+        { x: baseX, y: headerOffset + usableHeight * 0.90 },
+      ];
+
+      return positions[index] || positions[0];
+    }
+
+    // Default even distribution for 1-2 or 6+ players
+    const spacing = isMobile ? 80 : Math.min(140, usableHeight / (total + 0.5));
     const totalHeight = (total - 1) * spacing;
-    const startY = (safeHeight - totalHeight) / 2;
+    const startY = headerOffset + (usableHeight - totalHeight) / 2;
 
     return {
-      x: isMobile ? safeWidth * 0.22 : safeWidth * 0.25,
-      y: Math.max(isMobile ? 60 : 120, startY) + spacing * index
+      x: baseX,
+      y: startY + spacing * index
     };
   }, [width, height]);
 
@@ -429,11 +484,11 @@ export function BattleScene({ width, height }: BattleSceneProps) {
           const selectedCard = currentPlayer.hand.find(c => c.id === selectedCardId);
           if (selectedCard) {
             const hasFireEffect = selectedCard.effects.some(e => e.type === "burn");
-            const hasIceEffect = selectedCard.effects.some(e => e.type === "ice");
+            const hasIceEffect = selectedCard.effects.some(e => e.type === "frost");
             const hasPoisonEffect = selectedCard.effects.some(e => e.type === "poison");
 
             if (hasFireEffect) effectType = "fire";
-            else if (hasIceEffect) effectType = "ice";
+            else if (hasIceEffect) effectType = "frost";
             else if (hasPoisonEffect) effectType = "poison";
           }
         }
