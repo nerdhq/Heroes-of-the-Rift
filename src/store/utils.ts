@@ -1384,17 +1384,32 @@ export function applyEffect(
         // Poison, Burn, Frost, Vulnerable use turn-based tracking
         const useActionTracking = ["stun", "weakness", "accuracy"].includes(effect.type);
 
-        const newDebuff: StatusEffect = {
-          type: effect.type,
-          value: finalValue,
-          duration: finalDuration,
-          source: caster.name,
-          useActionTracking,
-        };
+        // Check if debuff of this type already exists - stack by extending duration
+        const existingDebuffIdx = updatedDebuffs.findIndex(d => d.type === effect.type);
+
+        if (existingDebuffIdx !== -1) {
+          // Stack: extend duration and take higher value
+          const existing = updatedDebuffs[existingDebuffIdx];
+          updatedDebuffs[existingDebuffIdx] = {
+            ...existing,
+            duration: existing.duration + finalDuration,
+            value: Math.max(existing.value, finalValue),
+          };
+        } else {
+          // New debuff
+          const newDebuff: StatusEffect = {
+            type: effect.type,
+            value: finalValue,
+            duration: finalDuration,
+            source: caster.name,
+            useActionTracking,
+          };
+          updatedDebuffs.push(newDebuff);
+        }
 
         updatedMonsters[idx] = {
           ...currentMonster,
-          debuffs: [...updatedDebuffs, newDebuff],
+          debuffs: updatedDebuffs,
         };
 
         const durationUnit = useActionTracking ? "action(s)" : "turns";

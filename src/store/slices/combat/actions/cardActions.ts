@@ -14,6 +14,8 @@ import {
   WARRIOR_RAGE_DIVISOR,
   WARRIOR_RAGE_MAX_GAIN,
   ROGUE_COMBO_GAIN,
+  PALADIN_FAITH_BASE_GAIN,
+  PALADIN_FAITH_HEAL_BONUS,
   HEALER_RESOURCE_GAIN,
   BARD_INSPIRATION_GAIN,
   ARCHER_FOCUS_GAIN,
@@ -458,6 +460,7 @@ export const createCardActions = (set: SetState, get: GetState) => ({
 
       set({
         players: updatedPlayers,
+        phase: "PLAYER_ACTION", // Set phase so nextPhase() knows where to go
         log: [...get().log, ...logEntries],
         enhanceMode: false,
       });
@@ -591,6 +594,7 @@ export const createCardActions = (set: SetState, get: GetState) => ({
 
     let totalDamageDealt = 0;
     let totalHealing = 0;
+    let totalShieldApplied = 0;
 
     // Log Mage mana state if card has Empowered scaling and is empowered
     // Uses the separate mana pool (not resource/Resonance)
@@ -622,6 +626,7 @@ export const createCardActions = (set: SetState, get: GetState) => ({
     for (const effect of selectedCard.effects) {
       const monsterHpBefore = new Map(updatedMonsters.map((m) => [m.id, m.hp]));
       const playerHpBefore = new Map(updatedPlayers.map((p) => [p.id, p.hp]));
+      const playerShieldBefore = new Map(updatedPlayers.map((p) => [p.id, p.shield]));
 
       // Apply enhancement bonuses
       let enhancedEffect = effect;
@@ -691,6 +696,15 @@ export const createCardActions = (set: SetState, get: GetState) => ({
           damageNumbers.push({ targetId: p.id, value: healing, type: "heal" });
         }
       }
+
+      // Track shield applied (for Paladin Faith gain)
+      for (const p of updatedPlayers) {
+        const shieldBefore = playerShieldBefore.get(p.id) || 0;
+        const shieldGained = p.shield - shieldBefore;
+        if (shieldGained > 0) {
+          totalShieldApplied += shieldGained;
+        }
+      }
     }
 
     // Apply Paladin Faith bonuses (card-specific bonuses at 50%/100% Faith)
@@ -706,6 +720,7 @@ export const createCardActions = (set: SetState, get: GetState) => ({
         const bonusEffect = convertFaithBonusToEffect(bonus, targetId);
         if (bonusEffect) {
           const bonusHpBefore = new Map(updatedPlayers.map((p) => [p.id, p.hp]));
+          const bonusShieldBefore = new Map(updatedPlayers.map((p) => [p.id, p.shield]));
           const bonusMonsterHpBefore = new Map(updatedMonsters.map((m) => [m.id, m.hp]));
 
           const result = applyEffect(
@@ -755,6 +770,15 @@ export const createCardActions = (set: SetState, get: GetState) => ({
             if (healing > 0) {
               totalHealing += healing;
               damageNumbers.push({ targetId: p.id, value: healing, type: "heal" });
+            }
+          }
+
+          // Track additional shield applied (for Faith gain calculation)
+          for (const p of updatedPlayers) {
+            const shieldBefore = bonusShieldBefore.get(p.id) || 0;
+            const shieldGained = p.shield - shieldBefore;
+            if (shieldGained > 0) {
+              totalShieldApplied += shieldGained;
             }
           }
         }
@@ -874,6 +898,10 @@ export const createCardActions = (set: SetState, get: GetState) => ({
         resourceGain = ROGUE_COMBO_GAIN;
         break;
       case "paladin":
+        // Paladin gains base Faith per card + bonus when healing
+        resourceGain = PALADIN_FAITH_BASE_GAIN;
+        if (totalHealing > 0) resourceGain += PALADIN_FAITH_HEAL_BONUS;
+        break;
       case "cleric":
         if (totalHealing > 0) resourceGain = HEALER_RESOURCE_GAIN;
         break;

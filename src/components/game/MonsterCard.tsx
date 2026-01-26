@@ -15,7 +15,7 @@ export function MonsterCard({ monster, isSelectable = false, isSelected = false,
     const icons: Record<string, string> = {
       poison: "☠️",
       burn: "🔥",
-      ice: "❄️",
+      frost: "❄️",
       weakness: "💔",
       stun: "💫",
       stealth: "👁️",
@@ -24,6 +24,7 @@ export function MonsterCard({ monster, isSelectable = false, isSelected = false,
       shield: "🛡️",
       block: "🚫",
       accuracy: "🎯",
+      vulnerable: "🎯",
     };
     return icons[type] || "❓";
   };
@@ -32,7 +33,7 @@ export function MonsterCard({ monster, isSelectable = false, isSelected = false,
     const descriptions: Record<string, string> = {
       poison: `Poison: Takes ${effect.value} damage at end of turn`,
       burn: `Burn: Takes ${effect.value} damage at end of turn`,
-      ice: `Frost: Takes ${effect.value} damage at end of turn, slowed`,
+      frost: `Frost: Takes ${effect.value} damage at end of turn`,
       weakness: `Weakness: Deals ${effect.value} less damage`,
       stun: `Stunned: Cannot act this turn`,
       stealth: `Stealth: Cannot be targeted by single-target attacks`,
@@ -41,6 +42,7 @@ export function MonsterCard({ monster, isSelectable = false, isSelected = false,
       shield: `Shield: Absorbs ${effect.value} damage`,
       block: `Block: Immune to next ${effect.value} attacks`,
       accuracy: `Accuracy Penalty: ${effect.value}% chance to miss`,
+      vulnerable: `Vulnerable: Takes ${effect.value} extra damage`,
     };
     return `${descriptions[effect.type] || effect.type} (${
       effect.duration

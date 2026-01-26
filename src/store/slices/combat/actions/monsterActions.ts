@@ -196,7 +196,7 @@ export const createMonsterActions = (set: SetState, get: GetState) => ({
             const damageMsg = `${target.name} takes ${damage} damage!${
               !isAlive ? " 💀" : ""
             }`;
-            get().addActionMessage(damageMsg, "damage", monster.id);
+            get().addActionMessage(damageMsg, "damage", target.id);
             set({
               players: updatedPlayers,
               log: [
@@ -253,17 +253,33 @@ export const createMonsterActions = (set: SetState, get: GetState) => ({
             // Stun uses action-based tracking (duration = actions missed)
             const useActionTracking = ability.debuff.type === "stun";
 
-            const newDebuff: StatusEffect = {
-              type: ability.debuff.type,
-              value: ability.debuff.value,
-              duration: ability.debuff.duration,
-              source: monster.name,
-              useActionTracking,
-            };
+            // Check if debuff of this type already exists - stack by extending duration
+            const currentDebuffs = [...updatedPlayers[playerIndex].debuffs];
+            const existingDebuffIdx = currentDebuffs.findIndex(d => d.type === ability.debuff!.type);
+
+            if (existingDebuffIdx !== -1) {
+              // Stack: extend duration and take higher value
+              const existing = currentDebuffs[existingDebuffIdx];
+              currentDebuffs[existingDebuffIdx] = {
+                ...existing,
+                duration: existing.duration + ability.debuff.duration,
+                value: Math.max(existing.value, ability.debuff.value),
+              };
+            } else {
+              // New debuff
+              const newDebuff: StatusEffect = {
+                type: ability.debuff.type,
+                value: ability.debuff.value,
+                duration: ability.debuff.duration,
+                source: monster.name,
+                useActionTracking,
+              };
+              currentDebuffs.push(newDebuff);
+            }
 
             updatedPlayers[playerIndex] = {
               ...updatedPlayers[playerIndex],
-              debuffs: [...updatedPlayers[playerIndex].debuffs, newDebuff],
+              debuffs: currentDebuffs,
               isStunned:
                 ability.debuff.type === "stun" ||
                 updatedPlayers[playerIndex].isStunned,
@@ -277,7 +293,7 @@ export const createMonsterActions = (set: SetState, get: GetState) => ({
             get().addActionMessage(
               `${target.name} is ${formatDebuffMessage(ability.debuff!.type)}!`,
               "debuff",
-              monster.id
+              target.id
             );
             set({
               players: updatedPlayers,
