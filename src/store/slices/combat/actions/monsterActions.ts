@@ -40,6 +40,24 @@ export const createMonsterActions = (set: SetState, get: GetState) => ({
             ),
           ],
         });
+
+        // Decrement action-tracked debuffs (monster spent an action opportunity)
+        const currentMonsters = get().monsters;
+        const monsterIdx = currentMonsters.findIndex((m) => m.id === monster.id);
+        if (monsterIdx !== -1) {
+          const currentMonster = currentMonsters[monsterIdx];
+          const updatedDebuffs = currentMonster.debuffs
+            .map((d) => d.useActionTracking ? { ...d, duration: d.duration - 1 } : d)
+            .filter((d) => d.duration > 0);
+
+          const updatedMonsters = [...currentMonsters];
+          updatedMonsters[monsterIdx] = {
+            ...currentMonster,
+            debuffs: updatedDebuffs,
+          };
+          set({ monsters: updatedMonsters });
+        }
+
         syncNow();
         await delay(1500);
         continue;
@@ -232,11 +250,15 @@ export const createMonsterActions = (set: SetState, get: GetState) => ({
             );
             if (playerIndex === -1) continue;
 
+            // Stun uses action-based tracking (duration = actions missed)
+            const useActionTracking = ability.debuff.type === "stun";
+
             const newDebuff: StatusEffect = {
               type: ability.debuff.type,
               value: ability.debuff.value,
               duration: ability.debuff.duration,
               source: monster.name,
+              useActionTracking,
             };
 
             updatedPlayers[playerIndex] = {
@@ -271,6 +293,23 @@ export const createMonsterActions = (set: SetState, get: GetState) => ({
             });
             await delay(1500);
           }
+        }
+
+        // Decrement action-tracked debuffs (monster took an action)
+        const monstersAfterAction = get().monsters;
+        const monsterIdx = monstersAfterAction.findIndex((m) => m.id === monster.id);
+        if (monsterIdx !== -1) {
+          const currentMonster = monstersAfterAction[monsterIdx];
+          const updatedDebuffs = currentMonster.debuffs
+            .map((d) => d.useActionTracking ? { ...d, duration: d.duration - 1 } : d)
+            .filter((d) => d.duration > 0);
+
+          const updatedMonsters = [...monstersAfterAction];
+          updatedMonsters[monsterIdx] = {
+            ...currentMonster,
+            debuffs: updatedDebuffs,
+          };
+          set({ monsters: updatedMonsters });
         }
       }
 
