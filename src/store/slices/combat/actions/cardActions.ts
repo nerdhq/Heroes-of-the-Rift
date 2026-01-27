@@ -540,19 +540,25 @@ export const createCardActions = (set: SetState, get: GetState) => ({
       selectedTargetId: null,
     });
 
-    // Show log messages with delays
+    // Check for victory early and show message immediately
+    const isVictory = result.monsters.every((m) => !m.isAlive);
+    if (isVictory) {
+      get().addActionMessage("Victory! All enemies defeated!", "action", player.id);
+    }
+
+    // Show log messages with delays (shortened if victory)
     for (const logEntry of result.logs) {
       const msgType = logEntry.type === "damage" ? "damage" : logEntry.type === "heal" ? "heal" : "action";
       get().addActionMessage(logEntry.message, msgType as ActionMessage["type"], player.id);
       set({ log: [...get().log, logEntry] });
-      await delay(1500);
+      await delay(isVictory ? 800 : 1500);
     }
 
     // Sync to other players if online
     get().syncAfterAction();
 
-    // Check for victory
-    if (result.monsters.every((m) => !m.isAlive)) {
+    // Transition to next round if victory
+    if (isVictory) {
       get().nextRound();
       return;
     }
@@ -968,14 +974,14 @@ export const createCardActions = (set: SetState, get: GetState) => ({
       };
     }
 
-    // Move played card to discard, keep unused cards in hand
+    // Move both cards to discard (played card + unplayed cards)
     const playedCard = player.hand.find((c) => c.id === cardId)!;
-    const remainingHand = player.hand.filter((c) => c.id !== cardId);
+    const otherCards = player.hand.filter((c) => c.id !== cardId);
 
     updatedPlayers[playerIndex] = {
       ...updatedPlayers[playerIndex],
-      hand: remainingHand,
-      discard: [...updatedPlayers[playerIndex].discard, playedCard],
+      hand: [],
+      discard: [...updatedPlayers[playerIndex].discard, playedCard, ...otherCards],
     };
 
     // Decrement action-tracked buffs/debuffs for the player who took an action
