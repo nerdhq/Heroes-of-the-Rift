@@ -55,7 +55,7 @@ function ChampionCard({
   selectionNumber: number;
   onToggle: () => void;
 }) {
-  const config = CLASS_CONFIGS[champion.class];
+  const config = CLASS_CONFIGS[champion.class] ?? { name: "Unknown", color: "#888" };
   const xpPercent = (champion.xp / champion.xpToNextLevel) * 100;
 
   return (
