@@ -70,7 +70,7 @@ export function TitleScreen() {
             <div className="flex items-center gap-2">
               <span className="text-amber-100 font-bold text-lg">{activeChampion.name}</span>
               <span className="text-stone-500">•</span>
-              <span className="text-stone-400">{CLASS_CONFIGS[activeChampion.class].name}</span>
+              <span className="text-stone-400">{CLASS_CONFIGS[activeChampion.class]?.name ?? "Unknown"}</span>
             </div>
             <div className="flex items-center gap-4 text-sm">
               <div className="flex items-center gap-1 text-amber-400">
